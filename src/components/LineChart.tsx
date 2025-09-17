@@ -11,7 +11,10 @@ import {
   ChartOptions,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import { Maximize2, Minimize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 ChartJS.register(
   CategoryScale,
@@ -31,6 +34,7 @@ interface LineChartProps {
 export const LineChart = ({ title, type }: LineChartProps) => {
   const [data, setData] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Mock data generation
   useEffect(() => {
@@ -64,7 +68,7 @@ export const LineChart = ({ title, type }: LineChartProps) => {
     ],
   };
 
-  const options: ChartOptions<'line'> = {
+  const getOptions = (isModal = false): ChartOptions<'line'> => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -93,7 +97,7 @@ export const LineChart = ({ title, type }: LineChartProps) => {
         },
         ticks: {
           color: 'hsl(210, 10%, 60%)',
-          maxTicksLimit: 10,
+          maxTicksLimit: isModal ? 20 : 10,
         },
       },
       y: {
@@ -111,14 +115,45 @@ export const LineChart = ({ title, type }: LineChartProps) => {
         borderWidth: 2,
       },
     },
-  };
+  });
+
+  const ChartContent = ({ isModal = false }: { isModal?: boolean }) => (
+    <div className={`bg-chart-bg rounded-lg p-2 relative group ${
+      isModal ? "h-full" : "h-48"
+    }`}>
+      <Line data={chartData} options={getOptions(isModal)} />
+      
+      {/* Fullscreen button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/50 hover:bg-black/70"
+        onClick={() => setIsFullscreen(!isFullscreen)}
+      >
+        {isModal ? (
+          <Minimize2 className="h-4 w-4 text-white" />
+        ) : (
+          <Maximize2 className="h-4 w-4 text-white" />
+        )}
+      </Button>
+    </div>
+  );
 
   return (
-    <Card className="p-4">
-      <h3 className="text-sm font-medium mb-3 text-foreground">{title}</h3>
-      <div className="h-48 bg-chart-bg rounded-lg p-2">
-        <Line data={chartData} options={options} />
-      </div>
-    </Card>
+    <>
+      <Card className="p-4">
+        <h3 className="text-sm font-medium mb-3 text-foreground">{title}</h3>
+        <ChartContent />
+      </Card>
+
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-[90vw] max-h-[90vh] p-6">
+          <div className="h-[70vh]">
+            <h3 className="text-lg font-medium mb-4 text-foreground">{title} - Fullscreen</h3>
+            <ChartContent isModal />
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

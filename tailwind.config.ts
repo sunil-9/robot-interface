@@ -47,6 +47,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* Custom colors for robotics interface */
+        camera: {
+          bg: "hsl(var(--camera-bg))",
+        },
+        chart: {
+          bg: "hsl(var(--chart-bg))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

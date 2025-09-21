@@ -15,7 +15,7 @@ import { Maximize2, Minimize2, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 ChartJS.register(
@@ -31,14 +31,13 @@ ChartJS.register(
 interface LineChartProps {
   title: string;
   type: "state" | "action";
-  jointIndex?: number;
   availableJoints?: string[];
-  onJointIndexChange?: (index: number) => void;
 }
 
-export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], onJointIndexChange }: LineChartProps) => {
-  const [data, setData] = useState<number[]>([]);
+export const LineChart = ({ title, type, availableJoints = [] }: LineChartProps) => {
+  const [allJointData, setAllJointData] = useState<Record<number, number[]>>({});
   const [labels, setLabels] = useState<string[]>([]);
+  const [visibleJoints, setVisibleJoints] = useState<Record<number, boolean>>({});
   const [isFullscreen, setIsFullscreen] = useState(false);
   const lastUpdateTime = useRef<number>(0);
   
@@ -53,6 +52,24 @@ export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], o
     maxReconnectAttempts: 10
   });
 
+  // Initialize visible joints when availableJoints changes
+  useEffect(() => {
+    if (availableJoints.length > 0) {
+      const initialVisibility: Record<number, boolean> = {};
+      availableJoints.forEach((_, index) => {
+        initialVisibility[index] = true; // Show all joints by default
+      });
+      setVisibleJoints(initialVisibility);
+      
+      // Initialize data arrays
+      const initialData: Record<number, number[]> = {};
+      availableJoints.forEach((_, index) => {
+        initialData[index] = [];
+      });
+      setAllJointData(initialData);
+    }
+  }, [availableJoints]);
+
   // Process incoming WebSocket messages
   useEffect(() => {
     if (!lastMessage) return;
@@ -60,26 +77,33 @@ export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], o
     // Handle replay messages (initial buffered data)
     if (lastMessage.replay) {
       const relevantMessages = lastMessage.replay.filter(msg => msg.role === type);
-      if (relevantMessages.length > 0) {
-        const newData: number[] = [];
+      if (relevantMessages.length > 0 && availableJoints.length > 0) {
+        const newAllData: Record<number, number[]> = {};
         const newLabels: string[] = [];
         
+        // Initialize arrays for each joint
+        availableJoints.forEach((_, index) => {
+          newAllData[index] = [];
+        });
+        
         relevantMessages.slice(-MAX_DATA_POINTS).forEach(msg => {
-          const value = extractDataValue(msg);
-          if (value !== null) {
-            newData.push(value);
+          const allValues = extractAllJointValues(msg);
+          if (allValues && Object.keys(allValues).length > 0) {
             newLabels.push(new Date(msg.received_at).toLocaleTimeString());
+            availableJoints.forEach((_, index) => {
+              newAllData[index].push(allValues[index] || 0);
+            });
           }
         });
         
-        setData(newData);
+        setAllJointData(newAllData);
         setLabels(newLabels);
       }
       return;
     }
 
     // Handle real-time messages with throttling
-    if (lastMessage.role === type) {
+    if (lastMessage.role === type && availableJoints.length > 0) {
       const now = Date.now();
       
       // Throttle UI updates to prevent performance issues
@@ -87,59 +111,84 @@ export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], o
         return;
       }
       
-      const value = extractDataValue(lastMessage);
-      if (value !== null) {
+      const allValues = extractAllJointValues(lastMessage);
+      if (allValues && Object.keys(allValues).length > 0) {
         const newTime = new Date(lastMessage.received_at).toLocaleTimeString();
         
-        setData(prev => [...prev.slice(-(MAX_DATA_POINTS - 1)), value]);
+        setAllJointData(prev => {
+          const updated: Record<number, number[]> = {};
+          availableJoints.forEach((_, index) => {
+            const prevData = prev[index] || [];
+            updated[index] = [...prevData.slice(-(MAX_DATA_POINTS - 1)), allValues[index] || 0];
+          });
+          return updated;
+        });
+        
         setLabels(prev => [...prev.slice(-(MAX_DATA_POINTS - 1)), newTime]);
         lastUpdateTime.current = now;
       }
     }
-  }, [lastMessage, type]);
+  }, [lastMessage, type, availableJoints]);
 
-  // Extract numeric value from WebSocket message
-  const extractDataValue = (message: any): number | null => {
+  // Extract all joint values from WebSocket message
+  const extractAllJointValues = (message: any): Record<number, number> | null => {
     const normalized = message.normalized;
     if (!normalized) return null;
 
+    const values: Record<number, number> = {};
+
     // For JointState messages, handle both array and object formats
     if (normalized.positions) {
-      const indexKey = jointIndex.toString();
-      if (Array.isArray(normalized.positions) && normalized.positions.length > jointIndex) {
-        return normalized.positions[jointIndex];
-      } else if (typeof normalized.positions === 'object' && normalized.positions[indexKey] !== undefined) {
-        return normalized.positions[indexKey];
+      if (Array.isArray(normalized.positions)) {
+        normalized.positions.forEach((value: number, index: number) => {
+          values[index] = value;
+        });
+      } else if (typeof normalized.positions === 'object') {
+        Object.keys(normalized.positions).forEach(key => {
+          const index = parseInt(key);
+          if (!isNaN(index) && normalized.positions[key] !== null) {
+            values[index] = normalized.positions[key];
+          }
+        });
       }
     }
 
-    // For Float64MultiArray messages, use selected index
-    if (normalized.data && normalized.data.length > jointIndex) {
-      return normalized.data[jointIndex];
+    // For Float64MultiArray messages
+    if (normalized.data && Array.isArray(normalized.data)) {
+      normalized.data.forEach((value: number, index: number) => {
+        values[index] = value;
+      });
     }
 
-    // For JointTrajectory messages, use selected position of last point
-    if (normalized.last_point_positions && normalized.last_point_positions.length > jointIndex) {
-      return normalized.last_point_positions[jointIndex];
+    // For JointTrajectory messages
+    if (normalized.last_point_positions && Array.isArray(normalized.last_point_positions)) {
+      normalized.last_point_positions.forEach((value: number, index: number) => {
+        values[index] = value;
+      });
     }
 
-    return null;
+    return Object.keys(values).length > 0 ? values : null;
+  };
+
+  // Generate colors for each joint
+  const generateColor = (index: number, total: number) => {
+    const hue = (index * 360) / total;
+    return `hsl(${hue}, 70%, 60%)`;
   };
 
   const chartData = {
     labels,
-    datasets: [
-      {
-        label: title,
-        data,
-        borderColor: type === "state" ? "hsl(195, 100%, 50%)" : "hsl(195, 100%, 40%)",
-        backgroundColor: type === "state" ? "hsl(195, 100%, 50%, 0.1)" : "hsl(195, 100%, 40%, 0.1)",
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.4,
-      },
-    ],
+    datasets: availableJoints.map((jointName, index) => ({
+      label: jointName,
+      data: allJointData[index] || [],
+      borderColor: generateColor(index, availableJoints.length),
+      backgroundColor: `${generateColor(index, availableJoints.length).replace(')', ', 0.1)')}`,
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.4,
+      hidden: !visibleJoints[index], // Control visibility
+    })),
   };
 
   const getOptions = (isModal = false): ChartOptions<'line'> => ({
@@ -147,7 +196,16 @@ export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], o
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: false,
+        display: true,
+        position: 'top' as const,
+        labels: {
+          usePointStyle: true,
+          padding: 10,
+          font: {
+            size: 11,
+          },
+          color: 'hsl(210, 20%, 95%)',
+        },
       },
       tooltip: {
         mode: 'index' as const,
@@ -219,20 +277,6 @@ export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], o
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-medium text-foreground">{title}</h3>
-            {availableJoints.length > 0 && onJointIndexChange && (
-              <Select value={jointIndex.toString()} onValueChange={(value) => onJointIndexChange(parseInt(value))}>
-                <SelectTrigger className="w-40 h-7 text-xs">
-                  <SelectValue placeholder="Select joint" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableJoints.map((joint, index) => (
-                    <SelectItem key={index} value={index.toString()}>
-                      {joint}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
           </div>
           <div className="flex items-center gap-2">
             {isConnected ? (
@@ -248,6 +292,35 @@ export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], o
             )}
           </div>
         </div>
+        
+        {/* Joint visibility controls */}
+        {availableJoints.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2 text-xs">
+            {availableJoints.map((jointName, index) => (
+              <div key={index} className="flex items-center space-x-1">
+                <Checkbox
+                  id={`joint-${index}`}
+                  checked={visibleJoints[index] || false}
+                  onCheckedChange={(checked) => {
+                    setVisibleJoints(prev => ({
+                      ...prev,
+                      [index]: !!checked
+                    }));
+                  }}
+                  className="h-3 w-3"
+                />
+                <label 
+                  htmlFor={`joint-${index}`} 
+                  className="text-xs cursor-pointer"
+                  style={{ color: generateColor(index, availableJoints.length) }}
+                >
+                  {jointName}
+                </label>
+              </div>
+            ))}
+          </div>
+        )}
+        
         <ChartContent />
       </Card>
 

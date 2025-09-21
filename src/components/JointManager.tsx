@@ -9,7 +9,6 @@ interface JointManagerProps {
 
 export const JointManager = ({ title, type }: JointManagerProps) => {
   const [availableJoints, setAvailableJoints] = useState<string[]>([]);
-  const [selectedJointIndex, setSelectedJointIndex] = useState<number>(0);
 
   // WebSocket connection to extract joint names
   const { lastMessage } = useWebSocket({
@@ -75,9 +74,7 @@ export const JointManager = ({ title, type }: JointManagerProps) => {
     <LineChart
       title={title}
       type={type}
-      jointIndex={selectedJointIndex}
       availableJoints={availableJoints}
-      onJointIndexChange={setSelectedJointIndex}
     />
   );
 };

@@ -41,9 +41,9 @@ export const LineChart = ({ title, type, availableJoints = [] }: LineChartProps)
   const [isFullscreen, setIsFullscreen] = useState(false);
   const lastUpdateTime = useRef<number>(0);
   
-  // Keep 15 minutes of data (900 seconds at 1Hz)
-  const MAX_DATA_POINTS = 900;
-  const UPDATE_THROTTLE_MS = 1000; // Update UI every 1 second max
+  // Keep 15 minutes of data in 30 points (30 seconds per point)
+  const MAX_DATA_POINTS = 30;
+  const UPDATE_THROTTLE_MS = 30000; // Update UI every 30 seconds
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({

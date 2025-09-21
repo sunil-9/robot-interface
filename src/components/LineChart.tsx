@@ -36,6 +36,11 @@ export const LineChart = ({ title, type }: LineChartProps) => {
   const [data, setData] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const lastUpdateTime = useRef<number>(0);
+  
+  // Keep 15 minutes of data (900 seconds at 1Hz)
+  const MAX_DATA_POINTS = 900;
+  const UPDATE_THROTTLE_MS = 1000; // Update UI every 1 second max
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
@@ -55,7 +60,7 @@ export const LineChart = ({ title, type }: LineChartProps) => {
         const newData: number[] = [];
         const newLabels: string[] = [];
         
-        relevantMessages.slice(-50).forEach(msg => {
+        relevantMessages.slice(-MAX_DATA_POINTS).forEach(msg => {
           const value = extractDataValue(msg);
           if (value !== null) {
             newData.push(value);
@@ -69,14 +74,22 @@ export const LineChart = ({ title, type }: LineChartProps) => {
       return;
     }
 
-    // Handle real-time messages
+    // Handle real-time messages with throttling
     if (lastMessage.role === type) {
+      const now = Date.now();
+      
+      // Throttle UI updates to prevent performance issues
+      if (now - lastUpdateTime.current < UPDATE_THROTTLE_MS) {
+        return;
+      }
+      
       const value = extractDataValue(lastMessage);
       if (value !== null) {
         const newTime = new Date(lastMessage.received_at).toLocaleTimeString();
         
-        setData(prev => [...prev.slice(-49), value]);
-        setLabels(prev => [...prev.slice(-49), newTime]);
+        setData(prev => [...prev.slice(-(MAX_DATA_POINTS - 1)), value]);
+        setLabels(prev => [...prev.slice(-(MAX_DATA_POINTS - 1)), newTime]);
+        lastUpdateTime.current = now;
       }
     }
   }, [lastMessage, type]);

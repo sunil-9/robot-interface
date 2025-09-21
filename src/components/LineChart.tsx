@@ -56,6 +56,14 @@ export const LineChart = ({
   const dataBuffer = useRef<Record<number, number[]>>({});
   const lastWindowTime = useRef<number>(Date.now());
 
+  // Filter function to skip joints with specific prefixes
+  const shouldIncludeJoint = (jointName: string): boolean => {
+    const skipPrefixes = ["front", "rear", "right", "left"];
+    return !skipPrefixes.some((prefix) =>
+      jointName.toLowerCase().startsWith(prefix)
+    );
+  };
+
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
     url: "ws://localhost:8080",
@@ -63,17 +71,11 @@ export const LineChart = ({
     maxReconnectAttempts: 10,
   });
 
-  // Filter function to skip joints with specific prefixes
-  const shouldIncludeJoint = (jointName: string): boolean => {
-    const skipPrefixes = ["front", "rear", "right", "left"];
-    return !skipPrefixes.some(prefix => jointName.toLowerCase().startsWith(prefix));
-  };
-
   useEffect(() => {
     if (availableJoints.length > 0) {
       const initialVisibility: Record<number, boolean> = {};
       availableJoints.forEach((jointName, index) => {
-        // Only make visible if it doesn't start with the filtered prefixes
+        // Only make joints visible if they pass the filter
         initialVisibility[index] = shouldIncludeJoint(jointName);
       });
       setVisibleJoints(initialVisibility);
@@ -101,9 +103,9 @@ export const LineChart = ({
     const allValues = extractAllJointValues(lastMessage);
 
     if (allValues && Object.keys(allValues).length > 0) {
-      // Accumulate values in buffer, but skip joints that start with filtered prefixes
+      // Accumulate values in buffer
       availableJoints.forEach((jointName, index) => {
-        // Only accumulate data for joints that pass the filter
+        // Only accumulate data for joints we want to keep
         if (shouldIncludeJoint(jointName)) {
           if (!dataBuffer.current[index]) dataBuffer.current[index] = [];
           dataBuffer.current[index].push(allValues[index] || 0);
@@ -113,7 +115,7 @@ export const LineChart = ({
       // Only update chart every WINDOW_MS (15s)
       if (now - lastWindowTime.current >= WINDOW_MS) {
         const newData: Record<number, number[]> = {};
-        availableJoints.forEach((_, index) => {
+        availableJoints.forEach((jointName, index) => {
           const buffer = dataBuffer.current[index] || [];
           const avg =
             buffer.length > 0
@@ -140,8 +142,9 @@ export const LineChart = ({
   // Chart now only updates every 15 seconds with averaged data
 
   // Extract all joint values from WebSocket message
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const extractAllJointValues = (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     message: Record<string, any>
   ): Record<number, number> | null => {
     const normalized = message.normalized;
@@ -197,20 +200,23 @@ export const LineChart = ({
   const chartData = useMemo(
     () => ({
       labels,
-      datasets: availableJoints.map((jointName, index) => ({
-        label: jointName,
-        data: allJointData[index] || [],
-        borderColor: generateColor(index, availableJoints.length),
-        backgroundColor: `${generateColor(
-          index,
-          availableJoints.length
-        ).replace(")", ", 0.1)")}`,
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        tension: 0.4,
-        hidden: !visibleJoints[index], // Control visibility
-      })),
+      datasets: availableJoints.filter(shouldIncludeJoint).map((jointName) => {
+        const index = availableJoints.indexOf(jointName);
+        return {
+          label: jointName,
+          data: allJointData[index] || [],
+          borderColor: generateColor(index, availableJoints.length),
+          backgroundColor: `${generateColor(
+            index,
+            availableJoints.length
+          ).replace(")", ", 0.1)")}`,
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          tension: 0.4,
+          hidden: !visibleJoints[index], // Control visibility
+        };
+      }),
     }),
     [labels, allJointData, availableJoints, visibleJoints]
   );
@@ -329,37 +335,36 @@ export const LineChart = ({
           </div>
         </div>
 
-        {/* Joint visibility controls */}
+        {/* Joint visibility controls - only show non-filtered joints */}
         {availableJoints.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-2 text-xs">
-            {availableJoints
-              .filter(shouldIncludeJoint)
-              .map((jointName, index) => {
-                const originalIndex = availableJoints.indexOf(jointName);
-                return (
-                  <div key={originalIndex} className="flex items-center space-x-1">
-                    <Checkbox
-                      id={`joint-${originalIndex}`}
-                      checked={visibleJoints[originalIndex] || false}
-                      onCheckedChange={(checked) => {
-                        setVisibleJoints((prev) => ({
-                          ...prev,
-                          [originalIndex]: !!checked,
-                        }));
-                      }}
-                      className="h-3 w-3"
-                    />
-                <label
-                  htmlFor={`joint-${index}`}
-                  className="text-xs cursor-pointer"
-                  style={{
-                    color: generateColor(index, availableJoints.length),
-                  }}
-                >
-                  {jointName}
-                </label>
-              </div>
-            ))}
+            {availableJoints.filter(shouldIncludeJoint).map((jointName) => {
+              const index = availableJoints.indexOf(jointName);
+              return (
+                <div key={index} className="flex items-center space-x-1">
+                  <Checkbox
+                    id={`joint-${index}`}
+                    checked={visibleJoints[index] || false}
+                    onCheckedChange={(checked) => {
+                      setVisibleJoints((prev) => ({
+                        ...prev,
+                        [index]: !!checked,
+                      }));
+                    }}
+                    className="h-3 w-3"
+                  />
+                  <label
+                    htmlFor={`joint-${index}`}
+                    className="text-xs cursor-pointer"
+                    style={{
+                      color: generateColor(index, availableJoints.length),
+                    }}
+                  >
+                    {jointName}
+                  </label>
+                </div>
+              );
+            })}
           </div>
         )}
 

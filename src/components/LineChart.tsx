@@ -86,9 +86,13 @@ export const LineChart = ({ title, type }: LineChartProps) => {
     const normalized = message.normalized;
     if (!normalized) return null;
 
-    // For JointState messages, use first joint position
-    if (normalized.positions && normalized.positions.length > 0) {
-      return normalized.positions[0];
+    // For JointState messages, handle both array and object formats
+    if (normalized.positions) {
+      if (Array.isArray(normalized.positions) && normalized.positions.length > 0) {
+        return normalized.positions[0];
+      } else if (typeof normalized.positions === 'object' && normalized.positions["0"] !== undefined) {
+        return normalized.positions["0"];
+      }
     }
 
     // For Float64MultiArray messages, use first data element

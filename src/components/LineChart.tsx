@@ -15,6 +15,7 @@ import { Maximize2, Minimize2, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWebSocket } from "@/hooks/useWebSocket";
 
 ChartJS.register(
@@ -30,9 +31,12 @@ ChartJS.register(
 interface LineChartProps {
   title: string;
   type: "state" | "action";
+  jointIndex?: number;
+  availableJoints?: string[];
+  onJointIndexChange?: (index: number) => void;
 }
 
-export const LineChart = ({ title, type }: LineChartProps) => {
+export const LineChart = ({ title, type, jointIndex = 0, availableJoints = [], onJointIndexChange }: LineChartProps) => {
   const [data, setData] = useState<number[]>([]);
   const [labels, setLabels] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -101,21 +105,22 @@ export const LineChart = ({ title, type }: LineChartProps) => {
 
     // For JointState messages, handle both array and object formats
     if (normalized.positions) {
-      if (Array.isArray(normalized.positions) && normalized.positions.length > 0) {
-        return normalized.positions[0];
-      } else if (typeof normalized.positions === 'object' && normalized.positions["0"] !== undefined) {
-        return normalized.positions["0"];
+      const indexKey = jointIndex.toString();
+      if (Array.isArray(normalized.positions) && normalized.positions.length > jointIndex) {
+        return normalized.positions[jointIndex];
+      } else if (typeof normalized.positions === 'object' && normalized.positions[indexKey] !== undefined) {
+        return normalized.positions[indexKey];
       }
     }
 
-    // For Float64MultiArray messages, use first data element
-    if (normalized.data && normalized.data.length > 0) {
-      return normalized.data[0];
+    // For Float64MultiArray messages, use selected index
+    if (normalized.data && normalized.data.length > jointIndex) {
+      return normalized.data[jointIndex];
     }
 
-    // For JointTrajectory messages, use first position of last point
-    if (normalized.last_point_positions && normalized.last_point_positions.length > 0) {
-      return normalized.last_point_positions[0];
+    // For JointTrajectory messages, use selected position of last point
+    if (normalized.last_point_positions && normalized.last_point_positions.length > jointIndex) {
+      return normalized.last_point_positions[jointIndex];
     }
 
     return null;
@@ -212,7 +217,23 @@ export const LineChart = ({ title, type }: LineChartProps) => {
     <>
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-foreground">{title}</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-sm font-medium text-foreground">{title}</h3>
+            {availableJoints.length > 0 && onJointIndexChange && (
+              <Select value={jointIndex.toString()} onValueChange={(value) => onJointIndexChange(parseInt(value))}>
+                <SelectTrigger className="w-40 h-7 text-xs">
+                  <SelectValue placeholder="Select joint" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableJoints.map((joint, index) => (
+                    <SelectItem key={index} value={index.toString()}>
+                      {joint}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             {isConnected ? (
               <div className="flex items-center gap-1 text-xs text-green-400">

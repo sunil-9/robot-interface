@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { CameraView } from "./CameraView";
-import { LineChart } from "./LineChart";
+import { JointManager } from "./JointManager";
 
 export const TrainingInterface = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -28,8 +28,8 @@ export const TrainingInterface = () => {
             
             {/* Line Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <LineChart title="Joint State" type="state" />
-              <LineChart title="Joint Action" type="action" />
+              <JointManager title="Joint State" type="state" />
+              <JointManager title="Joint Action" type="action" />
             </div>
           </div>
         </main>

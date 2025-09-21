@@ -11,10 +11,11 @@ import {
   ChartOptions,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2, Minimize2, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 ChartJS.register(
   CategoryScale,
@@ -36,21 +37,72 @@ export const LineChart = ({ title, type }: LineChartProps) => {
   const [labels, setLabels] = useState<string[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Mock data generation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const newValue = type === "state" 
-        ? Math.sin(Date.now() / 1000) * 50 + Math.random() * 10
-        : Math.cos(Date.now() / 800) * 30 + Math.random() * 15;
-      
-      const newTime = new Date().toLocaleTimeString();
-      
-      setData(prev => [...prev.slice(-49), newValue]);
-      setLabels(prev => [...prev.slice(-49), newTime]);
-    }, 100);
+  // WebSocket connection to ROS2 bridge
+  const { isConnected, lastMessage, error } = useWebSocket({
+    url: 'ws://localhost:8080', // Default WebSocket port from your bridge
+    reconnectInterval: 3000,
+    maxReconnectAttempts: 10
+  });
 
-    return () => clearInterval(interval);
-  }, [type]);
+  // Process incoming WebSocket messages
+  useEffect(() => {
+    if (!lastMessage) return;
+
+    // Handle replay messages (initial buffered data)
+    if (lastMessage.replay) {
+      const relevantMessages = lastMessage.replay.filter(msg => msg.role === type);
+      if (relevantMessages.length > 0) {
+        const newData: number[] = [];
+        const newLabels: string[] = [];
+        
+        relevantMessages.slice(-50).forEach(msg => {
+          const value = extractDataValue(msg);
+          if (value !== null) {
+            newData.push(value);
+            newLabels.push(new Date(msg.received_at).toLocaleTimeString());
+          }
+        });
+        
+        setData(newData);
+        setLabels(newLabels);
+      }
+      return;
+    }
+
+    // Handle real-time messages
+    if (lastMessage.role === type) {
+      const value = extractDataValue(lastMessage);
+      if (value !== null) {
+        const newTime = new Date(lastMessage.received_at).toLocaleTimeString();
+        
+        setData(prev => [...prev.slice(-49), value]);
+        setLabels(prev => [...prev.slice(-49), newTime]);
+      }
+    }
+  }, [lastMessage, type]);
+
+  // Extract numeric value from WebSocket message
+  const extractDataValue = (message: any): number | null => {
+    const normalized = message.normalized;
+    if (!normalized) return null;
+
+    // For JointState messages, use first joint position
+    if (normalized.positions && normalized.positions.length > 0) {
+      return normalized.positions[0];
+    }
+
+    // For Float64MultiArray messages, use first data element
+    if (normalized.data && normalized.data.length > 0) {
+      return normalized.data[0];
+    }
+
+    // For JointTrajectory messages, use first position of last point
+    if (normalized.last_point_positions && normalized.last_point_positions.length > 0) {
+      return normalized.last_point_positions[0];
+    }
+
+    return null;
+  };
 
   const chartData = {
     labels,
@@ -142,7 +194,22 @@ export const LineChart = ({ title, type }: LineChartProps) => {
   return (
     <>
       <Card className="p-4">
-        <h3 className="text-sm font-medium mb-3 text-foreground">{title}</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-foreground">{title}</h3>
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <div className="flex items-center gap-1 text-xs text-green-400">
+                <Wifi className="h-3 w-3" />
+                Live
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-xs text-red-400">
+                <WifiOff className="h-3 w-3" />
+                {error ? 'Error' : 'Connecting...'}
+              </div>
+            )}
+          </div>
+        </div>
         <ChartContent />
       </Card>
 

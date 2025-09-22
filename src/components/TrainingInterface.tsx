@@ -22,8 +22,8 @@ export const TrainingInterface = () => {
           <div className="max-w-7xl mx-auto space-y-6">
             {/* Camera Views */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CameraView cameraId="1" title="Camera 1 - Base" />
-              <CameraView cameraId="2" title="Camera 2 - Arm" />
+              <CameraView cameraId="1" title="Base Camera" />
+              <CameraView cameraId="2" title="Wrist Camera" />
             </div>
 
             {/* Line Charts */}

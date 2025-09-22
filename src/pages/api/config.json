@@ -1,0 +1,28 @@
+{
+  "websocket": {
+    "port": 8080
+  },
+  "topics": [
+    {
+      "name": "/joint_states_for_collection",
+      "type": "sensor_msgs/msg/JointState",
+      "role": "state"
+    },
+    {
+      "name": "/joint_command_for_collection",
+      "type": "std_msgs/msg/Float64MultiArray",
+      "role": "command"
+    },
+    {
+      "name": "/rgb_base",
+      "type": "sensor_msgs/msg/Image",
+      "role": "camera_base"
+    },
+    {
+      "name": "/rgb_wrist",
+      "type": "sensor_msgs/msg/Image",
+      "role": "camera_wrist"
+    }
+  ],
+  "maxBuffer": 1000
+}

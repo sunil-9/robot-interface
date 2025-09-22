@@ -20,16 +20,16 @@ export const TrainingInterface = () => {
 
         <main className="flex-1 p-6">
           <div className="max-w-7xl mx-auto space-y-6">
-            {/* Camera Views */}
+            {/* Camera Views - Top */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <CameraView cameraId="1" title="Base Camera" />
-              <CameraView cameraId="2" title="Wrist Camera" />
+              <CameraView cameraType="base" title="Base Camera" />
+              <CameraView cameraType="wrist" title="Wrist Camera" />
             </div>
 
-            {/* Line Charts */}
+            {/* Joint Data - Bottom */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <JointManager title="Joint State" type="state" />
-              <JointManager title="Joint Action" type="action" />
+              <JointManager title="Joint Command" type="command" />
             </div>
           </div>
         </main>

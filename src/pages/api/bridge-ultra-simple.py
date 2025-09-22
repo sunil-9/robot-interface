@@ -74,13 +74,8 @@ class SimpleBridge(Node):
             }
         }
         latest_data[role] = data
-        # Schedule broadcast for next event loop iteration
-        if websocket_clients:
-            for client in list(websocket_clients):
-                try:
-                    asyncio.create_task(client.send(json.dumps(data)))
-                except:
-                    pass
+        print(f"📊 Joint {role} data updated")
+        # Note: We'll let WebSocket clients poll for latest data instead of pushing
     
     def array_callback(self, msg, role, topic_name):
         data = {
@@ -92,38 +87,94 @@ class SimpleBridge(Node):
             }
         }
         latest_data[role] = data
-        if websocket_clients:
-            for client in list(websocket_clients):
-                try:
-                    asyncio.create_task(client.send(json.dumps(data)))
-                except:
-                    pass
+        print(f"📊 Array {role} data updated")
     
     def image_callback(self, msg, role, topic_name):
         try:
-            img_base64 = base64.b64encode(bytes(msg.data)).decode('utf-8')
+            # Compress image to reduce size
+            import cv2
+            import numpy as np
+            
+            # Convert to numpy array
+            if msg.encoding == 'bgr8':
+                img_array = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
+            elif msg.encoding == 'rgb8':
+                img_array = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))
+                img_array = cv2.cvtColor(img_array, cv2.COLOR_RGB2BGR)
+            else:
+                # Try raw conversion
+                img_array = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, -1))
+            
+            # Resize to smaller resolution for web display
+            small_img = cv2.resize(img_array, (320, 240))
+            
+            # Compress as JPEG with lower quality
+            encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 60]
+            _, buffer = cv2.imencode('.jpg', small_img, encode_param)
+            
+            # Convert to base64
+            img_base64 = base64.b64encode(buffer).decode('utf-8')
+            
             data = {
                 'topic': topic_name,
                 'role': role,
                 'received_at': self.get_clock().now().nanoseconds,
                 'normalized': {
-                    'width': msg.width,
-                    'height': msg.height,
-                    'encoding': msg.encoding,
+                    'width': 320,  # Updated size
+                    'height': 240,  # Updated size
+                    'encoding': 'jpeg',
                     'data': img_base64
                 }
             }
             latest_data[role] = data
-            print(f"📸 Camera {role}: {msg.width}x{msg.height}")
-            
-            if websocket_clients:
-                for client in list(websocket_clients):
-                    try:
-                        asyncio.create_task(client.send(json.dumps(data)))
-                    except:
-                        pass
+            print(f"📸 Camera {role}: 320x240 (compressed base64 length: {len(img_base64)})")
         except Exception as e:
             print(f"❌ Image error: {e}")
+            # Fallback to original method
+            try:
+                img_base64 = base64.b64encode(bytes(msg.data)).decode('utf-8')
+                data = {
+                    'topic': topic_name,
+                    'role': role,
+                    'received_at': self.get_clock().now().nanoseconds,
+                    'normalized': {
+                        'width': msg.width,
+                        'height': msg.height,
+                        'encoding': msg.encoding,
+                        'data': img_base64
+                    }
+                }
+                latest_data[role] = data
+                print(f"📸 Camera {role}: {msg.width}x{msg.height} (fallback base64 length: {len(img_base64)})")
+            except Exception as e2:
+                print(f"❌ Fallback image error: {e2}")
+
+async def broadcast_latest_data():
+    """Periodically broadcast latest data to all clients"""
+    while True:
+        if websocket_clients and latest_data:
+            print(f"📤 Broadcasting to {len(websocket_clients)} clients, {len(latest_data)} data items")
+            disconnected = []
+            for client in list(websocket_clients):
+                try:
+                    # Send all latest data
+                    for role, data in latest_data.items():
+                        message = json.dumps(data)
+                        await client.send(message)
+                        print(f"📤 Sent {role} data (size: {len(message)} chars)")
+                except websockets.exceptions.ConnectionClosed:
+                    disconnected.append(client)
+                    print(f"❌ Client connection closed")
+                except Exception as e:
+                    print(f"❌ Error sending to client: {e}")
+                    disconnected.append(client)
+            
+            # Remove disconnected clients
+            for client in disconnected:
+                websocket_clients.discard(client)
+                print(f"❌ Removed disconnected client. Total: {len(websocket_clients)}")
+        
+        await asyncio.sleep(0.5)  # Slower broadcast at 2Hz instead of 10Hz
 
 async def handle_client(websocket):
     global websocket_clients
@@ -181,12 +232,16 @@ async def main():
     # Start WebSocket server
     print(f"✅ WebSocket server starting on ws://0.0.0.0:{port}")
     
+    # Start the broadcast task
+    broadcast_task = asyncio.create_task(broadcast_latest_data())
+    
     try:
         async with websockets.serve(handle_client, "0.0.0.0", port):
             print(f"🌐 WebSocket server running on ws://0.0.0.0:{port}")
             await asyncio.Future()  # Run forever
     except KeyboardInterrupt:
         print("\n🛑 Shutting down...")
+        broadcast_task.cancel()
     finally:
         if ros_executor:
             ros_executor.shutdown()

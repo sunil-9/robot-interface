@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useWebSocket } from "./useWebSocket";
 
 interface JointData {
@@ -38,7 +38,7 @@ export const useBridgeData = () => {
   });
 
   useEffect(() => {
-    setBridgeData(prev => ({
+    setBridgeData((prev) => ({
       ...prev,
       isConnected,
       error,
@@ -48,10 +48,15 @@ export const useBridgeData = () => {
   useEffect(() => {
     if (lastMessage) {
       const { role, normalized } = lastMessage;
-      
-      setBridgeData(prev => {
+
+      console.log("Bridge data received:", {
+        role,
+        hasNormalized: !!normalized,
+      });
+
+      setBridgeData((prev) => {
         const newData = { ...prev };
-        
+
         switch (role) {
           case "state":
             newData.state = {
@@ -60,24 +65,34 @@ export const useBridgeData = () => {
               velocities: normalized?.velocities,
               efforts: normalized?.efforts,
             };
+            console.log("✅ State data updated:", newData.state);
             break;
           case "command":
             newData.command = {
               data: Array.isArray(normalized?.data) ? normalized.data : [],
             };
+            console.log("✅ Command data updated:", newData.command);
             break;
           case "camera_base":
-            if (normalized?.data && typeof normalized.data === 'string') {
+            if (normalized?.data && typeof normalized.data === "string") {
               newData.camera_base = `data:image/jpeg;base64,${normalized.data}`;
+              console.log(
+                "✅ Camera base updated, data length:",
+                normalized.data.length
+              );
             }
             break;
           case "camera_wrist":
-            if (normalized?.data && typeof normalized.data === 'string') {
+            if (normalized?.data && typeof normalized.data === "string") {
               newData.camera_wrist = `data:image/jpeg;base64,${normalized.data}`;
+              console.log(
+                "✅ Camera wrist updated, data length:",
+                normalized.data.length
+              );
             }
             break;
         }
-        
+
         return newData;
       });
     }

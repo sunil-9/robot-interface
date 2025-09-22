@@ -55,6 +55,18 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
       ws.current.onmessage = (event) => {
         try {
           const message: WebSocketMessage = JSON.parse(event.data);
+          
+          // Debug each message to see what's coming in
+          if (message.role && message.role.includes("camera")) {
+            console.log("WebSocket received camera message:", {
+              topic: message.topic,
+              role: message.role,
+              hasData: message.normalized && !!message.normalized.data,
+              width: message.normalized?.width,
+              height: message.normalized?.height,
+            });
+          }
+          
           setLastMessage(message);
         } catch (err) {
           console.error("Failed to parse WebSocket message:", err);

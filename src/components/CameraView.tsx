@@ -15,15 +15,20 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
   const [imageData, setImageData] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [useTestImage, setUseTestImage] = useState(true); // Add a flag for test images
 
   // Map camera IDs to their respective ROS topics using useMemo to prevent re-creation
   const cameraTopics = useMemo(
     () => ({
-      "1": "camera_base", // Maps to /rgb_base topic's role
-      "2": "camera_wrist", // Maps to /rgb_wrist topic's role
+      // From your config.js, these are the exact role values
+      "1": "camera_base",  // Matches "/rgb_base" topic with role="camera_base"
+      "2": "camera_wrist", // Matches "/rgb_wrist" topic with role="camera_wrist"
     }),
     []
   );
+  
+  // For debugging
+  console.log(`CameraView ${cameraId} mounted - Looking for messages with role: ${cameraTopics[cameraId]}`);
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
@@ -36,22 +41,45 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
   useEffect(() => {
     if (!lastMessage) return;
 
-    // Check if the message is for our camera
-    if (lastMessage.role === cameraTopics[cameraId]) {
+    // Looking at your bridge.js, the message structure should have:
+    // - topic: the ROS topic (e.g., "/rgb_base")
+    // - role: from config (e.g., "camera_base")
+
+    // Match camera by topic or role
+    let matchesThisCamera = false;
+
+    // Base camera check (cameraId = "1")
+    if (cameraId === "1" && (
+      (lastMessage.topic && lastMessage.topic.includes("/rgb_base")) ||
+      (lastMessage.role && lastMessage.role === "camera_base")
+    )) {
+      matchesThisCamera = true;
+    }
+    
+    // Wrist camera check (cameraId = "2")
+    if (cameraId === "2" && (
+      (lastMessage.topic && lastMessage.topic.includes("/rgb_wrist")) ||
+      (lastMessage.role && lastMessage.role === "camera_wrist")
+    )) {
+      matchesThisCamera = true;
+    }
+    
+    if (matchesThisCamera) {
+      console.log(`CameraView ${cameraId} - Found matching message!`);
       const normalized = lastMessage.normalized;
+      
       if (
         normalized &&
         normalized.data &&
         normalized.width &&
         normalized.height
       ) {
-        // Log the base64 string for camera one
+        console.log(`CameraView ${cameraId} - Processing image: ${normalized.width}x${normalized.height}`);
+        
         if (cameraId === "1") {
-          console.log("Camera 1 Base64 Data:", normalized.data);
-          // Log only the first 100 characters to avoid console flooding
-          console.log("Camera 1 Base64 Data (truncated):", 
+          console.log("Camera 1 Base64 Data (first 50 chars):", 
             typeof normalized.data === 'string' 
-              ? normalized.data.substring(0, 100) + "..." 
+              ? normalized.data.substring(0, 50) + "..." 
               : "Not a string"
           );
         }
@@ -65,7 +93,23 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
         setLastUpdate(new Date());
       }
     }
-  }, [lastMessage, cameraId, cameraTopics]);
+  }, [lastMessage, cameraId]);
+
+  // Effect to load a test image for Camera 1
+  useEffect(() => {
+    if (cameraId === "1" && useTestImage) {
+      // Sample base64 image - A small red square (1x1 pixel)
+      const sampleBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+      
+      // Log the base64 string
+      console.log("Camera 1 Test Base64 Data:", sampleBase64);
+      
+      // Set the image data with the test base64 string
+      setImageData(`data:image/png;base64,${sampleBase64}`);
+      setDimensions({ width: 1, height: 1 });
+      setLastUpdate(new Date());
+    }
+  }, [cameraId, useTestImage]);
 
   const CameraContent = ({ isModal = false }: { isModal?: boolean }) => (
     <div
@@ -74,15 +118,24 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
       }`}
     >
       {imageData ? (
-        <img
-          src={imageData}
-          alt={`Camera ${cameraId} feed`}
-          className="max-w-full max-h-full object-contain"
-          style={{
-            width: isModal ? "auto" : "100%",
-            height: isModal ? "auto" : "100%",
-          }}
-        />
+        <div className="relative w-full h-full flex flex-col items-center justify-center">
+          <img
+            src={imageData}
+            alt={`Camera ${cameraId} feed`}
+            className="max-w-full max-h-full object-contain"
+            style={{
+              width: isModal ? "auto" : "100%",
+              height: isModal ? "auto" : "100%",
+            }}
+          />
+          {useTestImage && (
+            <div className="absolute bottom-10 left-0 right-0 text-center">
+              <p className="text-xs text-white bg-black/50 inline-block px-2 py-1 rounded">
+                Test image - No actual camera data received
+              </p>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center text-muted-foreground">
           <Camera className="h-12 w-12 mb-2" />
@@ -90,6 +143,16 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
           <p className="text-xs opacity-60">
             {isConnected ? "Waiting for data..." : "No signal"}
           </p>
+          {cameraId === "1" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-2"
+              onClick={() => setUseTestImage(prev => !prev)}
+            >
+              {useTestImage ? "Hide Test Image" : "Show Test Image"}
+            </Button>
+          )}
         </div>
       )}
 
@@ -130,6 +193,15 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-medium text-foreground">{title}</h3>
           <div className="flex items-center gap-2">
+            {cameraId === "1" && (
+              <button 
+                onClick={() => setUseTestImage(prev => !prev)}
+                className={`text-xs px-2 py-1 rounded ${useTestImage ? 'bg-yellow-500 text-black' : 'bg-gray-700 text-white'}`}
+              >
+                {useTestImage ? 'Test Mode' : 'Live Mode'}
+              </button>
+            )}
+            
             {isConnected ? (
               <div className="flex items-center gap-1 text-xs text-green-400">
                 <Wifi className="h-3 w-3" />
@@ -144,6 +216,19 @@ export const CameraView = ({ cameraId, title }: CameraViewProps) => {
           </div>
         </div>
         <CameraContent />
+        
+        {cameraId === "1" && (
+          <div className="mt-3">
+            <p className="text-xs text-gray-400">
+              Base64 String Preview:
+            </p>
+            <div className="bg-black/20 p-2 rounded mt-1 overflow-x-auto">
+              <code className="text-xs whitespace-pre-wrap break-all">
+                {imageData ? imageData.substring(23, 100) + "..." : "No image data"}
+              </code>
+            </div>
+          </div>
+        )}
       </Card>
 
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>

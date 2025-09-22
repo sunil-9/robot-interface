@@ -8,15 +8,16 @@ interface HeaderProps {
 export const Header = ({ onToggleSidebar }: HeaderProps) => {
   return (
     <header className="h-16 bg-card border-b border-border flex items-center px-4 sticky top-0 z-50">
-      <Button
+      {/* todo: add sidebar toggle icon  */}
+      {/* <Button
         variant="ghost"
         size="icon"
         onClick={onToggleSidebar}
         className="hover:bg-secondary"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-5 w-5" /> 
       </Button>
-      
+       */}
       <div className="flex-1 flex justify-center">
         <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           Imitation Machine

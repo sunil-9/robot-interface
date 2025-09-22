@@ -138,11 +138,6 @@ export const LineChart = ({
     }
   }, [lastMessage, availableJoints, allJointData]);
 
-  // Remove the throttled real-time update effect to avoid double updates and flickering
-  // Chart now only updates every 15 seconds with averaged data
-
-  // Extract all joint values from WebSocket message
-
   const extractAllJointValues = (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     message: Record<string, any>

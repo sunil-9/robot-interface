@@ -22,9 +22,15 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
       isConnected: bridgeData.isConnected,
       hasImageData: !!imageData,
       imageDataLength: imageData ? imageData.length : 0,
-      imageDataPreview: imageData ? imageData.substring(0, 50) + "..." : "none"
+      imageDataPreview: imageData ? imageData.substring(0, 50) + "..." : "none",
+      fullBridgeData: {
+        state: !!bridgeData.state,
+        command: !!bridgeData.command,
+        camera_base: !!bridgeData.camera_base,
+        camera_wrist: !!bridgeData.camera_wrist,
+      }
     });
-  }, [cameraType, bridgeData.isConnected, imageData]);
+  }, [cameraType, bridgeData, imageData]);
 
   return (
     <>

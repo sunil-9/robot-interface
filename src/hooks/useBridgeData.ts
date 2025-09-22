@@ -52,6 +52,9 @@ export const useBridgeData = () => {
       console.log("Bridge data received:", {
         role,
         hasNormalized: !!normalized,
+        dataType: typeof normalized?.data,
+        dataLength: normalized?.data ? normalized.data.length : 0,
+        fullMessage: lastMessage
       });
 
       setBridgeData((prev) => {
@@ -78,8 +81,16 @@ export const useBridgeData = () => {
               newData.camera_base = `data:image/jpeg;base64,${normalized.data}`;
               console.log(
                 "✅ Camera base updated, data length:",
-                normalized.data.length
+                normalized.data.length,
+                "Base64 preview:",
+                normalized.data.substring(0, 50) + "..."
               );
+            } else {
+              console.log("❌ Camera base data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+                dataLength: normalized?.data ? normalized.data.length : 0
+              });
             }
             break;
           case "camera_wrist":
@@ -87,8 +98,16 @@ export const useBridgeData = () => {
               newData.camera_wrist = `data:image/jpeg;base64,${normalized.data}`;
               console.log(
                 "✅ Camera wrist updated, data length:",
-                normalized.data.length
+                normalized.data.length,
+                "Base64 preview:",
+                normalized.data.substring(0, 50) + "..."
               );
+            } else {
+              console.log("❌ Camera wrist data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+                dataLength: normalized?.data ? normalized.data.length : 0
+              });
             }
             break;
         }
@@ -97,6 +116,24 @@ export const useBridgeData = () => {
       });
     }
   }, [lastMessage]);
+
+  // Debug: Log the complete bridge data state periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log("🔍 Complete Bridge Data State:", {
+        isConnected: bridgeData.isConnected,
+        error: bridgeData.error,
+        hasState: !!bridgeData.state,
+        hasCommand: !!bridgeData.command,
+        hasCamera_base: !!bridgeData.camera_base,
+        hasCamera_wrist: !!bridgeData.camera_wrist,
+        camera_base_length: bridgeData.camera_base ? bridgeData.camera_base.length : 0,
+        camera_wrist_length: bridgeData.camera_wrist ? bridgeData.camera_wrist.length : 0,
+      });
+    }, 5000); // Every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [bridgeData]);
 
   return bridgeData;
 };

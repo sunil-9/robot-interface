@@ -2,7 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   CategoryScale,
@@ -50,11 +56,23 @@ export const LineChart = ({ title }: LineChartProps) => {
   const [jointData, setJointData] = useState<Record<string, number[]>>({});
   const [labels, setLabels] = useState<string[]>([]);
   const [jointNames, setJointNames] = useState<string[]>([]);
-  const [visibleJoints, setVisibleJoints] = useState<Record<string, boolean>>({});
-  const [dataType, setDataType] = useState<'positions' | 'velocities' | 'efforts'>('positions');
+  const [visibleJoints, setVisibleJoints] = useState<Record<string, boolean>>(
+    {}
+  );
+  const [dataType, setDataType] = useState<
+    "positions" | "velocities" | "efforts"
+  >("positions");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const MAX_DATA_POINTS = 50;
+  const UPDATE_INTERVAL = 100; // Update chart every 100ms to batch updates
+
+  // Use refs to store data efficiently without causing re-renders
+  const dataBufferRef = React.useRef<Record<string, number[]>>({});
+  const labelsBufferRef = React.useRef<string[]>([]);
+  const lastUpdateTime = React.useRef<number>(0);
+  const pendingUpdate = React.useRef<boolean>(false);
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
@@ -63,74 +81,179 @@ export const LineChart = ({ title }: LineChartProps) => {
     maxReconnectAttempts: 10,
   });
 
+  // Efficient function to add data point to a joint
+  const addDataPoint = React.useCallback(
+    (jointName: string, value: number) => {
+      if (!dataBufferRef.current[jointName]) {
+        dataBufferRef.current[jointName] = [];
+      }
+
+      const jointArray = dataBufferRef.current[jointName];
+      jointArray.push(value);
+
+      // Remove oldest data point if we exceed max points
+      if (jointArray.length > MAX_DATA_POINTS) {
+        jointArray.shift(); // More efficient than slice for removing first element
+      }
+    },
+    [MAX_DATA_POINTS]
+  );
+
+  // Efficient function to add label
+  const addLabel = React.useCallback(
+    (label: string) => {
+      labelsBufferRef.current.push(label);
+
+      // Remove oldest label if we exceed max points
+      if (labelsBufferRef.current.length > MAX_DATA_POINTS) {
+        labelsBufferRef.current.shift();
+      }
+    },
+    [MAX_DATA_POINTS]
+  );
+
+  // Batch update function to update state efficiently
+  const batchUpdateChart = React.useCallback(() => {
+    if (!pendingUpdate.current) return;
+
+    // Create shallow copies of the data for React state update
+    const newJointData: Record<string, number[]> = {};
+    Object.keys(dataBufferRef.current).forEach((jointName) => {
+      newJointData[jointName] = [...dataBufferRef.current[jointName]];
+    });
+
+    setJointData(newJointData);
+    setLabels([...labelsBufferRef.current]);
+    pendingUpdate.current = false;
+  }, []);
+
+  // Handle WebSocket messages efficiently
   useEffect(() => {
     if (!lastMessage) return;
 
     try {
-      const message = typeof lastMessage === 'string' ? JSON.parse(lastMessage) : lastMessage;
-      
+      const message =
+        typeof lastMessage === "string" ? JSON.parse(lastMessage) : lastMessage;
+
       // Check if this is a joint_states message
-      if (message.topic === '/joint_states_for_collection' && message.normalized) {
+      if (
+        message.topic === "/joint_states_for_collection" &&
+        message.normalized
+      ) {
         const { names, positions, velocities, efforts } = message.normalized;
-        
+
         if (names && Array.isArray(names)) {
-          // Initialize joint names and visibility on first message
-          if (jointNames.length === 0) {
+          // Initialize joint names and visibility on first message only
+          if (!isInitialized) {
             setJointNames(names);
             const initialVisibility: Record<string, boolean> = {};
             names.forEach((name: string) => {
-              initialVisibility[name] = true; // Show all joints by default
+              initialVisibility[name] = true;
+              dataBufferRef.current[name] = []; // Initialize empty arrays
             });
             setVisibleJoints(initialVisibility);
+            setIsInitialized(true);
+            return; // Skip processing this first message for setup
           }
 
-          // Update joint data
-          const newData: Record<string, number[]> = {};
-          const currentData = dataType === 'positions' ? positions : 
-                            dataType === 'velocities' ? velocities : efforts;
+          // Get current data based on selected type
+          const currentData =
+            dataType === "positions"
+              ? positions
+              : dataType === "velocities"
+              ? velocities
+              : efforts;
 
+          // Add new data points efficiently
           names.forEach((name: string, index: number) => {
             const value = currentData?.[index] || 0;
-            const existingData = jointData[name] || [];
-            newData[name] = [...existingData.slice(-(MAX_DATA_POINTS - 1)), value];
+            addDataPoint(name, value);
           });
 
-          setJointData(newData);
-          setLabels(prev => [
-            ...prev.slice(-(MAX_DATA_POINTS - 1)),
-            new Date().toLocaleTimeString()
-          ]);
+          // Add timestamp label
+          addLabel(new Date().toLocaleTimeString());
+          pendingUpdate.current = true;
+
+          // Batch updates to avoid too frequent re-renders
+          const now = Date.now();
+          if (now - lastUpdateTime.current >= UPDATE_INTERVAL) {
+            lastUpdateTime.current = now;
+            batchUpdateChart();
+          }
         }
       }
     } catch (err) {
-      console.error('Error parsing WebSocket message:', err);
+      console.error("Error parsing WebSocket message:", err);
     }
-  }, [lastMessage, dataType, jointData, jointNames]);
+  }, [
+    lastMessage,
+    dataType,
+    isInitialized,
+    addDataPoint,
+    addLabel,
+    batchUpdateChart,
+  ]);
 
-  // Generate colors for each joint
-  const generateColor = (index: number, total: number) => {
-    const hue = (index * 360) / total;
-    return `hsl(${hue}, 70%, 60%)`;
-  };
+  // Handle data type changes - clear chart data
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    // When data type changes, clear existing data
+    Object.keys(dataBufferRef.current).forEach((jointName) => {
+      dataBufferRef.current[jointName] = [];
+    });
+    labelsBufferRef.current = [];
+    setJointData({});
+    setLabels([]);
+  }, [dataType, isInitialized]);
+
+  // Periodic update to ensure chart updates even with high-frequency data
+  useEffect(() => {
+    if (!isInitialized) return;
+
+    const interval = setInterval(() => {
+      if (pendingUpdate.current) {
+        batchUpdateChart();
+      }
+    }, UPDATE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [isInitialized, batchUpdateChart, UPDATE_INTERVAL]);
+
+  // Memoize color generation to avoid recalculation
+  const jointColors = useMemo(() => {
+    const colors: Record<string, string> = {};
+    jointNames.forEach((jointName, index) => {
+      const hue = (index * 360) / jointNames.length;
+      colors[jointName] = `hsl(${hue}, 70%, 60%)`;
+    });
+    return colors;
+  }, [jointNames]);
 
   // Memoize chart data to prevent unnecessary re-renders
-  const chartData = useMemo(
-    () => ({
-      labels,
-      datasets: jointNames.map((jointName, index) => ({
+  const chartData = useMemo(() => {
+    // Only create datasets for joints that have data
+    const datasets = jointNames
+      .filter((jointName) => jointData[jointName]?.length > 0)
+      .map((jointName, index) => ({
         label: jointName,
         data: jointData[jointName] || [],
-        borderColor: generateColor(index, jointNames.length),
-        backgroundColor: `${generateColor(index, jointNames.length).replace(")", ", 0.1)")}`,
+        borderColor: jointColors[jointName],
+        backgroundColor: `${jointColors[jointName].replace(")", ", 0.1)")}`,
         borderWidth: 2,
         pointRadius: 0,
         pointHoverRadius: 4,
         tension: 0.4,
         hidden: !visibleJoints[jointName],
-      })),
-    }),
-    [labels, jointData, jointNames, visibleJoints]
-  );
+        // Performance optimizations
+        spanGaps: true,
+      }));
+
+    return {
+      labels,
+      datasets,
+    };
+  }, [labels, jointData, jointNames, visibleJoints, jointColors]);
 
   const getOptions = (isModal = false): ChartOptions<"line"> => ({
     responsive: true,
@@ -149,11 +272,11 @@ export const LineChart = ({ title }: LineChartProps) => {
         borderWidth: 1,
         callbacks: {
           label: (context) => {
-            const label = context.dataset.label || '';
+            const label = context.dataset.label || "";
             const value = context.parsed.y.toFixed(4);
             return `${label}: ${value}`;
-          }
-        }
+          },
+        },
       },
     },
     interaction: {
@@ -183,7 +306,7 @@ export const LineChart = ({ title }: LineChartProps) => {
           display: true,
           text: dataType.charAt(0).toUpperCase() + dataType.slice(1),
           color: "hsl(210, 10%, 60%)",
-        }
+        },
       },
     },
     elements: {
@@ -233,7 +356,10 @@ export const LineChart = ({ title }: LineChartProps) => {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-medium text-foreground">{title}</h3>
-            <Select value={dataType} onValueChange={(value: typeof dataType) => setDataType(value)}>
+            <Select
+              value={dataType}
+              onValueChange={(value: typeof dataType) => setDataType(value)}
+            >
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
@@ -280,7 +406,7 @@ export const LineChart = ({ title }: LineChartProps) => {
                     htmlFor={`joint-${jointName}`}
                     className="text-xs cursor-pointer truncate"
                     style={{
-                      color: generateColor(index, jointNames.length),
+                      color: jointColors[jointName],
                     }}
                     title={jointName}
                   >
@@ -302,7 +428,10 @@ export const LineChart = ({ title }: LineChartProps) => {
               <h3 className="text-lg font-medium text-foreground">
                 {title} - Fullscreen
               </h3>
-              <Select value={dataType} onValueChange={(value: typeof dataType) => setDataType(value)}>
+              <Select
+                value={dataType}
+                onValueChange={(value: typeof dataType) => setDataType(value)}
+              >
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>

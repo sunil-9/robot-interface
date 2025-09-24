@@ -38,9 +38,5 @@ export const JointManager = ({ title, type }: JointManagerProps) => {
     }
   }, [bridgeData, type]);
 
-  return (
-    <LineChart
-      title={title}
-    />
-  );
+  return <LineChart title={title} />;
 };

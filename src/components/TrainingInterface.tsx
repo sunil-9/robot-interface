@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CameraView } from "./CameraView";
 import { Header } from "./Header";
 import { JointManager } from "./JointManager";
+import { MockLineChart } from "./MockLineChart";
 
 export const TrainingInterface = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -30,6 +31,12 @@ export const TrainingInterface = () => {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <JointManager title="Joint State" type="state" />
               <JointManager title="Joint Command" type="command" />
+            </div>
+
+            {/* Mock Joint Data - Smooth Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MockLineChart title="Mock Joint State (Smooth)" type="state" />
+              <MockLineChart title="Mock Joint Command (Smooth)" type="command" />
             </div>
           </div>
         </main>

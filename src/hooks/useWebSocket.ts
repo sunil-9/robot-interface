@@ -31,11 +31,10 @@ interface UseWebSocketOptions {
   maxReconnectAttempts?: number;
 }
 
-export const useWebSocket = (options: UseWebSocketOptions) => {
-  const { url, reconnectInterval = 3000, maxReconnectAttempts = 10 } = options;
+export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttempts = 5, onMessage }) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [lastMessage, setLastMessage] = useState(null);
+  const [error, setError] = useState(null);
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectCount = useRef(0);
@@ -53,12 +52,36 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
       };
 
       ws.current.onmessage = (event) => {
+        let sanitizedData = '';
         try {
-          const message: WebSocketMessage = JSON.parse(event.data);
+          // First, sanitize the data by replacing NaN with null - more comprehensive regex
+          sanitizedData = event.data
+            .replace(/:\s*NaN\b/g, ': null')
+            .replace(/,\s*NaN\b/g, ', null')
+            .replace(/\[\s*NaN\b/g, '[null')
+            .replace(/NaN\s*,/g, 'null,')
+            .replace(/NaN\s*\]/g, 'null]');
+          
+          let message: WebSocketMessage = JSON.parse(sanitizedData);
           
           // Debug each message to see what's coming in
+          // if the type of message is string then change it to json object
+          if (typeof message === "string") {
+            message = JSON.parse(message);
+          }
+
+          // Log ALL messages to debug
+          console.log("🔍 WebSocket message received:", {
+            topic: message.topic,
+            role: message.role,
+            hasData: message.normalized && !!message.normalized.data,
+            dataLength: message.normalized?.data ? message.normalized.data.length : 0,
+            width: message.normalized?.width,
+            height: message.normalized?.height,
+          });
+          
           if (message.role && message.role.includes("camera")) {
-            console.log("WebSocket received camera message:", {
+            console.log("📸 CAMERA MESSAGE DETAILS:", {
               topic: message.topic,
               role: message.role,
               hasData: message.normalized && !!message.normalized.data,
@@ -67,9 +90,18 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
             });
           }
           
+          console.log("🚀 SETTING LAST MESSAGE:", message.role, "at", Date.now());
           setLastMessage(message);
+          
+          // Also call the callback immediately to avoid React batching issues
+          if (onMessage) {
+            console.log("📨 CALLING onMessage CALLBACK:", message.role, "at", Date.now());
+            onMessage(message);
+          }
         } catch (err) {
           console.error("Failed to parse WebSocket message:", err);
+          console.log("Raw message:", event.data.substring(0, 300));
+          console.log("Sanitized message:", sanitizedData.substring(0, 300));
         }
       };
 
@@ -103,7 +135,7 @@ export const useWebSocket = (options: UseWebSocketOptions) => {
       console.error("Failed to create WebSocket connection:", err);
       setError("Failed to create WebSocket connection");
     }
-  }, [url, reconnectInterval, maxReconnectAttempts]);
+  }, [url, reconnectInterval, maxReconnectAttempts, onMessage]);
 
   useEffect(() => {
     connect();

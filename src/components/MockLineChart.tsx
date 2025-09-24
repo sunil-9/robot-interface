@@ -34,12 +34,12 @@ ChartJS.register(
   Legend
 );
 
-interface MockLineChartProps {
+interface LineChartProps {
   title: string;
   type: "state" | "command";
 }
 
-export const MockLineChart = ({ title, type }: MockLineChartProps) => {
+export const LineChart = ({ title, type }: LineChartProps) => {
   const [jointData, setJointData] = useState<Record<string, number[]>>({});
   const [labels, setLabels] = useState<string[]>([]);
   const [visibleJoints, setVisibleJoints] = useState<Record<string, boolean>>({});
@@ -331,7 +331,7 @@ export const MockLineChart = ({ title, type }: MockLineChartProps) => {
             {jointNames.map((jointName) => (
               <div key={jointName} className="flex items-center space-x-1">
                 <Checkbox
-                  id={`mock-joint-${jointName}`}
+                  id={`joint-${jointName}`}
                   checked={visibleJoints[jointName] || false}
                   onCheckedChange={(checked) => {
                     setVisibleJoints((prev) => ({
@@ -342,7 +342,7 @@ export const MockLineChart = ({ title, type }: MockLineChartProps) => {
                   className="h-3 w-3"
                 />
                 <label
-                  htmlFor={`mock-joint-${jointName}`}
+                  htmlFor={`joint-${jointName}`}
                   className="text-xs cursor-pointer truncate"
                   style={{ color: jointColors[jointName] }}
                   title={jointName}

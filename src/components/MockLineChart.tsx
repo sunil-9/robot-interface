@@ -49,24 +49,38 @@ export const MockLineChart = ({ title, type }: MockLineChartProps) => {
   const MAX_DATA_POINTS = 30;
 
   // Mock joint names based on the provided data
-  const jointNames = [
-    "front_left_wheel",
-    "front_right_wheel", 
-    "kinova_arm_joint_1",
-    "rear_left_wheel",
-    "rear_right_wheel",
-    "kinova_arm_joint_2",
-    "kinova_arm_joint_3",
-    "kinova_arm_joint_4",
-    "kinova_arm_joint_5",
-    "kinova_arm_joint_6",
-    "finger_joint",
-    "left_inner_knuckle_joint",
-    "right_inner_knuckle_joint",
-    "right_outer_knuckle_joint",
-    "left_inner_finger_joint",
-    "right_inner_finger_joint"
-  ];
+  const jointNames = type === "state" 
+    ? [
+        "front_left_wheel",
+        "front_right_wheel", 
+        "kinova_arm_joint_1",
+        "rear_left_wheel",
+        "rear_right_wheel",
+        "kinova_arm_joint_2",
+        "kinova_arm_joint_3",
+        "kinova_arm_joint_4",
+        "kinova_arm_joint_5",
+        "kinova_arm_joint_6",
+        "finger_joint",
+        "left_inner_knuckle_joint",
+        "right_inner_knuckle_joint",
+        "right_outer_knuckle_joint",
+        "left_inner_finger_joint",
+        "right_inner_finger_joint"
+      ]
+    : [
+        "kinova_arm_joint_1",
+        "kinova_arm_joint_3", 
+        "kinova_arm_joint_5",
+        "kinova_arm_joint_2",
+        "kinova_arm_joint_4",
+        "kinova_arm_joint_6",
+        "finger_joint",
+        "base_linear_forward",
+        "base_linear_backward",
+        "base_angular_left",
+        "base_angular_right"
+      ];
 
   // Initialize visibility
   useEffect(() => {
@@ -95,32 +109,53 @@ export const MockLineChart = ({ title, type }: MockLineChartProps) => {
 
           let value = 0;
           
-          if (dataType === "positions") {
-            // Different smooth patterns for different joints
-            if (jointName.includes("wheel")) {
-              value = Math.sin((time / 100) + jointIndex) * 0.5;
-            } else if (jointName.includes("kinova_arm")) {
-              value = Math.sin((time / 200) + jointIndex) * 1.5 + Math.cos((time / 150) + jointIndex) * 0.5;
-            } else if (jointName.includes("finger") || jointName.includes("knuckle")) {
-              value = Math.sin((time / 300) + jointIndex) * 0.1;
+          if (type === "state") {
+            // State data patterns
+            if (dataType === "positions") {
+              if (jointName.includes("wheel")) {
+                value = Math.sin((time / 100) + jointIndex) * 0.5;
+              } else if (jointName.includes("kinova_arm")) {
+                value = Math.sin((time / 200) + jointIndex) * 1.5 + Math.cos((time / 150) + jointIndex) * 0.5;
+              } else if (jointName.includes("finger") || jointName.includes("knuckle")) {
+                value = Math.sin((time / 300) + jointIndex) * 0.1;
+              }
+            } else if (dataType === "velocities") {
+              if (jointName.includes("wheel")) {
+                value = Math.cos((time / 80) + jointIndex) * 0.05;
+              } else if (jointName.includes("kinova_arm")) {
+                value = Math.sin((time / 180) + jointIndex) * 0.1;
+              } else {
+                value = Math.sin((time / 250) + jointIndex) * 0.02;
+              }
+            } else if (dataType === "efforts") {
+              if (jointName.includes("kinova_arm")) {
+                value = Math.sin((time / 160) + jointIndex) * 3 + Math.cos((time / 120) + jointIndex) * 1;
+              } else if (jointName.includes("wheel")) {
+                value = Math.sin((time / 90) + jointIndex) * 0.02;
+              } else {
+                value = Math.sin((time / 200) + jointIndex) * 0.01;
+              }
             }
-          } else if (dataType === "velocities") {
-            // Smooth velocity patterns
-            if (jointName.includes("wheel")) {
-              value = Math.cos((time / 80) + jointIndex) * 0.05;
-            } else if (jointName.includes("kinova_arm")) {
-              value = Math.sin((time / 180) + jointIndex) * 0.1;
-            } else {
-              value = Math.sin((time / 250) + jointIndex) * 0.02;
-            }
-          } else if (dataType === "efforts") {
-            // Smooth effort patterns
-            if (jointName.includes("kinova_arm")) {
-              value = Math.sin((time / 160) + jointIndex) * 3 + Math.cos((time / 120) + jointIndex) * 1;
-            } else if (jointName.includes("wheel")) {
-              value = Math.sin((time / 90) + jointIndex) * 0.02;
-            } else {
-              value = Math.sin((time / 200) + jointIndex) * 0.01;
+          } else {
+            // Command data patterns
+            if (dataType === "positions") {
+              if (jointName.includes("kinova_arm")) {
+                value = Math.sin((time / 180) + jointIndex) * 1.2 + Math.cos((time / 120) + jointIndex) * 0.8;
+              } else if (jointName === "finger_joint") {
+                value = Math.sin((time / 250) + jointIndex) * 0.1;
+              } else if (jointName.includes("base_")) {
+                value = 0; // Base commands are typically 0
+              }
+            } else if (dataType === "velocities") {
+              // Command velocities are all 0
+              value = 0;
+            } else if (dataType === "efforts") {
+              if (jointName.includes("kinova_arm")) {
+                // NaN values for arm joints in commands - we'll show as 0 for visualization
+                value = 0;
+              } else {
+                value = 0;
+              }
             }
           }
 
@@ -133,7 +168,19 @@ export const MockLineChart = ({ title, type }: MockLineChartProps) => {
     };
 
     generateSmoothData();
-  }, [dataType]);
+    
+    // Update data every 5 seconds for command type
+    let interval: NodeJS.Timeout | null = null;
+    if (type === "command") {
+      interval = setInterval(generateSmoothData, 5000);
+    }
+
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [dataType, type, jointNames]);
 
   // Memoize color generation
   const jointColors = useMemo(() => {

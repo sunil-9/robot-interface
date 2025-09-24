@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { LineChart } from "./LineChart";
 import { useBridgeData } from "@/hooks/useBridgeData";
+import { useEffect, useState } from "react";
+import { LineChart } from "./LineChart";
 
 interface JointManagerProps {
   title: string;
@@ -14,10 +14,10 @@ export const JointManager = ({ title, type }: JointManagerProps) => {
   // Extract available joints from bridge data
   useEffect(() => {
     const data = type === "state" ? bridgeData.state : bridgeData.command;
-    
+
     if (data) {
       let joints: string[] = [];
-      
+
       if (type === "state") {
         const stateData = data as typeof bridgeData.state;
         if (stateData?.names) {
@@ -31,7 +31,7 @@ export const JointManager = ({ title, type }: JointManagerProps) => {
           joints = commandData.data.map((_, index) => `Joint ${index + 1}`);
         }
       }
-      
+
       if (joints.length > 0) {
         setAvailableJoints(joints);
       }
@@ -41,8 +41,6 @@ export const JointManager = ({ title, type }: JointManagerProps) => {
   return (
     <LineChart
       title={title}
-      type={type === "command" ? "action" : type}
-      availableJoints={availableJoints}
     />
   );
 };

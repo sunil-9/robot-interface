@@ -5,20 +5,22 @@ This bridges ROS2 topics to WebSocket for the frontend
 """
 
 import asyncio
-import json
 import base64
-import websockets
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import JointState, Image
-from std_msgs.msg import Float64MultiArray
-from trajectory_msgs.msg import JointTrajectory
-from cv_bridge import CvBridge
-import cv2
-import numpy as np
-from threading import Thread
+import json
 import signal
 import sys
+from threading import Thread
+
+import cv2
+import numpy as np
+import rclpy
+import websockets
+from cv_bridge import CvBridge
+from rclpy.node import Node
+from sensor_msgs.msg import Image, JointState
+from std_msgs.msg import Float64MultiArray
+from trajectory_msgs.msg import JointTrajectory
+
 
 class ROS2WebSocketBridge(Node):
     def __init__(self):

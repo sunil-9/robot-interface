@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { Camera, Maximize2, Wifi, WifiOff } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface CameraViewProps {
   cameraType: "base" | "wrist";
@@ -14,7 +14,8 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const bridgeData = useBridgeData();
 
-  const imageData = cameraType === "base" ? bridgeData.camera_base : bridgeData.camera_wrist;
+  const imageData =
+    cameraType === "base" ? bridgeData.camera_base : bridgeData.camera_wrist;
 
   // Debug logging
   useEffect(() => {
@@ -28,7 +29,7 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
         command: !!bridgeData.command,
         camera_base: !!bridgeData.camera_base,
         camera_wrist: !!bridgeData.camera_wrist,
-      }
+      },
     });
   }, [cameraType, bridgeData, imageData]);
 
@@ -61,22 +62,31 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
               src={imageData}
               alt={title}
               className="w-full h-full object-contain"
-              onLoad={() => console.log(`✅ ${cameraType} image loaded successfully`)}
+              onLoad={() =>
+                console.log(`✅ ${cameraType} image loaded successfully`)
+              }
               onError={(e) => {
                 console.error(`❌ ${cameraType} image failed to load:`, e);
-                console.log("Image data:", imageData?.substring(0, 100) + "...");
+                console.log(
+                  "Image data:",
+                  imageData?.substring(0, 100) + "..."
+                );
               }}
-              style={{ imageRendering: 'auto' }}
+              style={{ imageRendering: "auto" }}
             />
           ) : (
             <div className="flex items-center justify-center h-full">
               <div className="text-center text-gray-500">
                 <Camera className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">
-                  {bridgeData.isConnected ? "Waiting for camera data..." : "No connection"}
+                  {bridgeData.isConnected
+                    ? "Waiting for camera data..."
+                    : "No connection"}
                 </p>
                 {bridgeData.error && (
-                  <p className="text-xs text-red-500 mt-1">{bridgeData.error}</p>
+                  <p className="text-xs text-red-500 mt-1">
+                    {bridgeData.error}
+                  </p>
                 )}
                 <p className="text-xs text-gray-400 mt-1">
                   Camera: {cameraType}

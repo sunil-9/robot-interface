@@ -4,16 +4,17 @@ Simple ROS2 to WebSocket Bridge - Fixed Version
 """
 
 import asyncio
-import json
 import base64
-import websockets
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import JointState, Image
-from std_msgs.msg import Float64MultiArray
-import threading
+import json
 import signal
 import sys
+import threading
+
+import rclpy
+import websockets
+from rclpy.node import Node
+from sensor_msgs.msg import Image, JointState
+from std_msgs.msg import Float64MultiArray
 
 # Global variables for the bridge
 bridge_node = None

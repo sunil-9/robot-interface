@@ -1,0 +1,4 @@
+# To run the project, execute the following commands in your terminal:
+cd ~/opt/web-project/frontend/src/pages/api && python3 bridge-ultra-simple.py
+python3 ~/Downloads/dummy_publisher.py
+cd frontend && python3 ~/Downloads/dummy_publisher.py

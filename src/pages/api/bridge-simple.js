@@ -10,7 +10,7 @@ if (!fs.existsSync(configPath)) {
   process.exit(1);
 }
 
-const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const wsPort = config.websocket?.port || 8080;
 const maxBuffer = config.maxBuffer || 1000;
 
@@ -20,14 +20,14 @@ class Buffer {
     this.max = max;
     this.arr = [];
   }
-  
+
   push(item) {
     this.arr.push(item);
     if (this.arr.length > this.max) {
       this.arr.shift();
     }
   }
-  
+
   getAll() {
     return this.arr;
   }
@@ -112,7 +112,9 @@ async function main() {
             };
 
             if (t.role === "camera_base" || t.role === "camera_wrist") {
-              console.log(`📸 Camera ${t.role} received: ${msg.width}x${msg.height}`);
+              console.log(
+                `📸 Camera ${t.role} received: ${msg.width}x${msg.height}`
+              );
             }
           }
 
@@ -120,10 +122,13 @@ async function main() {
           buffers[t.name].push(out);
           broadcastJson(out);
         });
-        
+
         console.log(`✅ Successfully subscribed to ${t.name}`);
       } catch (err) {
-        console.error(`❌ Failed to create subscription for ${t.name} ${t.type}:`, err.message);
+        console.error(
+          `❌ Failed to create subscription for ${t.name} ${t.type}:`,
+          err.message
+        );
       }
     }
 
@@ -143,27 +148,36 @@ async function main() {
             const subscriptions = clientSubscriptions.get(socket) || new Set();
             if (Array.isArray(data.roles)) {
               data.roles.forEach((role) => subscriptions.add(role));
-              console.log(`📝 Client subscribed to roles: ${data.roles.join(", ")}`);
+              console.log(
+                `📝 Client subscribed to roles: ${data.roles.join(", ")}`
+              );
             }
             clientSubscriptions.set(socket, subscriptions);
 
-            socket.send(JSON.stringify({
-              type: "subscribed",
-              roles: Array.from(subscriptions),
-            }));
+            socket.send(
+              JSON.stringify({
+                type: "subscribed",
+                roles: Array.from(subscriptions),
+              })
+            );
 
             // Send initial data
             for (const topicName of Object.keys(buffers)) {
               const items = buffers[topicName].getAll();
               if (items.length) {
                 const latestItem = items[items.length - 1];
-                if (!subscriptions.size || subscriptions.has(latestItem.role || "")) {
+                if (
+                  !subscriptions.size ||
+                  subscriptions.has(latestItem.role || "")
+                ) {
                   try {
-                    socket.send(JSON.stringify({
-                      type: "replay",
-                      topic: topicName,
-                      items: [latestItem],
-                    }));
+                    socket.send(
+                      JSON.stringify({
+                        type: "replay",
+                        topic: topicName,
+                        items: [latestItem],
+                      })
+                    );
                   } catch (e) {
                     // ignore send errors
                   }
@@ -174,13 +188,17 @@ async function main() {
             const subscriptions = clientSubscriptions.get(socket);
             if (subscriptions && Array.isArray(data.roles)) {
               data.roles.forEach((role) => subscriptions.delete(role));
-              console.log(`📝 Client unsubscribed from roles: ${data.roles.join(", ")}`);
+              console.log(
+                `📝 Client unsubscribed from roles: ${data.roles.join(", ")}`
+              );
             }
 
-            socket.send(JSON.stringify({
-              type: "unsubscribed",
-              roles: Array.from(subscriptions || []),
-            }));
+            socket.send(
+              JSON.stringify({
+                type: "unsubscribed",
+                roles: Array.from(subscriptions || []),
+              })
+            );
           }
         } catch (err) {
           console.error("❌ Error handling client message:", err);
@@ -194,21 +212,25 @@ async function main() {
 
       // Send available roles
       const availableRoles = [...new Set(config.topics.map((t) => t.role))];
-      socket.send(JSON.stringify({
-        type: "available_roles",
-        roles: availableRoles,
-      }));
+      socket.send(
+        JSON.stringify({
+          type: "available_roles",
+          roles: availableRoles,
+        })
+      );
 
       // Send latest item from each buffer
       for (const topicName of Object.keys(buffers)) {
         const items = buffers[topicName].getAll();
         if (items.length) {
           try {
-            socket.send(JSON.stringify({
-              type: "replay",
-              topic: topicName,
-              items: [items[items.length - 1]],
-            }));
+            socket.send(
+              JSON.stringify({
+                type: "replay",
+                topic: topicName,
+                items: [items[items.length - 1]],
+              })
+            );
           } catch (e) {
             // ignore send errors
           }
@@ -222,7 +244,6 @@ async function main() {
       rclnodejs.shutdown();
       wss.close(() => process.exit(0));
     });
-
   } catch (error) {
     console.error("❌ Bridge initialization error:", error);
     process.exit(1);

@@ -5,17 +5,18 @@ No threading, pure asyncio approach
 """
 
 import asyncio
-import json
 import base64
-import websockets
-import rclpy
-from rclpy.node import Node
-from rclpy.executors import SingleThreadedExecutor
-from sensor_msgs.msg import JointState, Image
-from std_msgs.msg import Float64MultiArray
+import json
 import signal
 import sys
 import threading
+
+import rclpy
+import websockets
+from rclpy.executors import SingleThreadedExecutor
+from rclpy.node import Node
+from sensor_msgs.msg import Image, JointState
+from std_msgs.msg import Float64MultiArray
 
 # Global variables
 websocket_clients = set()
@@ -94,7 +95,7 @@ class SimpleBridge(Node):
             # Compress image to reduce size
             import cv2
             import numpy as np
-            
+
             # Convert to numpy array
             if msg.encoding == 'bgr8':
                 img_array = np.frombuffer(msg.data, dtype=np.uint8).reshape((msg.height, msg.width, 3))

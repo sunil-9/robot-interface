@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import {
   CategoryScale,
@@ -15,7 +16,7 @@ import {
   Tooltip,
 } from "chart.js";
 import { Maximize2, Minimize2, Wifi, WifiOff } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Line } from "react-chartjs-2";
 
 ChartJS.register(
@@ -28,41 +29,32 @@ ChartJS.register(
   Legend
 );
 
-interface LineChartProps {
-  title: string;
-  type: "state" | "action";
-  availableJoints?: string[];
+interface JointStatesMessage {
+  topic: string;
+  role: string;
+  received_at: number;
+  normalized: {
+    names: string[];
+    positions: number[];
+    velocities: number[];
+    efforts: number[];
+  };
 }
 
-export const LineChart = ({
-  title,
-  type,
-  availableJoints = [],
-}: LineChartProps) => {
-  const [allJointData, setAllJointData] = useState<Record<number, number[]>>(
-    {}
-  );
+interface LineChartProps {
+  title: string;
+  type?: "state" | "action";
+}
+
+export const LineChart = ({ title }: LineChartProps) => {
+  const [jointData, setJointData] = useState<Record<string, number[]>>({});
   const [labels, setLabels] = useState<string[]>([]);
-  const [visibleJoints, setVisibleJoints] = useState<Record<number, boolean>>(
-    {}
-  );
+  const [jointNames, setJointNames] = useState<string[]>([]);
+  const [visibleJoints, setVisibleJoints] = useState<Record<string, boolean>>({});
+  const [dataType, setDataType] = useState<'positions' | 'velocities' | 'efforts'>('positions');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // 15 minutes, 60 points, 15 seconds per point
-  const MAX_DATA_POINTS = 60;
-  const WINDOW_MS = 15000; // 15 seconds
-
-  // Buffers for accumulating data within each window
-  const dataBuffer = useRef<Record<number, number[]>>({});
-  const lastWindowTime = useRef<number>(Date.now());
-
-  // Filter function to skip joints with specific prefixes
-  const shouldIncludeJoint = (jointName: string): boolean => {
-    const skipPrefixes = ["front", "rear", "right", "left"];
-    return !skipPrefixes.some((prefix) =>
-      jointName.toLowerCase().startsWith(prefix)
-    );
-  };
+  const MAX_DATA_POINTS = 50;
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
@@ -72,118 +64,48 @@ export const LineChart = ({
   });
 
   useEffect(() => {
-    if (availableJoints.length > 0) {
-      const initialVisibility: Record<number, boolean> = {};
-      availableJoints.forEach((jointName, index) => {
-        // Only make joints visible if they pass the filter
-        initialVisibility[index] = shouldIncludeJoint(jointName);
-      });
-      setVisibleJoints(initialVisibility);
+    if (!lastMessage) return;
 
-      const initialData: Record<number, number[]> = {};
-      availableJoints.forEach((_, index) => {
-        initialData[index] = [];
-      });
-      setAllJointData(initialData);
-
-      // Initialize buffer
-      const initialBuffer: Record<number, number[]> = {};
-      availableJoints.forEach((_, index) => {
-        initialBuffer[index] = [];
-      });
-      dataBuffer.current = initialBuffer;
-      lastWindowTime.current = Date.now();
-    }
-  }, [availableJoints]);
-
-  useEffect(() => {
-    if (!lastMessage || availableJoints.length === 0) return;
-
-    const now = Date.now();
-    const allValues = extractAllJointValues(lastMessage);
-
-    if (allValues && Object.keys(allValues).length > 0) {
-      // Accumulate values in buffer
-      availableJoints.forEach((jointName, index) => {
-        // Only accumulate data for joints we want to keep
-        if (shouldIncludeJoint(jointName)) {
-          if (!dataBuffer.current[index]) dataBuffer.current[index] = [];
-          dataBuffer.current[index].push(allValues[index] || 0);
-        }
-      });
-
-      // Only update chart every WINDOW_MS (15s)
-      if (now - lastWindowTime.current >= WINDOW_MS) {
-        const newData: Record<number, number[]> = {};
-        availableJoints.forEach((jointName, index) => {
-          const buffer = dataBuffer.current[index] || [];
-          const avg =
-            buffer.length > 0
-              ? buffer.reduce((a, b) => a + b, 0) / buffer.length
-              : 0;
-          newData[index] = [
-            ...(allJointData[index] || []).slice(-(MAX_DATA_POINTS - 1)),
-            avg,
-          ];
-          dataBuffer.current[index] = [];
-        });
-
-        setAllJointData(newData);
-        setLabels((prev) => [
-          ...prev.slice(-(MAX_DATA_POINTS - 1)),
-          new Date().toLocaleTimeString(),
-        ]);
-        lastWindowTime.current = now;
-      }
-    }
-  }, [lastMessage, availableJoints, allJointData]);
-
-  const extractAllJointValues = (
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    message: Record<string, any>
-  ): Record<number, number> | null => {
-    const normalized = message.normalized;
-    if (!normalized) return null;
-
-    const values: Record<number, number> = {};
-
-    // For JointState messages, handle both array and object formats
-    if (normalized.positions) {
-      if (Array.isArray(normalized.positions)) {
-        normalized.positions.forEach((value: number, index: number) => {
-          values[index] = value;
-        });
-      } else if (typeof normalized.positions === "object") {
-        Object.keys(normalized.positions).forEach((key) => {
-          const index = parseInt(key);
-          if (!isNaN(index) && normalized.positions[key] !== null) {
-            values[index] = normalized.positions[key];
+    try {
+      const message = typeof lastMessage === 'string' ? JSON.parse(lastMessage) : lastMessage;
+      
+      // Check if this is a joint_states message
+      if (message.topic === '/joint_states_for_collection' && message.normalized) {
+        const { names, positions, velocities, efforts } = message.normalized;
+        
+        if (names && Array.isArray(names)) {
+          // Initialize joint names and visibility on first message
+          if (jointNames.length === 0) {
+            setJointNames(names);
+            const initialVisibility: Record<string, boolean> = {};
+            names.forEach((name: string) => {
+              initialVisibility[name] = true; // Show all joints by default
+            });
+            setVisibleJoints(initialVisibility);
           }
-        });
-      }
-    }
 
-    // For Float64MultiArray messages
-    if (normalized.data && Array.isArray(normalized.data)) {
-      normalized.data.forEach((value: number, index: number) => {
-        values[index] = value;
-      });
-    }
+          // Update joint data
+          const newData: Record<string, number[]> = {};
+          const currentData = dataType === 'positions' ? positions : 
+                            dataType === 'velocities' ? velocities : efforts;
 
-    // For JointTrajectory messages
-    if (
-      normalized.last_point_positions &&
-      Array.isArray(normalized.last_point_positions)
-    ) {
-      normalized.last_point_positions.forEach(
-        (value: number, index: number) => {
-          values[index] = value;
+          names.forEach((name: string, index: number) => {
+            const value = currentData?.[index] || 0;
+            const existingData = jointData[name] || [];
+            newData[name] = [...existingData.slice(-(MAX_DATA_POINTS - 1)), value];
+          });
+
+          setJointData(newData);
+          setLabels(prev => [
+            ...prev.slice(-(MAX_DATA_POINTS - 1)),
+            new Date().toLocaleTimeString()
+          ]);
         }
-      );
+      }
+    } catch (err) {
+      console.error('Error parsing WebSocket message:', err);
     }
-
-    return Object.keys(values).length > 0 ? values : null;
-  };
+  }, [lastMessage, dataType, jointData, jointNames]);
 
   // Generate colors for each joint
   const generateColor = (index: number, total: number) => {
@@ -195,25 +117,19 @@ export const LineChart = ({
   const chartData = useMemo(
     () => ({
       labels,
-      datasets: availableJoints.filter(shouldIncludeJoint).map((jointName) => {
-        const index = availableJoints.indexOf(jointName);
-        return {
-          label: jointName,
-          data: allJointData[index] || [],
-          borderColor: generateColor(index, availableJoints.length),
-          backgroundColor: `${generateColor(
-            index,
-            availableJoints.length
-          ).replace(")", ", 0.1)")}`,
-          borderWidth: 2,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          tension: 0.4,
-          hidden: !visibleJoints[index], // Control visibility
-        };
-      }),
+      datasets: jointNames.map((jointName, index) => ({
+        label: jointName,
+        data: jointData[jointName] || [],
+        borderColor: generateColor(index, jointNames.length),
+        backgroundColor: `${generateColor(index, jointNames.length).replace(")", ", 0.1)")}`,
+        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 4,
+        tension: 0.4,
+        hidden: !visibleJoints[jointName],
+      })),
     }),
-    [labels, allJointData, availableJoints, visibleJoints]
+    [labels, jointData, jointNames, visibleJoints]
   );
 
   const getOptions = (isModal = false): ChartOptions<"line"> => ({
@@ -221,16 +137,7 @@ export const LineChart = ({
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        display: true,
-        position: "top" as const,
-        labels: {
-          usePointStyle: true,
-          padding: 10,
-          font: {
-            size: 11,
-          },
-          color: "hsl(210, 20%, 95%)",
-        },
+        display: false, // We'll use custom checkboxes instead
       },
       tooltip: {
         mode: "index" as const,
@@ -240,6 +147,13 @@ export const LineChart = ({
         bodyColor: "hsl(210, 20%, 95%)",
         borderColor: "hsl(195, 100%, 50%)",
         borderWidth: 1,
+        callbacks: {
+          label: (context) => {
+            const label = context.dataset.label || '';
+            const value = context.parsed.y.toFixed(4);
+            return `${label}: ${value}`;
+          }
+        }
       },
     },
     interaction: {
@@ -254,7 +168,7 @@ export const LineChart = ({
         },
         ticks: {
           color: "hsl(210, 10%, 60%)",
-          maxTicksLimit: isModal ? 20 : 10,
+          maxTicksLimit: isModal ? 20 : 8,
         },
       },
       y: {
@@ -265,6 +179,11 @@ export const LineChart = ({
         ticks: {
           color: "hsl(210, 10%, 60%)",
         },
+        title: {
+          display: true,
+          text: dataType.charAt(0).toUpperCase() + dataType.slice(1),
+          color: "hsl(210, 10%, 60%)",
+        }
       },
     },
     elements: {
@@ -274,16 +193,16 @@ export const LineChart = ({
     },
   });
 
-  // Memoize options to prevent recreating on every render
-  const chartOptions = useMemo(() => getOptions(false), []);
-  const modalChartOptions = useMemo(() => getOptions(true), []);
+  // Chart options
+  const chartOptions = getOptions(false);
+  const modalChartOptions = getOptions(true);
 
   // Memoize chart component to prevent unnecessary re-renders
   const ChartContent = React.memo(
     ({ isModal = false }: { isModal?: boolean }) => (
       <div
-        className={`bg-chart-bg rounded-lg p-2 relative group ${
-          isModal ? "h-full" : "h-48"
+        className={`bg-gray-900 rounded-lg p-2 relative group ${
+          isModal ? "h-full" : "h-64"
         }`}
       >
         <Line
@@ -314,6 +233,16 @@ export const LineChart = ({
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-3">
             <h3 className="text-sm font-medium text-foreground">{title}</h3>
+            <Select value={dataType} onValueChange={(value: typeof dataType) => setDataType(value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="positions">Positions</SelectItem>
+                <SelectItem value="velocities">Velocities</SelectItem>
+                <SelectItem value="efforts">Efforts</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="flex items-center gap-2">
             {isConnected ? (
@@ -330,36 +259,36 @@ export const LineChart = ({
           </div>
         </div>
 
-        {/* Joint visibility controls - only show non-filtered joints */}
-        {availableJoints.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2 text-xs">
-            {availableJoints.filter(shouldIncludeJoint).map((jointName) => {
-              const index = availableJoints.indexOf(jointName);
-              return (
-                <div key={index} className="flex items-center space-x-1">
+        {/* Joint visibility controls */}
+        {jointNames.length > 0 && (
+          <div className="mb-3 max-h-32 overflow-y-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
+              {jointNames.map((jointName, index) => (
+                <div key={jointName} className="flex items-center space-x-1">
                   <Checkbox
-                    id={`joint-${index}`}
-                    checked={visibleJoints[index] || false}
+                    id={`joint-${jointName}`}
+                    checked={visibleJoints[jointName] || false}
                     onCheckedChange={(checked) => {
                       setVisibleJoints((prev) => ({
                         ...prev,
-                        [index]: !!checked,
+                        [jointName]: !!checked,
                       }));
                     }}
                     className="h-3 w-3"
                   />
                   <label
-                    htmlFor={`joint-${index}`}
-                    className="text-xs cursor-pointer"
+                    htmlFor={`joint-${jointName}`}
+                    className="text-xs cursor-pointer truncate"
                     style={{
-                      color: generateColor(index, availableJoints.length),
+                      color: generateColor(index, jointNames.length),
                     }}
+                    title={jointName}
                   >
                     {jointName}
                   </label>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         )}
 
@@ -369,9 +298,21 @@ export const LineChart = ({
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-6">
           <div className="h-[70vh]">
-            <h3 className="text-lg font-medium mb-4 text-foreground">
-              {title} - Fullscreen
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-foreground">
+                {title} - Fullscreen
+              </h3>
+              <Select value={dataType} onValueChange={(value: typeof dataType) => setDataType(value)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="positions">Positions</SelectItem>
+                  <SelectItem value="velocities">Velocities</SelectItem>
+                  <SelectItem value="efforts">Efforts</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <ChartContent isModal />
           </div>
         </DialogContent>

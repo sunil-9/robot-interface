@@ -54,7 +54,7 @@ export const useBridgeData = () => {
         hasNormalized: !!normalized,
         dataType: typeof normalized?.data,
         dataLength: normalized?.data ? normalized.data.length : 0,
-        fullMessage: lastMessage
+        fullMessage: lastMessage,
       });
 
       setBridgeData((prev) => {
@@ -89,7 +89,7 @@ export const useBridgeData = () => {
               console.log("❌ Camera base data invalid:", {
                 hasData: !!normalized?.data,
                 dataType: typeof normalized?.data,
-                dataLength: normalized?.data ? normalized.data.length : 0
+                dataLength: normalized?.data ? normalized.data.length : 0,
               });
             }
             break;
@@ -106,7 +106,7 @@ export const useBridgeData = () => {
               console.log("❌ Camera wrist data invalid:", {
                 hasData: !!normalized?.data,
                 dataType: typeof normalized?.data,
-                dataLength: normalized?.data ? normalized.data.length : 0
+                dataLength: normalized?.data ? normalized.data.length : 0,
               });
             }
             break;
@@ -127,8 +127,12 @@ export const useBridgeData = () => {
         hasCommand: !!bridgeData.command,
         hasCamera_base: !!bridgeData.camera_base,
         hasCamera_wrist: !!bridgeData.camera_wrist,
-        camera_base_length: bridgeData.camera_base ? bridgeData.camera_base.length : 0,
-        camera_wrist_length: bridgeData.camera_wrist ? bridgeData.camera_wrist.length : 0,
+        camera_base_length: bridgeData.camera_base
+          ? bridgeData.camera_base.length
+          : 0,
+        camera_wrist_length: bridgeData.camera_wrist
+          ? bridgeData.camera_wrist.length
+          : 0,
       });
     }, 5000); // Every 5 seconds
 

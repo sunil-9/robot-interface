@@ -52,7 +52,7 @@ if (!fs.existsSync(configPath)) {
   process.exit(1);
 }
 
-const config: Config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+const config: Config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const wsPort = config.websocket?.port || 8080;
 const maxBuffer = config.maxBuffer || 1000;
 
@@ -108,9 +108,9 @@ function broadcastJson(obj: BridgeMessage): void {
 async function initializeROS2() {
   try {
     // Dynamic import to handle ES6 module compatibility
-    rclnodejs = await import('rclnodejs');
+    rclnodejs = await import("rclnodejs");
     console.log("🚀 Initializing ROS2 node...");
-    
+
     await rclnodejs.init();
     const node = new rclnodejs.Node("ros2_ws_bridge_node");
     console.log("✅ ROS2 node initialized");
@@ -156,14 +156,16 @@ async function initializeROS2() {
             };
 
             if (t.role === "camera_base" || t.role === "camera_wrist") {
-              console.log(`📸 Camera ${t.role} received: ${msg.width}x${msg.height}`);
+              console.log(
+                `📸 Camera ${t.role} received: ${msg.width}x${msg.height}`
+              );
             }
           }
 
           buffers[t.name].push(out);
           broadcastJson(out);
         });
-        
+
         console.log(`✅ Successfully subscribed to ${t.name}`);
       } catch (err: unknown) {
         console.error(
@@ -182,7 +184,6 @@ async function initializeROS2() {
       rclnodejs.shutdown();
       wss.close(() => process.exit(0));
     });
-
   } catch (error) {
     console.error("❌ Failed to initialize ROS2:", error);
     console.log("💡 Tip: Make sure ROS2 is sourced and topics are available");
@@ -200,30 +201,40 @@ wss.on("connection", (socket: WebSocket) => {
       const data = JSON.parse(message.toString());
 
       if (data.type === "subscribe") {
-        const subscriptions = clientSubscriptions.get(socket) || new Set<string>();
+        const subscriptions =
+          clientSubscriptions.get(socket) || new Set<string>();
         if (Array.isArray(data.roles)) {
           data.roles.forEach((role: string) => subscriptions.add(role));
-          console.log(`📝 Client subscribed to roles: ${data.roles.join(", ")}`);
+          console.log(
+            `📝 Client subscribed to roles: ${data.roles.join(", ")}`
+          );
         }
         clientSubscriptions.set(socket, subscriptions);
 
-        socket.send(JSON.stringify({
-          type: "subscribed",
-          roles: Array.from(subscriptions),
-        }));
+        socket.send(
+          JSON.stringify({
+            type: "subscribed",
+            roles: Array.from(subscriptions),
+          })
+        );
 
         // Send initial data
         for (const topicName of Object.keys(buffers)) {
           const items = buffers[topicName].getAll();
           if (items.length) {
             const latestItem = items[items.length - 1];
-            if (!subscriptions.size || subscriptions.has(latestItem.role || "")) {
+            if (
+              !subscriptions.size ||
+              subscriptions.has(latestItem.role || "")
+            ) {
               try {
-                socket.send(JSON.stringify({
-                  type: "replay",
-                  topic: topicName,
-                  items: [latestItem],
-                }));
+                socket.send(
+                  JSON.stringify({
+                    type: "replay",
+                    topic: topicName,
+                    items: [latestItem],
+                  })
+                );
               } catch (e) {
                 // ignore send errors
               }
@@ -243,10 +254,12 @@ wss.on("connection", (socket: WebSocket) => {
 
   // Send available roles
   const availableRoles = [...new Set(config.topics.map((t) => t.role))];
-  socket.send(JSON.stringify({
-    type: "available_roles",
-    roles: availableRoles,
-  }));
+  socket.send(
+    JSON.stringify({
+      type: "available_roles",
+      roles: availableRoles,
+    })
+  );
 });
 
 // Start the bridge

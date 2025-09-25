@@ -60,7 +60,9 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
               size="sm"
               onClick={() => setShowMask(!showMask)}
               disabled={!maskData}
-              className={showMask ? "bg-blue-100" : ""}
+              className={`text-black ${
+                showMask ? "bg-blue-500" : ""
+              }`}
             >
               {showMask ? "Hide" : "Show"} Mask
             </Button>

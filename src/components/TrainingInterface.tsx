@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { CameraView } from "./CameraView";
 import { Header } from "./Header";
-import { JointManager } from "./JointManager";
-import { LineChart } from "./MockLineChart";
+import { MockActionVarianceChart } from "./MockActionVarianceChart";
 
 export const TrainingInterface = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
@@ -34,9 +33,14 @@ export const TrainingInterface = () => {
             </div> */}
 
             {/* Mock Joint Data - Smooth Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LineChart title="Joint State" type="state" />
               <LineChart title="Joint Command" type="command" />
+            </div> */}
+
+            {/* Action Variance Chart */}
+            <div className="grid grid-cols-1 gap-6">
+              <MockActionVarianceChart title="Action Variance Windows" />
             </div>
           </div>
         </main>

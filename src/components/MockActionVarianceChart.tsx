@@ -62,46 +62,15 @@ export const MockActionVarianceChart = ({
 
   // WebSocket connection
   const { isConnected } = useWebSocket({
-    url: "ws://localhost:8765",
+    url: "ws://localhost:8080",
     onMessage: handleWebSocketMessage,
   });
 
-  // Generate mock data as fallback when WebSocket is not available
+  // Clear data when WebSocket is not connected
   useEffect(() => {
     if (!isConnected) {
-      const generateMockData = () => {
-        const newData: number[] = [];
-        for (let i = 0; i < 10; i++) {
-          // Generate values that simulate action variance patterns
-          // Higher variance for middle joints (typically arm joints)
-          let baseValue = 0;
-          if (i >= 2 && i <= 7) {
-            // Arm joints - higher variance
-            baseValue = Math.random() * 0.04 + 0.01; // 0.01 to 0.05
-          } else {
-            // Wheel and gripper joints - lower variance
-            baseValue = Math.random() * 0.02 + 0.002; // 0.002 to 0.022
-          }
-
-          // Add some sine wave variation for more realistic animation
-          const timeVariation = Math.sin(Date.now() / 1000 + i) * 0.005;
-          const finalValue = Math.max(
-            0,
-            Math.min(0.05, baseValue + timeVariation)
-          );
-
-          newData.push(finalValue);
-        }
-        setData(newData);
-        setUsingWebSocketData(false);
-      };
-
-      generateMockData();
-
-      // Update mock data every 2 seconds when WebSocket is not connected
-      const interval = setInterval(generateMockData, 2000);
-
-      return () => clearInterval(interval);
+      setData([]);
+      setUsingWebSocketData(false);
     }
   }, [isConnected]);
 
@@ -215,7 +184,20 @@ export const MockActionVarianceChart = ({
 
   const ChartComponent = (
     <div className="h-full">
-      <Bar data={chartData} options={chartOptions} />
+      {data.length === 0 ? (
+        <div className="h-full flex items-center justify-center">
+          <div className="text-center">
+            <div className="text-gray-400 text-lg mb-2">No Data Found</div>
+            <div className="text-gray-500 text-sm">
+              {!isConnected
+                ? "WebSocket not connected"
+                : "Waiting for action variance data..."}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <Bar data={chartData} options={chartOptions} />
+      )}
     </div>
   );
 
@@ -236,9 +218,18 @@ export const MockActionVarianceChart = ({
           <div className="mt-2 text-xs text-gray-400">
             <div className="flex justify-between">
               <span>
-                {usingWebSocketData ? "Live WebSocket Data" : "Mock Data"}
+                {data.length === 0
+                  ? !isConnected
+                    ? "WebSocket Disconnected"
+                    : "No Data Available"
+                  : usingWebSocketData
+                  ? "Live WebSocket Data"
+                  : "Data Available"}
                 {isConnected && (
                   <span className="ml-2 inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                )}
+                {!isConnected && (
+                  <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
                 )}
               </span>
               <span>Range: 0.000 - 0.050</span>

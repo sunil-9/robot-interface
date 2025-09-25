@@ -52,18 +52,18 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
       };
 
       ws.current.onmessage = (event) => {
-        let sanitizedData = '';
+        let sanitizedData = "";
         try {
           // First, sanitize the data by replacing NaN with null - more comprehensive regex
           sanitizedData = event.data
-            .replace(/:\s*NaN\b/g, ': null')
-            .replace(/,\s*NaN\b/g, ', null')
-            .replace(/\[\s*NaN\b/g, '[null')
-            .replace(/NaN\s*,/g, 'null,')
-            .replace(/NaN\s*\]/g, 'null]');
-          
+            .replace(/:\s*NaN\b/g, ": null")
+            .replace(/,\s*NaN\b/g, ", null")
+            .replace(/\[\s*NaN\b/g, "[null")
+            .replace(/NaN\s*,/g, "null,")
+            .replace(/NaN\s*\]/g, "null]");
+
           let message: WebSocketMessage = JSON.parse(sanitizedData);
-          
+
           // Debug each message to see what's coming in
           // if the type of message is string then change it to json object
           if (typeof message === "string") {
@@ -75,11 +75,13 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
             topic: message.topic,
             role: message.role,
             hasData: message.normalized && !!message.normalized.data,
-            dataLength: message.normalized?.data ? message.normalized.data.length : 0,
+            dataLength: message.normalized?.data
+              ? message.normalized.data.length
+              : 0,
             width: message.normalized?.width,
             height: message.normalized?.height,
           });
-          
+
           if (message.role && message.role.includes("camera")) {
             console.log("📸 CAMERA MESSAGE DETAILS:", {
               topic: message.topic,
@@ -89,13 +91,23 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
               height: message.normalized?.height,
             });
           }
-          
-          console.log("🚀 SETTING LAST MESSAGE:", message.role, "at", Date.now());
+
+          console.log(
+            "🚀 SETTING LAST MESSAGE:",
+            message.role,
+            "at",
+            Date.now()
+          );
           setLastMessage(message);
-          
+
           // Also call the callback immediately to avoid React batching issues
           if (onMessage) {
-            console.log("📨 CALLING onMessage CALLBACK:", message.role, "at", Date.now());
+            console.log(
+              "📨 CALLING onMessage CALLBACK:",
+              message.role,
+              "at",
+              Date.now()
+            );
             onMessage(message);
           }
         } catch (err) {

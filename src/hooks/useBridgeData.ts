@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useWebSocket } from "./useWebSocket";
 
 interface JointData {
@@ -12,6 +12,10 @@ interface CommandData {
   data?: number[];
 }
 
+interface ActionVarianceData {
+  data?: number[];
+}
+
 interface BridgeData {
   state: JointData | null;
   command: CommandData | null;
@@ -19,6 +23,7 @@ interface BridgeData {
   camera_wrist: string | null; // base64 image
   mask_base: string | null; // base64 mask image
   mask_wrist: string | null; // base64 mask image
+  action_variance: ActionVarianceData | null; // action variance windows data
   isConnected: boolean;
   error: string | null;
 }
@@ -31,123 +36,145 @@ export const useBridgeData = () => {
     camera_wrist: null,
     mask_base: null,
     mask_wrist: null,
+    action_variance: null,
     isConnected: false,
     error: null,
   });
 
-  const handleMessage = useCallback((message: {role: string, normalized: any}) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const { role, normalized } = message;
+  const handleMessage = useCallback(
+    (message: { role: string; normalized: any }) => {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      const { role, normalized } = message;
 
-    console.log("📦 Bridge data received via callback:", {
-      role,
-      timestamp: Date.now(),
-      hasNormalized: !!normalized,
-      dataType: typeof normalized?.data,
-      dataLength: normalized?.data ? normalized.data.length : 0,
-    });
-
-    if (role === 'camera_wrist') {
-      console.log("🎯 PROCESSING WRIST CAMERA VIA CALLBACK!", {
+      console.log("📦 Bridge data received via callback:", {
         role,
+        timestamp: Date.now(),
         hasNormalized: !!normalized,
-        hasData: !!normalized?.data,
         dataType: typeof normalized?.data,
+        dataLength: normalized?.data ? normalized.data.length : 0,
       });
-    }
 
-    setBridgeData((prev) => {
-      const newData = { ...prev };
-
-      switch (role) {
-        case "state":
-          newData.state = {
-            names: normalized?.names,
-            positions: normalized?.positions,
-            velocities: normalized?.velocities,
-            efforts: normalized?.efforts,
-          };
-          console.log("✅ State data updated:", newData.state);
-          break;
-        case "command":
-          newData.command = {
-            data: Array.isArray(normalized?.data) ? normalized.data : [],
-          };
-          console.log("✅ Command data updated:", newData.command);
-          break;
-        case "camera_base":
-          if (normalized?.data && typeof normalized.data === "string") {
-            newData.camera_base = `data:image/jpeg;base64,${normalized.data}`;
-            console.log(
-              "✅ Camera base updated, data length:",
-              normalized.data.length,
-              "Base64 preview:",
-              normalized.data.substring(0, 50) + "..."
-            );
-          } else {
-            console.log("❌ Camera base data invalid:", {
-              hasData: !!normalized?.data,
-              dataType: typeof normalized?.data,
-              dataLength: normalized?.data ? normalized.data.length : 0,
-            });
-          }
-          break;
-        case "camera_wrist":
-          console.log("🎥 WRIST CAMERA MESSAGE RECEIVED!", { 
-            hasNormalized: !!normalized,
-            hasData: !!normalized?.data,
-            dataType: typeof normalized?.data,
-            dataLength: normalized?.data ? normalized.data.length : 0,
-            fullNormalized: normalized
-          });
-          if (normalized?.data && typeof normalized.data === "string") {
-            newData.camera_wrist = `data:image/jpeg;base64,${normalized.data}`;
-            console.log(
-              "✅ Camera wrist updated, data length:",
-              normalized.data.length,
-              "Base64 preview:",
-              normalized.data.substring(0, 50) + "..."
-            );
-          } else {
-            console.log("❌ Camera wrist data invalid:", {
-              hasData: !!normalized?.data,
-              dataType: typeof normalized?.data,
-              dataLength: normalized?.data ? normalized.data.length : 0,
-            });
-          }
-          break;
-        case "mask_base":
-          if (normalized?.data && typeof normalized.data === "string") {
-            newData.mask_base = `data:image/png;base64,${normalized.data}`;
-            console.log(
-              "✅ Mask base updated, data length:",
-              normalized.data.length
-            );
-          } else {
-            console.log("❌ Mask base data invalid:", {
-              hasData: !!normalized?.data,
-              dataType: typeof normalized?.data,
-            });
-          }
-          break;
-        case "mask_wrist":
-          if (normalized?.data && typeof normalized.data === "string") {
-            newData.mask_wrist = `data:image/png;base64,${normalized.data}`;
-            console.log(
-              "✅ Mask wrist updated, data length:",
-              normalized.data.length
-            );
-          } else {
-            console.log("❌ Mask wrist data invalid:", {
-              hasData: !!normalized?.data,
-              dataType: typeof normalized?.data,
-            });
-          }
-          break;
+      if (role === "camera_wrist") {
+        console.log("🎯 PROCESSING WRIST CAMERA VIA CALLBACK!", {
+          role,
+          hasNormalized: !!normalized,
+          hasData: !!normalized?.data,
+          dataType: typeof normalized?.data,
+        });
       }
 
-      return newData;
-    });
-  }, []);
+      setBridgeData((prev) => {
+        const newData = { ...prev };
+
+        switch (role) {
+          case "state":
+            newData.state = {
+              names: normalized?.names,
+              positions: normalized?.positions,
+              velocities: normalized?.velocities,
+              efforts: normalized?.efforts,
+            };
+            console.log("✅ State data updated:", newData.state);
+            break;
+          case "command":
+            newData.command = {
+              data: Array.isArray(normalized?.data) ? normalized.data : [],
+            };
+            console.log("✅ Command data updated:", newData.command);
+            break;
+          case "camera_base":
+            if (normalized?.data && typeof normalized.data === "string") {
+              newData.camera_base = `data:image/jpeg;base64,${normalized.data}`;
+              console.log(
+                "✅ Camera base updated, data length:",
+                normalized.data.length,
+                "Base64 preview:",
+                normalized.data.substring(0, 50) + "..."
+              );
+            } else {
+              console.log("❌ Camera base data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+                dataLength: normalized?.data ? normalized.data.length : 0,
+              });
+            }
+            break;
+          case "camera_wrist":
+            console.log("🎥 WRIST CAMERA MESSAGE RECEIVED!", {
+              hasNormalized: !!normalized,
+              hasData: !!normalized?.data,
+              dataType: typeof normalized?.data,
+              dataLength: normalized?.data ? normalized.data.length : 0,
+              fullNormalized: normalized,
+            });
+            if (normalized?.data && typeof normalized.data === "string") {
+              newData.camera_wrist = `data:image/jpeg;base64,${normalized.data}`;
+              console.log(
+                "✅ Camera wrist updated, data length:",
+                normalized.data.length,
+                "Base64 preview:",
+                normalized.data.substring(0, 50) + "..."
+              );
+            } else {
+              console.log("❌ Camera wrist data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+                dataLength: normalized?.data ? normalized.data.length : 0,
+              });
+            }
+            break;
+          case "mask_base":
+            if (normalized?.data && typeof normalized.data === "string") {
+              newData.mask_base = `data:image/png;base64,${normalized.data}`;
+              console.log(
+                "✅ Mask base updated, data length:",
+                normalized.data.length
+              );
+            } else {
+              console.log("❌ Mask base data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+              });
+            }
+            break;
+          case "mask_wrist":
+            if (normalized?.data && typeof normalized.data === "string") {
+              newData.mask_wrist = `data:image/png;base64,${normalized.data}`;
+              console.log(
+                "✅ Mask wrist updated, data length:",
+                normalized.data.length
+              );
+            } else {
+              console.log("❌ Mask wrist data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+              });
+            }
+            break;
+          case "action_variance":
+            if (normalized?.data && Array.isArray(normalized.data)) {
+              newData.action_variance = {
+                data: normalized.data,
+              };
+              console.log(
+                "✅ Action variance updated, values:",
+                normalized.data.map((v: number) => v.toFixed(4)).join(", ")
+              );
+            } else {
+              console.log("❌ Action variance data invalid:", {
+                hasData: !!normalized?.data,
+                dataType: typeof normalized?.data,
+                isArray: Array.isArray(normalized?.data),
+              });
+            }
+            break;
+        }
+
+        return newData;
+      });
+    },
+    []
+  );
 
   const { isConnected, lastMessage, error } = useWebSocket({
     url: "ws://localhost:8080",
@@ -178,6 +205,7 @@ export const useBridgeData = () => {
         hasCamera_wrist: !!bridgeData.camera_wrist,
         hasMask_base: !!bridgeData.mask_base,
         hasMask_wrist: !!bridgeData.mask_wrist,
+        hasActionVariance: !!bridgeData.action_variance,
         camera_base_length: bridgeData.camera_base
           ? bridgeData.camera_base.length
           : 0,
@@ -190,6 +218,7 @@ export const useBridgeData = () => {
         mask_wrist_length: bridgeData.mask_wrist
           ? bridgeData.mask_wrist.length
           : 0,
+        action_variance_values: bridgeData.action_variance?.data || null,
       });
     }, 5000); // Every 5 seconds
 

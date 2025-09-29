@@ -24,12 +24,18 @@ export const ActionVarianceChart: React.FC<ActionVarianceChartProps> = ({
   const animationFrameRef = useRef<number>();
 
   // WebSocket connection to ROS2 bridge
-  const { isConnected, lastMessage, error } = useWebSocket({
-    url: "ws://localhost:8080",
-    reconnectInterval: 3000,
-    maxReconnectAttempts: 10,
-    onMessage: (message) => {
-      // Handle message processing in the useEffect below
+  const { isConnected, lastMessage } = useWebSocket({
+    url: "ws://localhost:8080/ws",
+    onMessage: (message: ActionVarianceMessage) => {
+      if (
+        message.topic === "/action_variance_windows" &&
+        message.normalized?.data
+      ) {
+        const newData = message.normalized.data.map((value: number) =>
+          Math.max(0, Math.min(0.05, value))
+        );
+        setVarianceData(newData);
+      }
     },
   });
 

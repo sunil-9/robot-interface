@@ -62,7 +62,7 @@ export const MockActionVarianceChart = ({
 
   // WebSocket connection
   const { isConnected } = useWebSocket({
-    url: "ws://localhost:8080",
+    url: "ws://localhost:8080/ws",
     onMessage: handleWebSocketMessage,
   });
 

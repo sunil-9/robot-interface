@@ -76,7 +76,7 @@ export const LineChart = ({ title }: LineChartProps) => {
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
-    url: "ws://localhost:8080",
+    url: "ws://localhost:8080/ws",
     reconnectInterval: 3000,
     maxReconnectAttempts: 10,
   });

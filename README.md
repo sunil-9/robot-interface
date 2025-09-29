@@ -100,7 +100,7 @@ The project requires three components to run simultaneously:
 
 ```bash
 cd backend
-conda activate lerobot
+c
 python3 dummy_publisher.py
 ```
 

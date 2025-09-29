@@ -1,0 +1,10 @@
+# ROS2 Dependencies
+# These need to be installed in a ROS2 environment, not via pip/uv
+#
+# Install these using conda in your lerobot environment:
+# conda install -c conda-forge rclpy
+# conda install -c conda-forge sensor_msgs
+# conda install -c conda-forge std_msgs
+# conda install -c conda-forge cv_bridge
+#
+# Or install via rosdep if you have ROS2 installed system-wide

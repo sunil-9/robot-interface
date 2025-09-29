@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CameraView } from "./CameraView";
+import { EpisodeControls } from "./EpisodeControls";
 import { Header } from "./Header";
 import { MockActionVarianceChart } from "./MockActionVarianceChart";
 
@@ -41,6 +42,11 @@ export const TrainingInterface = () => {
             {/* Action Variance Chart */}
             <div className="grid grid-cols-1 gap-6">
               <MockActionVarianceChart title="Action Variance Windows" />
+            </div>
+
+            {/* Episode Controls - Bottom Section */}
+            <div className="grid grid-cols-1 gap-6">
+              <EpisodeControls />
             </div>
           </div>
         </main>

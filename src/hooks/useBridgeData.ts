@@ -43,7 +43,6 @@ export const useBridgeData = () => {
 
   const handleMessage = useCallback(
     (message: { role: string; normalized: any }) => {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
       const { role, normalized } = message;
 
       console.log("📦 Bridge data received via callback:", {
@@ -177,7 +176,7 @@ export const useBridgeData = () => {
   );
 
   const { isConnected, lastMessage, error } = useWebSocket({
-    url: "ws://localhost:8080",
+    url: "ws://localhost:8080/ws",
     reconnectInterval: 3000,
     maxReconnectAttempts: 10,
     onMessage: handleMessage,

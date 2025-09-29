@@ -11,7 +11,7 @@ import {
   Title,
   Tooltip,
 } from "chart.js";
-import { Maximize2, Minimize2 } from "lucide-react";
+import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 
@@ -93,8 +93,11 @@ export const MockActionVarianceChart = ({
       },
       tooltip: {
         callbacks: {
+          title: function (context) {
+            return `Time Window: ${context[0].label}`;
+          },
           label: function (context) {
-            return `Variance: ${context.parsed.y.toFixed(4)}`;
+            return `Action Variance: ${context.parsed.y.toFixed(4)}`;
           },
         },
       },
@@ -133,21 +136,27 @@ export const MockActionVarianceChart = ({
     },
   };
 
-  // Generate colors based on variance level (like the equalizer image you showed)
+  // Generate colors based on variance level with smooth gradient (like audio equalizer)
   const generateBarColors = (values: number[]) => {
     return values.map((value) => {
       // Normalize to 0-1 range for color calculation
-      const normalized = value / 0.05;
+      const normalized = Math.min(value / 0.05, 1.0);
 
-      if (normalized < 0.3) {
-        // Low variance - green
-        return `rgba(34, 197, 94, 0.8)`;
+      if (normalized < 0.2) {
+        // Very low variance - bright green
+        return `rgba(16, 185, 129, 0.85)`;
+      } else if (normalized < 0.4) {
+        // Low variance - green to lime
+        return `rgba(101, 163, 13, 0.85)`;
       } else if (normalized < 0.6) {
-        // Medium variance - yellow/orange
-        return `rgba(251, 191, 36, 0.8)`;
+        // Medium variance - yellow/amber
+        return `rgba(245, 158, 11, 0.85)`;
+      } else if (normalized < 0.8) {
+        // High variance - orange
+        return `rgba(249, 115, 22, 0.85)`;
       } else {
-        // High variance - red/orange
-        return `rgba(239, 68, 68, 0.8)`;
+        // Very high variance - red
+        return `rgba(239, 68, 68, 0.85)`;
       }
     });
   };
@@ -155,16 +164,16 @@ export const MockActionVarianceChart = ({
   const chartData = useMemo(
     () => ({
       labels: [
-        "Joint 1",
-        "Joint 2",
-        "Joint 3",
-        "Joint 4",
-        "Joint 5",
-        "Joint 6",
-        "Joint 7",
-        "Joint 8",
-        "Joint 9",
-        "Joint 10",
+        "0.2s",
+        "0.4s",
+        "0.6s",
+        "0.8s",
+        "1.0s",
+        "1.2s",
+        "1.4s",
+        "1.6s",
+        "1.8s",
+        "2.0s",
       ],
       datasets: [
         {
@@ -233,6 +242,9 @@ export const MockActionVarianceChart = ({
                 )}
               </span>
               <span>Range: 0.000 - 0.050</span>
+              <span className="hidden sm:inline text-xs text-gray-400 ml-4">
+                • Time windows show action variance over future 2.0s horizon
+              </span>
             </div>
           </div>
         </div>
@@ -242,12 +254,13 @@ export const MockActionVarianceChart = ({
         <DialogContent className="max-w-6xl h-[80vh] bg-gray-900 border-gray-700 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-white">{title}</h2>
+            {/* remove minimize button for now 
             <button
               onClick={() => setIsFullscreen(false)}
               className="text-gray-400 hover:text-white transition-colors"
             >
               <Minimize2 className="h-5 w-5" />
-            </button>
+            </button> */}
           </div>
           <div className="h-full">{ChartComponent}</div>
         </DialogContent>

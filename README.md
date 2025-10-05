@@ -100,7 +100,6 @@ The project requires three components to run simultaneously:
 
 ```bash
 cd backend
-c
 python3 dummy_publisher.py
 ```
 
@@ -110,9 +109,7 @@ This publishes dummy data to ROS2 topics for testing the interface.
 `Note: Run this before frontend because  it uses port 8080 by default and you may face port issue if you run frontend first`
 
 ```bash
-cd backend
-conda activate lerobot
-python3 backend.py
+cd ./backend/mybridge/ && conda activate lerobot &&  uv run uvicorn mybridge.main:app --host 0.0.0.0 --port 8080 --reload 
 ```
 
 This starts the WebSocket bridge that connects ROS2 topics to the web interface.

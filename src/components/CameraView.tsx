@@ -15,13 +15,43 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMask, setShowMask] = useState(true);
   const [maskOpacity, setMaskOpacity] = useState([90]); // Opacity as percentage (0-100)
-  const [fps, setFps] = useState(30); // Mock FPS, replace with actual FPS data
+  const [fps, setFps] = useState(0);
+  const [frameCount, setFrameCount] = useState(0);
+  const [lastFpsUpdate, setLastFpsUpdate] = useState(Date.now());
   const bridgeData = useBridgeData();
 
   const imageData =
     cameraType === "base" ? bridgeData.camera_base : bridgeData.camera_wrist;
   const maskData =
     cameraType === "base" ? bridgeData.mask_base : bridgeData.mask_wrist;
+
+  // FPS calculation
+  useEffect(() => {
+    if (imageData) {
+      const now = Date.now();
+      const newFrameCount = frameCount + 1;
+      setFrameCount(newFrameCount);
+
+      // Calculate FPS every second
+      if (now - lastFpsUpdate >= 1000) {
+        const calculatedFps = Math.round(
+          (newFrameCount * 1000) / (now - lastFpsUpdate)
+        );
+        setFps(calculatedFps);
+        setFrameCount(0);
+        setLastFpsUpdate(now);
+      }
+    }
+  }, [imageData, frameCount, lastFpsUpdate]);
+
+  // Reset FPS when no data
+  useEffect(() => {
+    if (!imageData) {
+      setFps(0);
+      setFrameCount(0);
+      setLastFpsUpdate(Date.now());
+    }
+  }, [imageData]);
 
   // Debug logging
   useEffect(() => {
@@ -104,34 +134,21 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
 
               {/* Attention mask overlay */}
               {showMask && maskData && (
-                <div
-                  className="absolute inset-0 w-full h-full pointer-events-none"
+                <img
+                  src={maskData}
+                  alt="Attention Mask"
+                  className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                   style={{
-                    backgroundImage: `url(${maskData})`,
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
+                    opacity: maskOpacity[0] / 100,
                     mixBlendMode: "multiply",
-                    opacity: 0.7,
                   }}
-                >
-                  {/* Color overlay for highlighted regions */}
-                  <div
-                    className="w-full h-full"
-                    style={{
-                      background:
-                        "linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,255,0,0.3), rgba(0,255,0,0.3), rgba(0,0,255,0.3))",
-                      maskImage: `url(${maskData})`,
-                      WebkitMaskImage: `url(${maskData})`,
-                      maskSize: "contain",
-                      WebkitMaskSize: "contain",
-                      maskRepeat: "no-repeat",
-                      WebkitMaskRepeat: "no-repeat",
-                      maskPosition: "center",
-                      WebkitMaskPosition: "center",
-                    }}
-                  />
-                </div>
+                  onLoad={() =>
+                    console.log(`✅ ${cameraType} mask loaded successfully`)
+                  }
+                  onError={(e) => {
+                    console.error(`❌ ${cameraType} mask failed to load:`, e);
+                  }}
+                />
               )}
 
               {/* Mask status indicator */}
@@ -164,7 +181,7 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
         </div>
 
         {/* Mask Opacity Slider */}
-        {maskData && (
+        {showMask && maskData && (
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <label className="text-gray-600">Mask Opacity</label>
@@ -177,7 +194,6 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
               min={0}
               step={5}
               className="w-full"
-              disabled={!showMask}
             />
           </div>
         )}
@@ -197,34 +213,15 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
 
                 {/* Attention mask overlay in fullscreen */}
                 {showMask && maskData && (
-                  <div
-                    className="absolute inset-0 w-full h-full pointer-events-none"
+                  <img
+                    src={maskData}
+                    alt="Attention Mask"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                     style={{
-                      backgroundImage: `url(${maskData})`,
-                      backgroundSize: "contain",
-                      backgroundRepeat: "no-repeat",
-                      backgroundPosition: "center",
-                      mixBlendMode: "multiply",
                       opacity: maskOpacity[0] / 100,
+                      mixBlendMode: "multiply",
                     }}
-                  >
-                    {/* Color overlay for highlighted regions */}
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        background:
-                          "linear-gradient(45deg, rgba(255,0,0,0.3), rgba(255,255,0,0.3), rgba(0,255,0,0.3), rgba(0,0,255,0.3))",
-                        maskImage: `url(${maskData})`,
-                        WebkitMaskImage: `url(${maskData})`,
-                        maskSize: "contain",
-                        WebkitMaskSize: "contain",
-                        maskRepeat: "no-repeat",
-                        WebkitMaskRepeat: "no-repeat",
-                        maskPosition: "center",
-                        WebkitMaskPosition: "center",
-                      }}
-                    />
-                  </div>
+                  />
                 )}
               </div>
             ) : (

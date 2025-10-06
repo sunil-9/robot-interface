@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { Camera, Maximize2, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -13,6 +14,8 @@ interface CameraViewProps {
 export const CameraView = ({ cameraType, title }: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMask, setShowMask] = useState(true);
+  const [maskOpacity, setMaskOpacity] = useState([90]); // Opacity as percentage (0-100)
+  const [fps, setFps] = useState(30); // Mock FPS, replace with actual FPS data
   const bridgeData = useBridgeData();
 
   const imageData =
@@ -55,6 +58,9 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
             )}
           </div>
           <div className="flex gap-2">
+            <span className="text-sm text-gray-500 flex items-center mr-2">
+              {fps} FPS
+            </span>
             <Button
               variant="outline"
               size="sm"
@@ -156,6 +162,25 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
             </div>
           )}
         </div>
+
+        {/* Mask Opacity Slider */}
+        {maskData && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <label className="text-gray-600">Mask Opacity</label>
+              <span className="text-gray-500">{maskOpacity[0]}%</span>
+            </div>
+            <Slider
+              value={maskOpacity}
+              onValueChange={setMaskOpacity}
+              max={100}
+              min={0}
+              step={5}
+              className="w-full"
+              disabled={!showMask}
+            />
+          </div>
+        )}
       </Card>
 
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
@@ -180,7 +205,7 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
                       backgroundRepeat: "no-repeat",
                       backgroundPosition: "center",
                       mixBlendMode: "multiply",
-                      opacity: 0.7,
+                      opacity: maskOpacity[0] / 100,
                     }}
                   >
                     {/* Color overlay for highlighted regions */}

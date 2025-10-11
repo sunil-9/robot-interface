@@ -138,7 +138,9 @@ export const MockActionVarianceChart = ({
                     display: true,
                     content: `Median: ${
                       data.length > 0
-                        ? [...data].sort((a, b) => a - b)[Math.floor(data.length / 2)].toFixed(3)
+                        ? [...data]
+                            .sort((a, b) => a - b)
+                            [Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
@@ -282,7 +284,11 @@ export const MockActionVarianceChart = ({
 
   return (
     <>
-      <Card className={`${overlay ? "bg-black bg-opacity-75" : "bg-gray-900"} border-gray-700 h-full ${compact ? "p-2" : ""}`}>
+      <Card
+        className={`${
+          overlay ? "bg-black bg-opacity-75" : "bg-gray-900"
+        } border-gray-700 h-full ${compact ? "p-2" : ""}`}
+      >
         <div className={`${compact ? "p-2" : "p-4"} h-full flex flex-col`}>
           {!compact && showTitle && (
             <div className="flex justify-between items-center mb-4">
@@ -295,7 +301,9 @@ export const MockActionVarianceChart = ({
               </button>
             </div>
           )}
-          <div className={`flex-1 min-h-0 ${compact ? "h-32" : ""}`}>{ChartComponent}</div>
+          <div className={`flex-1 min-h-0 ${compact ? "h-32" : ""}`}>
+            {ChartComponent}
+          </div>
           {!compact && (
             <div className="mt-2 text-xs text-gray-400">
               <div className="flex justify-between">

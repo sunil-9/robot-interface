@@ -1,30 +1,36 @@
+import { useBridgeData } from "@/hooks/useBridgeData";
+import {
+  Calendar,
+  Clock,
+  Eye,
+  PanelRight,
+  Play,
+  RotateCcw,
+  RotateCw,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { CameraView } from "./CameraView";
 import { Header } from "./Header";
 import { MockActionVarianceChart } from "./MockActionVarianceChart";
-import { Button } from "./ui/button";
-import { 
-  RotateCcw, 
-  Play, 
-  Square, 
-  Sidebar as SidebarIcon, 
-  X, 
-  Eye, 
-  RotateCw, 
-  Trash2, 
-  Calendar, 
-  Clock 
-} from "lucide-react";
-import { useBridgeData } from "@/hooks/useBridgeData";
-import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "./ui/use-toast";
 
 interface Episode {
   id: string;
   name: string;
-  status: "idle" | "recording" | "paused" | "completed" | "replaying" | "rewinding";
+  status:
+    | "idle"
+    | "recording"
+    | "paused"
+    | "completed"
+    | "replaying"
+    | "rewinding";
   start_time?: string;
   end_time?: string;
   duration?: number;
@@ -70,7 +76,7 @@ export const TrainingInterface = () => {
       });
     }
   };
-  
+
   // Simplified API calls for episode control
   const startEpisode = async () => {
     setIsLoading(true);
@@ -78,7 +84,9 @@ export const TrainingInterface = () => {
       const response = await fetch(`${API_BASE}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: `Episode ${new Date().toLocaleTimeString()}` }),
+        body: JSON.stringify({
+          name: `Episode ${new Date().toLocaleTimeString()}`,
+        }),
       });
       const data = await response.json();
       if (data.success && data.episode) {
@@ -127,13 +135,13 @@ export const TrainingInterface = () => {
       setIsLoading(false);
     }
   };
-  
+
   // Additional episode management functions
   const replayEpisode = async (episodeId: string) => {
     setIsLoading(true);
     try {
       await fetch(`${API_BASE}/replay`, {
-        method: "POST", 
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           episode_id: episodeId,
@@ -170,14 +178,14 @@ export const TrainingInterface = () => {
       });
     }
   };
-  
+
   const formatDuration = (seconds?: number) => {
     if (!seconds) return "N/A";
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
-  
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "recording":
@@ -204,34 +212,138 @@ export const TrainingInterface = () => {
             <div className="relative flex-grow">
               {/* Main Camera View - Takes most of the screen */}
               <div className="h-full w-full">
-                <CameraView 
-                  cameraType="base" 
-                  title="Main Camera" 
-                  fullHeight 
-                  showTitle={false} 
+                <CameraView
+                  cameraType="base"
+                  title="Main Camera"
+                  fullHeight
+                  showTitle={false}
                 />
               </div>
 
               {/* Action Variance Chart Overlay - Top Left */}
               <div className="absolute top-4 left-4 w-[280px] z-10">
-                <MockActionVarianceChart 
-                  title="2 sec future" 
-                  overlay 
-                  compact 
-                  showTitle={true} 
+                <MockActionVarianceChart
+                  title="2 sec future"
+                  overlay
+                  compact
+                  showTitle={true}
                 />
               </div>
-            </div>
 
+              {/* Episode Management Sidebar Toggle */}
+              <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute top-1/2 right-0 transform -translate-y-1/2 translate-x-1/2 z-20 bg-gray-900 bg-opacity-70 hover:bg-opacity-90 border-gray-700 rounded-full h-10 w-10 flex items-center justify-center shadow-lg"
+                  >
+                    <PanelRight className="h-5 w-5 text-white" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent className="w-[400px] sm:w-[540px] bg-gray-900 border-gray-700 p-0">
+                  <div className="flex flex-col h-full">
+                    <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+                      <h2 className="text-xl font-bold text-white">
+                        Episode Management
+                      </h2>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="text-gray-400 hover:text-white"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {episodes.length === 0 ? (
+                        <div className="h-full flex items-center justify-center">
+                          <p className="text-gray-400">No episodes found</p>
+                        </div>
+                      ) : (
+                        episodes.map((episode) => (
+                          <Card
+                            key={episode.id}
+                            className="bg-gray-800 border-gray-700 p-4"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <h3 className="font-medium text-white">
+                                  {episode.name}
+                                </h3>
+                                <Badge
+                                  className={getStatusColor(episode.status)}
+                                >
+                                  {episode.status}
+                                </Badge>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-sm text-gray-400 mb-3">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {new Date(
+                                  episode.created_at
+                                ).toLocaleDateString()}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDuration(episode.duration)}
+                              </div>
+                              <div>Data Points: {episode.data_count}</div>
+                              <div className="text-gray-500">
+                                ID: {episode.id.substring(0, 8)}...
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => replayEpisode(episode.id)}
+                                disabled={
+                                  episode.status !== "completed" || isLoading
+                                }
+                                className="flex-1"
+                              >
+                                <Eye className="h-3 w-3 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => replayEpisode(episode.id)}
+                                disabled={
+                                  episode.status !== "completed" || isLoading
+                                }
+                                className="flex-1"
+                              >
+                                <RotateCw className="h-3 w-3 mr-1" />
+                                Replay
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => deleteEpisode(episode.id)}
+                                disabled={isLoading}
+                                className="flex-1"
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                Delete
+                              </Button>
+                            </div>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>{" "}
             {/* Bottom Row with Wrist Cameras and Controls */}
             <div className="grid grid-cols-7 gap-4 h-[240px]">
               {/* Left Wrist Camera */}
               <div className="col-span-3">
-                <CameraView 
-                  cameraType="wrist" 
-                  title="Left Wrist" 
-                  fullHeight 
-                />
+                <CameraView cameraType="wrist" title="Left Wrist" fullHeight />
               </div>
 
               {/* Center Controls */}
@@ -239,7 +351,11 @@ export const TrainingInterface = () => {
                 <Button
                   onClick={isRecording ? endEpisode : startEpisode}
                   disabled={isLoading}
-                  className={`w-full ${isRecording ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"} text-white`}
+                  className={`w-full ${
+                    isRecording
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
+                  } text-white`}
                 >
                   {isRecording ? (
                     <Square className="h-4 w-4 mr-2" />
@@ -262,11 +378,7 @@ export const TrainingInterface = () => {
 
               {/* Right Wrist Camera */}
               <div className="col-span-3">
-                <CameraView 
-                  cameraType="wrist" 
-                  title="Right Wrist" 
-                  fullHeight 
-                />
+                <CameraView cameraType="wrist" title="Right Wrist" fullHeight />
               </div>
             </div>
           </div>

@@ -13,11 +13,11 @@ interface CameraViewProps {
   showTitle?: boolean;
 }
 
-export const CameraView = ({ 
-  cameraType, 
-  title, 
+export const CameraView = ({
+  cameraType,
+  title,
   fullHeight = false,
-  showTitle = true 
+  showTitle = true,
 }: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMask, setShowMask] = useState(true);
@@ -120,7 +120,11 @@ export const CameraView = ({
           </div>
         )}
 
-        <div className={`relative ${fullHeight ? "h-[calc(100%-2rem)]" : "aspect-video"} bg-gray-100 rounded-lg overflow-hidden`}>
+        <div
+          className={`relative ${
+            fullHeight ? "h-[calc(100%-2rem)]" : "aspect-video"
+          } bg-gray-100 rounded-lg overflow-hidden`}
+        >
           {imageData ? (
             <div className="relative w-full h-full">
               {/* Base camera image */}

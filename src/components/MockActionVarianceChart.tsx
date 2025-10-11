@@ -28,10 +28,16 @@ ChartJS.register(
 
 interface MockActionVarianceChartProps {
   title: string;
+  overlay?: boolean;
+  compact?: boolean;
+  showTitle?: boolean;
 }
 
 export const MockActionVarianceChart = ({
   title,
+  overlay = false,
+  compact = false,
+  showTitle = true,
 }: MockActionVarianceChartProps) => {
   const [data, setData] = useState<number[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -84,15 +90,19 @@ export const MockActionVarianceChart = ({
       legend: {
         display: false,
       },
-      // title: {
-      //   display: true,
-      //   text: title,
-      //   color: "white",
-      //   font: {
-      //     size: 16,
-      //     weight: "bold",
-      //   },
-      // },
+      title: {
+        display: compact && showTitle,
+        text: title,
+        color: "white",
+        font: {
+          size: compact ? 12 : 16,
+          weight: "bold",
+        },
+        padding: {
+          top: 5,
+          bottom: 5,
+        },
+      },
       tooltip: {
         callbacks: {
           title: function (context) {
@@ -128,9 +138,7 @@ export const MockActionVarianceChart = ({
                     display: true,
                     content: `Median: ${
                       data.length > 0
-                        ? [...data]
-                            .sort((a, b) => a - b)
-                            [Math.floor(data.length / 2)].toFixed(3)
+                        ? [...data].sort((a, b) => a - b)[Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
@@ -150,32 +158,46 @@ export const MockActionVarianceChart = ({
       x: {
         grid: {
           color: "rgba(255, 255, 255, 0.1)",
+          display: !compact,
         },
         ticks: {
           color: "white",
           font: {
-            size: 10,
+            size: compact ? 8 : 10,
           },
+          display: !compact,
         },
+        display: !compact,
       },
       y: {
         beginAtZero: true,
         max: 0.05,
         grid: {
           color: "rgba(255, 255, 255, 0.1)",
+          display: !compact,
         },
         ticks: {
           color: "white",
           font: {
-            size: 12,
+            size: compact ? 8 : 12,
           },
           stepSize: 0.025,
           callback: function (value) {
-            if (value === 0) return "Low (0.000)";
-            if (value === 0.025) return "Mid (0.025)";
-            if (value === 0.05) return "High (0.050)";
-            return (value as number).toFixed(3);
+            if (compact) {
+              // Simplified labels for compact mode
+              if (value === 0) return "L";
+              if (value === 0.025) return "M";
+              if (value === 0.05) return "H";
+              return "";
+            } else {
+              // Regular labels
+              if (value === 0) return "Low (0.000)";
+              if (value === 0.025) return "Mid (0.025)";
+              if (value === 0.05) return "High (0.050)";
+              return (value as number).toFixed(3);
+            }
           },
+          display: !compact,
         },
       },
     },
@@ -260,61 +282,65 @@ export const MockActionVarianceChart = ({
 
   return (
     <>
-      <Card className="bg-gray-900 border-gray-700 h-full">
-        <div className="p-4 h-full flex flex-col">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-white">{title}</h3>
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex-1 min-h-0">{ChartComponent}</div>
-          <div className="mt-2 text-xs text-gray-400">
-            <div className="flex justify-between">
-              <span>
-                {data.length === 0
-                  ? !isConnected
-                    ? "WebSocket Disconnected"
-                    : "No Data Available"
-                  : usingWebSocketData
-                  ? "Live WebSocket Data"
-                  : "Data Available"}
-                {isConnected && (
-                  <span className="ml-2 inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                )}
-                {!isConnected && (
-                  <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-                )}
-              </span>
-              <span>Range: 0.000 - 0.050</span>
-              <span className="hidden sm:inline text-xs text-gray-400 ml-4">
-                • Time windows show action variance over future 2.0s horizon
-              </span>
+      <Card className={`${overlay ? "bg-black bg-opacity-75" : "bg-gray-900"} border-gray-700 h-full ${compact ? "p-2" : ""}`}>
+        <div className={`${compact ? "p-2" : "p-4"} h-full flex flex-col`}>
+          {!compact && showTitle && (
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-white">{title}</h3>
+              <button
+                onClick={() => setIsFullscreen(true)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </button>
             </div>
+          )}
+          <div className={`flex-1 min-h-0 ${compact ? "h-32" : ""}`}>{ChartComponent}</div>
+          {!compact && (
+            <div className="mt-2 text-xs text-gray-400">
+              <div className="flex justify-between">
+                <span>
+                  {data.length === 0
+                    ? !isConnected
+                      ? "WebSocket Disconnected"
+                      : "No Data Available"
+                    : usingWebSocketData
+                    ? "Live WebSocket Data"
+                    : "Data Available"}
+                  {isConnected && (
+                    <span className="ml-2 inline-block w-2 h-2 bg-green-500 rounded-full"></span>
+                  )}
+                  {!isConnected && (
+                    <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
+                  )}
+                </span>
+                <span>Range: 0.000 - 0.050</span>
+                <span className="hidden sm:inline text-xs text-gray-400 ml-4">
+                  • Time windows show action variance over future 2.0s horizon
+                </span>
+              </div>
 
-            {/* Color Legend */}
-            <div className="mt-3 flex justify-center items-center gap-4 text-xs">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span className="text-gray-300">Low (&lt; 0.01)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                <span className="text-gray-300">Mid (0.01-0.03)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 bg-red-500 rounded"></div>
-                <span className="text-gray-300">High (&gt; 0.03)</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-3 border-2 border-purple-500 border-dashed bg-transparent rounded"></div>
-                <span className="text-purple-400">Median</span>
+              {/* Color Legend */}
+              <div className="mt-3 flex justify-center items-center gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-green-500 rounded"></div>
+                  <span className="text-gray-300">Low (&lt; 0.01)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                  <span className="text-gray-300">Mid (0.01-0.03)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 bg-red-500 rounded"></div>
+                  <span className="text-gray-300">High (&gt; 0.03)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-3 h-3 border-2 border-purple-500 border-dashed bg-transparent rounded"></div>
+                  <span className="text-purple-400">Median</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </Card>
 

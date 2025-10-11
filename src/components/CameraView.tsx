@@ -9,9 +9,16 @@ import { useEffect, useState } from "react";
 interface CameraViewProps {
   cameraType: "base" | "wrist";
   title: string;
+  fullHeight?: boolean;
+  showTitle?: boolean;
 }
 
-export const CameraView = ({ cameraType, title }: CameraViewProps) => {
+export const CameraView = ({ 
+  cameraType, 
+  title, 
+  fullHeight = false,
+  showTitle = true 
+}: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMask, setShowMask] = useState(true);
   const [maskOpacity, setMaskOpacity] = useState([90]); // Opacity as percentage (0-100)
@@ -76,42 +83,44 @@ export const CameraView = ({ cameraType, title }: CameraViewProps) => {
 
   return (
     <>
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Camera className="h-5 w-5" />
-            <h3 className="text-lg font-semibold">{title}</h3>
-            {bridgeData.isConnected ? (
-              <Wifi className="h-4 w-4 text-green-500" />
-            ) : (
-              <WifiOff className="h-4 w-4 text-red-500" />
-            )}
+      <Card className={`${fullHeight ? "h-full" : ""} p-4`}>
+        {showTitle && (
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">{title}</h3>
+              {bridgeData.isConnected ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-500" />
+              )}
+            </div>
+            <div className="flex gap-2">
+              <span className="text-sm text-gray-500 flex items-center mr-2">
+                {fps} FPS
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMask(!showMask)}
+                disabled={!maskData}
+                className={`${showMask ? "bg-blue-500 text-white " : ""}`}
+              >
+                {showMask ? "Hide" : "Show"} Mask
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFullscreen(true)}
+                disabled={!imageData}
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <span className="text-sm text-gray-500 flex items-center mr-2">
-              {fps} FPS
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowMask(!showMask)}
-              disabled={!maskData}
-              className={`${showMask ? "bg-blue-500 text-white " : ""}`}
-            >
-              {showMask ? "Hide" : "Show"} Mask
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsFullscreen(true)}
-              disabled={!imageData}
-            >
-              <Maximize2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+        )}
 
-        <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+        <div className={`relative ${fullHeight ? "h-[calc(100%-2rem)]" : "aspect-video"} bg-gray-100 rounded-lg overflow-hidden`}>
           {imageData ? (
             <div className="relative w-full h-full">
               {/* Base camera image */}

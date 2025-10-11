@@ -41,7 +41,7 @@ export const TrainingInterface = () => {
 
             {/* Action Variance Chart */}
             <div className="grid grid-cols-1 gap-6">
-              <MockActionVarianceChart title="Action Variance Windows" />
+              <MockActionVarianceChart title="Action Variance Windows123" />
             </div>
 
             {/* Episode Controls - Bottom Section */}

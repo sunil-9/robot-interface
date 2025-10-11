@@ -11,6 +11,7 @@ import {
   Title,
   Tooltip,
 } from "chart.js";
+import annotationPlugin from "chartjs-plugin-annotation";
 import { Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
@@ -21,7 +22,8 @@ ChartJS.register(
   BarElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  annotationPlugin
 );
 
 interface MockActionVarianceChartProps {
@@ -82,15 +84,15 @@ export const MockActionVarianceChart = ({
       legend: {
         display: false,
       },
-      title: {
-        display: true,
-        text: title,
-        color: "white",
-        font: {
-          size: 16,
-          weight: "bold",
-        },
-      },
+      // title: {
+      //   display: true,
+      //   text: title,
+      //   color: "white",
+      //   font: {
+      //     size: 16,
+      //     weight: "bold",
+      //   },
+      // },
       tooltip: {
         callbacks: {
           title: function (context) {
@@ -100,6 +102,48 @@ export const MockActionVarianceChart = ({
             return `Action Variance: ${context.parsed.y.toFixed(4)}`;
           },
         },
+      },
+      annotation: {
+        annotations:
+          data.length > 0
+            ? {
+                medianLine: {
+                  type: "line",
+                  yMin:
+                    data.length > 0
+                      ? [...data].sort((a, b) => a - b)[
+                          Math.floor(data.length / 2)
+                        ]
+                      : 0,
+                  yMax:
+                    data.length > 0
+                      ? [...data].sort((a, b) => a - b)[
+                          Math.floor(data.length / 2)
+                        ]
+                      : 0,
+                  borderColor: "#8b5cf6",
+                  borderWidth: 2,
+                  borderDash: [5, 5],
+                  label: {
+                    display: true,
+                    content: `Median: ${
+                      data.length > 0
+                        ? [...data]
+                            .sort((a, b) => a - b)
+                            [Math.floor(data.length / 2)].toFixed(3)
+                        : "0.000"
+                    }`,
+                    position: "end",
+                    backgroundColor: "#8b5cf6",
+                    color: "white",
+                    font: {
+                      size: 11,
+                      weight: "bold",
+                    },
+                  },
+                },
+              }
+            : {},
       },
     },
     scales: {
@@ -123,9 +167,13 @@ export const MockActionVarianceChart = ({
         ticks: {
           color: "white",
           font: {
-            size: 10,
+            size: 12,
           },
+          stepSize: 0.025,
           callback: function (value) {
+            if (value === 0) return "Low (0.000)";
+            if (value === 0.025) return "Mid (0.025)";
+            if (value === 0.05) return "High (0.050)";
             return (value as number).toFixed(3);
           },
         },
@@ -245,6 +293,26 @@ export const MockActionVarianceChart = ({
               <span className="hidden sm:inline text-xs text-gray-400 ml-4">
                 • Time windows show action variance over future 2.0s horizon
               </span>
+            </div>
+
+            {/* Color Legend */}
+            <div className="mt-3 flex justify-center items-center gap-4 text-xs">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                <span className="text-gray-300">Low (&lt; 0.01)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+                <span className="text-gray-300">Mid (0.01-0.03)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 bg-red-500 rounded"></div>
+                <span className="text-gray-300">High (&gt; 0.03)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-3 border-2 border-purple-500 border-dashed bg-transparent rounded"></div>
+                <span className="text-purple-400">Median</span>
+              </div>
             </div>
           </div>
         </div>

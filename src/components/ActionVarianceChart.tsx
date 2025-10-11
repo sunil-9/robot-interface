@@ -149,26 +149,68 @@ export const ActionVarianceChart: React.FC<ActionVarianceChartProps> = ({
       }
     });
 
-    // Draw scale lines and labels
+    // Draw scale lines and labels with user-friendly labels
     ctx.strokeStyle = "#374151";
     ctx.lineWidth = 1;
     ctx.setLineDash([2, 2]);
 
-    for (let i = 0; i <= 5; i++) {
-      const scaleValue = (maxValue / 5) * i;
-      const y = padding + chartHeight - (scaleValue / maxValue) * chartHeight;
+    // Calculate median value
+    const sortedData = [...varianceData].sort((a, b) => a - b);
+    const median =
+      sortedData.length % 2 === 0
+        ? (sortedData[sortedData.length / 2 - 1] +
+            sortedData[sortedData.length / 2]) /
+          2
+        : sortedData[Math.floor(sortedData.length / 2)];
 
+    const medianY = padding + chartHeight - (median / maxValue) * chartHeight;
+
+    // Draw Y-axis labels (Low, Mid, High)
+    const labelPositions = [
+      { label: "High", y: padding + 10, value: maxValue },
+      { label: "Mid", y: padding + chartHeight / 2, value: maxValue / 2 },
+      { label: "Low", y: padding + chartHeight - 10, value: 0 },
+    ];
+
+    labelPositions.forEach(({ label, y, value }) => {
+      const lineY = padding + chartHeight - (value / maxValue) * chartHeight;
+
+      // Draw grid line
       ctx.beginPath();
-      ctx.moveTo(padding, y);
-      ctx.lineTo(padding + chartWidth, y);
+      ctx.moveTo(padding, lineY);
+      ctx.lineTo(padding + chartWidth, lineY);
       ctx.stroke();
 
-      // Scale labels
+      // Draw label
       ctx.fillStyle = "#9ca3af";
-      ctx.font = "10px monospace";
+      ctx.font = "12px monospace";
       ctx.textAlign = "right";
-      ctx.fillText(scaleValue.toFixed(3), padding - 10, y + 3);
-    }
+      ctx.fillText(label, padding - 15, lineY + 4);
+
+      // Draw numeric value
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "10px monospace";
+      ctx.fillText(value.toFixed(3), padding - 15, lineY + 16);
+    });
+
+    // Draw median line
+    ctx.strokeStyle = "#8b5cf6";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(padding, medianY);
+    ctx.lineTo(padding + chartWidth, medianY);
+    ctx.stroke();
+
+    // Median label
+    ctx.fillStyle = "#8b5cf6";
+    ctx.font = "bold 11px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(
+      `Median: ${median.toFixed(3)}`,
+      padding + chartWidth - 120,
+      medianY - 5
+    );
 
     ctx.setLineDash([]);
 
@@ -182,10 +224,10 @@ export const ActionVarianceChart: React.FC<ActionVarianceChartProps> = ({
     ctx.stroke();
 
     // Chart title
-    ctx.fillStyle = "#f3f4f6";
-    ctx.font = "bold 14px monospace";
-    ctx.textAlign = "center";
-    ctx.fillText("Action Variance Windows", width / 2, 25);
+    // ctx.fillStyle = "#f3f4f6";
+    // ctx.font = "bold 14px monospace";
+    // ctx.textAlign = "center";
+    // ctx.fillText("Action Variance Windows", width / 2, 25);
   }, [varianceData]);
 
   // Animation loop for smooth updates
@@ -233,9 +275,6 @@ export const ActionVarianceChart: React.FC<ActionVarianceChartProps> = ({
             )}
           </div>
         </div>
-        {error && (
-          <div className="text-sm text-red-500">WebSocket Error: {error}</div>
-        )}
       </CardHeader>
       <CardContent className="p-2">
         <div className="w-full h-80 relative">
@@ -248,6 +287,26 @@ export const ActionVarianceChart: React.FC<ActionVarianceChartProps> = ({
         <div className="mt-2 text-xs text-gray-400 text-center">
           Real-time action variance data (10 joints) • Range: 0.000-
           {Math.max(0.05, Math.max(...varianceData)).toFixed(3)}
+        </div>
+
+        {/* Color Legend */}
+        <div className="mt-3 flex justify-center items-center gap-6 text-xs">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded"></div>
+            <span className="text-gray-300">Low (&lt; 0.01)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-yellow-500 rounded"></div>
+            <span className="text-gray-300">Mid (0.01-0.03)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-red-500 rounded"></div>
+            <span className="text-gray-300">High (&gt; 0.03)</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 border-2 border-purple-500 border-dashed bg-transparent rounded"></div>
+            <span className="text-purple-400">Median</span>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -206,10 +206,11 @@ export const TrainingInterface = () => {
       <Header onToggleSidebar={toggleSidebar} />
 
       <div className="flex">
-        <main className="flex-1 p-4">
-          <div className="h-[calc(100vh-5rem)] flex flex-col gap-4">
-            {/* Main Camera with Chart Overlay */}
-            <div className="relative flex-grow">
+        <main className="flex-1">
+          {/* Using viewport height units for better fitting on screen, adjusted for smaller header */}
+          <div className="h-[calc(100vh-12rem)] flex flex-col gap-2 overflow-hidden">
+            {/* Main Camera with Chart Overlay - Using calculated height to ensure it fits */}
+            <div className="relative h-[72vh] min-h-0">
               {/* Main Camera View - Takes most of the screen */}
               <div className="h-full w-full">
                 <CameraView
@@ -338,16 +339,16 @@ export const TrainingInterface = () => {
                   </div>
                 </SheetContent>
               </Sheet>
-            </div>{" "}
-            {/* Bottom Row with Wrist Cameras and Controls */}
-            <div className="grid grid-cols-7 gap-4 h-[240px]">
+            </div>
+            {/* Bottom Row with Wrist Cameras and Controls - Using calculated height */}
+            <div className="grid grid-cols-7 gap-2 h-[23vh]">
               {/* Left Wrist Camera */}
               <div className="col-span-3">
                 <CameraView cameraType="wrist" title="Left Wrist" fullHeight />
               </div>
 
               {/* Center Controls */}
-              <div className="col-span-1 flex flex-col justify-center items-center gap-4">
+              <div className="col-span-1 flex flex-col justify-center items-center gap-2">
                 <Button
                   onClick={isRecording ? endEpisode : startEpisode}
                   disabled={isLoading}

@@ -138,9 +138,7 @@ export const MockActionVarianceChart = ({
                     display: true,
                     content: `Median: ${
                       data.length > 0
-                        ? [...data]
-                            .sort((a, b) => a - b)
-                            [Math.floor(data.length / 2)].toFixed(3)
+                        ? [...data].sort((a, b) => a - b)[Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",

@@ -83,7 +83,7 @@ export const CameraView = ({
 
   return (
     <>
-      <Card className={`${fullHeight ? "h-full" : ""} p-4`}>
+      <Card className={`${fullHeight ? "h-full" : ""} `}>
         {showTitle && (
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -108,21 +108,21 @@ export const CameraView = ({
               >
                 {showMask ? "Hide" : "Show"} Mask
               </Button>
-              <Button
+              {/* <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsFullscreen(true)}
                 disabled={!imageData}
               >
                 <Maximize2 className="h-4 w-4" />
-              </Button>
+              </Button> */}
             </div>
           </div>
         )}
 
         <div
           className={`relative ${
-            fullHeight ? "h-[calc(100%-2rem)]" : "aspect-video"
+            fullHeight ? "h-[calc(100%-1.5rem)]" : "aspect-video"
           } bg-gray-100 rounded-lg overflow-hidden`}
         >
           {imageData ? (
@@ -194,7 +194,7 @@ export const CameraView = ({
         </div>
 
         {/* Mask Opacity Slider */}
-        {showMask && maskData && (
+        {/* {showMask && maskData && (
           <div className="mt-4 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <label className="text-gray-600">Mask Opacity</label>
@@ -209,7 +209,7 @@ export const CameraView = ({
               className="w-full"
             />
           </div>
-        )}
+        )} */}
       </Card>
 
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>

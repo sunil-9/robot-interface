@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CameraView } from "./CameraView";
-import { Header } from "./Header";
 import { MockActionVarianceChart } from "./MockActionVarianceChart";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -202,32 +201,32 @@ export const TrainingInterface = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Header onToggleSidebar={toggleSidebar} />
+    <div className="h-screen w-screen overflow-hidden bg-background text-foreground">
+      {/* <Header onToggleSidebar={toggleSidebar} /> */}
 
-      <div className="flex">
-        <main className="flex-1">
-          {/* Using viewport height units for better fitting on screen, adjusted for smaller header */}
-          <div className="h-[calc(100vh-12rem)] flex flex-col gap-2 overflow-hidden">
-            {/* Main Camera with Chart Overlay - Using calculated height to ensure it fits */}
-            <div className="relative h-[72vh] min-h-0">
+      <div className="flex h-full">
+        <main className="flex-1 h-full">
+          {/* Using viewport height units for better fitting on screen */}
+          <div className="h-full flex flex-col">
+            {/* Main Camera with Chart Overlay - Takes approximately 75% of the screen height */}
+            <div className="relative h-[75%]">
               {/* Main Camera View - Takes most of the screen */}
               <div className="h-full w-full">
                 <CameraView
                   cameraType="base"
                   title="Main Camera"
                   fullHeight
-                  showTitle={false}
+                  showTitle={true}
                 />
               </div>
 
               {/* Action Variance Chart Overlay - Top Left */}
-              <div className="absolute top-4 left-4 w-[280px] z-10">
+              <div className="absolute top-10 left-2 w-[260px] z-10 opacity-90 hover:opacity-100 transition-opacity">
                 <MockActionVarianceChart
                   title="2 sec future"
                   overlay
                   compact
-                  showTitle={true}
+                  showTitle={false}
                 />
               </div>
 
@@ -242,7 +241,7 @@ export const TrainingInterface = () => {
                     <PanelRight className="h-5 w-5 text-white" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent className="w-[400px] sm:w-[540px] bg-gray-900 border-gray-700 p-0">
+                <SheetContent className="w-[400px] sm:w-[540px] bg-gray-900 border-gray-700 p-0 h-full">
                   <div className="flex flex-col h-full">
                     <div className="p-4 border-b border-gray-800 flex items-center justify-between">
                       <h2 className="text-xl font-bold text-white">
@@ -340,15 +339,15 @@ export const TrainingInterface = () => {
                 </SheetContent>
               </Sheet>
             </div>
-            {/* Bottom Row with Wrist Cameras and Controls - Using calculated height */}
-            <div className="grid grid-cols-7 gap-2 h-[23vh]">
+            {/* Bottom Row with Wrist Cameras and Controls - Taking remaining 25% of height */}
+            <div className="grid grid-cols-7 gap-1 h-[25%]">
               {/* Left Wrist Camera */}
-              <div className="col-span-3">
+              <div className="col-span-3 h-full">
                 <CameraView cameraType="wrist" title="Left Wrist" fullHeight />
               </div>
 
               {/* Center Controls */}
-              <div className="col-span-1 flex flex-col justify-center items-center gap-2">
+              <div className="col-span-1 flex flex-col justify-center items-center gap-1">
                 <Button
                   onClick={isRecording ? endEpisode : startEpisode}
                   disabled={isLoading}
@@ -359,9 +358,9 @@ export const TrainingInterface = () => {
                   } text-white`}
                 >
                   {isRecording ? (
-                    <Square className="h-4 w-4 mr-2" />
+                    <Square className="h-4 w-4 mr-1" />
                   ) : (
-                    <Play className="h-4 w-4 mr-2" />
+                    <Play className="h-4 w-4 mr-1" />
                   )}
                   {isRecording ? "End" : "Start"}
                 </Button>
@@ -372,13 +371,13 @@ export const TrainingInterface = () => {
                   variant="outline"
                   className="w-full"
                 >
-                  <RotateCcw className="h-4 w-4 mr-2" />
+                  <RotateCcw className="h-4 w-4 mr-1" />
                   Rewind
                 </Button>
               </div>
 
               {/* Right Wrist Camera */}
-              <div className="col-span-3">
+              <div className="col-span-3 h-full">
                 <CameraView cameraType="wrist" title="Right Wrist" fullHeight />
               </div>
             </div>

@@ -138,7 +138,9 @@ export const MockActionVarianceChart = ({
                     display: true,
                     content: `Median: ${
                       data.length > 0
-                        ? [...data].sort((a, b) => a - b)[Math.floor(data.length / 2)].toFixed(3)
+                        ? [...data]
+                            .sort((a, b) => a - b)
+                            [Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
@@ -285,21 +287,27 @@ export const MockActionVarianceChart = ({
       <Card
         className={`${
           overlay ? "bg-black bg-opacity-75" : "bg-gray-900"
-        } border-gray-700 h-full ${compact ? "p-2" : ""}`}
+        } border-gray-700 h-full ${compact ? "p-1" : ""}`}
       >
-        <div className={`${compact ? "p-2" : "p-4"} h-full flex flex-col`}>
-          {!compact && showTitle && (
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-white">{title}</h3>
+        <div className={`${compact ? "p-1" : "p-4"} h-full flex flex-col`}>
+          {showTitle && (
+            <div className="flex justify-between items-center mb-1">
+              <h3
+                className={`${
+                  compact ? "text-xs" : "text-lg"
+                } font-semibold text-white`}
+              >
+                {title}
+              </h3>
               <button
                 onClick={() => setIsFullscreen(true)}
                 className="text-gray-400 hover:text-white transition-colors"
               >
-                <Maximize2 className="h-4 w-4" />
+                <Maximize2 className={`${compact ? "h-3 w-3" : "h-4 w-4"}`} />
               </button>
             </div>
           )}
-          <div className={`flex-1 min-h-0 ${compact ? "h-32" : ""}`}>
+          <div className={`flex-1 min-h-0 ${compact ? "h-28" : ""}`}>
             {ChartComponent}
           </div>
           {!compact && (

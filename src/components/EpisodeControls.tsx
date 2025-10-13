@@ -275,7 +275,7 @@ export const EpisodeControls: React.FC = () => {
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
                 <DialogHeader>
-                  <DialogTitle>Episode Management</DialogTitle>
+                  <DialogTitle>Episode 123 Management</DialogTitle>
                 </DialogHeader>
                 <div className="space-y-4">
                   {episodes.length === 0 ? (

@@ -248,14 +248,7 @@ export const TrainingInterface = () => {
                       <h2 className="text-xl font-bold text-white">
                         Episode Management
                       </h2>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsSidebarOpen(false)}
-                        className="text-gray-400 hover:text-white"
-                      >
-                        <X className="h-5 w-5" />
-                      </Button>
+                     
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
                       {episodes.length === 0 ? (

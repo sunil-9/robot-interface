@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
-import { Maximize2 } from "lucide-react";
+import { HelpCircle, Maximize2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bar } from "react-chartjs-2";
 
@@ -41,6 +41,7 @@ export const MockActionVarianceChart = ({
 }: MockActionVarianceChartProps) => {
   const [data, setData] = useState<number[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [usingWebSocketData, setUsingWebSocketData] = useState(false);
 
   // WebSocket message handler
@@ -86,6 +87,7 @@ export const MockActionVarianceChart = ({
   const chartOptions: ChartOptions<"bar"> = {
     responsive: true,
     maintainAspectRatio: false,
+    indexAxis: "y", // This makes the bar chart horizontal (90 degree rotation)
     plugins: {
       legend: {
         display: false,
@@ -109,7 +111,7 @@ export const MockActionVarianceChart = ({
             return `Time Window: ${context[0].label}`;
           },
           label: function (context) {
-            return `Action Variance: ${context.parsed.y.toFixed(4)}`;
+            return `Action Variance: ${context.parsed.x.toFixed(4)}`; // Changed to x since axes are swapped
           },
         },
       },
@@ -119,13 +121,13 @@ export const MockActionVarianceChart = ({
             ? {
                 medianLine: {
                   type: "line",
-                  yMin:
+                  xMin:
                     data.length > 0
                       ? [...data].sort((a, b) => a - b)[
                           Math.floor(data.length / 2)
                         ]
                       : 0,
-                  yMax:
+                  xMax:
                     data.length > 0
                       ? [...data].sort((a, b) => a - b)[
                           Math.floor(data.length / 2)
@@ -157,7 +159,8 @@ export const MockActionVarianceChart = ({
       },
     },
     scales: {
-      x: {
+      y: {
+        // This was x axis before rotation
         grid: {
           color: "rgba(255, 255, 255, 0.1)",
           display: !compact,
@@ -171,7 +174,8 @@ export const MockActionVarianceChart = ({
         },
         display: !compact,
       },
-      y: {
+      x: {
+        // This was y axis before rotation
         beginAtZero: true,
         max: 0.05,
         grid: {
@@ -235,17 +239,18 @@ export const MockActionVarianceChart = ({
 
   const chartData = useMemo(
     () => ({
+      // Reverse the labels to maintain logical time flow after rotation
       labels: [
-        "0.2s",
-        "0.4s",
-        "0.6s",
-        "0.8s",
-        "1.0s",
-        "1.2s",
-        "1.4s",
-        "1.6s",
-        "1.8s",
         "2.0s",
+        "1.8s",
+        "1.6s",
+        "1.4s",
+        "1.2s",
+        "1.0s",
+        "0.8s",
+        "0.6s",
+        "0.4s",
+        "0.2s",
       ],
       datasets: [
         {
@@ -264,7 +269,7 @@ export const MockActionVarianceChart = ({
   );
 
   const ChartComponent = (
-    <div className="h-full">
+    <div className="h-full relative">
       {data.length === 0 ? (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
@@ -274,10 +279,29 @@ export const MockActionVarianceChart = ({
                 ? "WebSocket not connected"
                 : "Waiting for action variance data..."}
             </div>
+            <button
+              onClick={() => setIsHelpOpen(true)}
+              className="mt-4 px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-md flex items-center justify-center mx-auto"
+            >
+              <HelpCircle className="h-4 w-4 mr-1" />
+              <span>Chart Help</span>
+            </button>
           </div>
         </div>
       ) : (
-        <Bar data={chartData} options={chartOptions} />
+        <>
+          <div className="absolute bottom-2 right-2 z-10">
+            <button
+              onClick={() => setIsHelpOpen(true)}
+              className="bg-gray-800 bg-opacity-70 text-purple-300 hover:text-white p-1 rounded-full"
+              aria-label="Help"
+              title="Show chart explanation"
+            >
+              <HelpCircle className="h-5 w-5" />
+            </button>
+          </div>
+          <Bar data={chartData} options={chartOptions} />
+        </>
       )}
     </div>
   );
@@ -287,7 +311,13 @@ export const MockActionVarianceChart = ({
       <Card
         className={`${
           overlay ? "bg-black bg-opacity-75" : "bg-gray-900"
-        } border-gray-700 h-full ${compact ? "p-1" : ""}`}
+        } border-gray-700 h-full ${
+          compact ? "p-1" : ""
+        } fixed top-8 left-0 z-50`}
+        style={{
+          width: compact ? "300px" : "400px",
+          height: compact ? "220px" : "320px",
+        }}
       >
         <div className={`${compact ? "p-1" : "p-4"} h-full flex flex-col`}>
           {showTitle && (
@@ -299,12 +329,26 @@ export const MockActionVarianceChart = ({
               >
                 {title}
               </h3>
-              <button
-                onClick={() => setIsFullscreen(true)}
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Maximize2 className={`${compact ? "h-3 w-3" : "h-4 w-4"}`} />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setIsHelpOpen(true)}
+                  className="text-purple-400 hover:text-white transition-colors p-1 bg-gray-800 rounded-full"
+                  aria-label="Show help information"
+                  title="What is this chart?"
+                >
+                  <HelpCircle
+                    className={`${compact ? "h-4 w-4" : "h-5 w-5"}`}
+                  />
+                </button>
+                <button
+                  onClick={() => setIsFullscreen(true)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                  aria-label="View fullscreen"
+                  title="View fullscreen"
+                >
+                  <Maximize2 className={`${compact ? "h-3 w-3" : "h-4 w-4"}`} />
+                </button>
+              </div>
             </div>
           )}
           <div className={`flex-1 min-h-0 ${compact ? "h-28" : ""}`}>
@@ -371,6 +415,109 @@ export const MockActionVarianceChart = ({
             </button> */}
           </div>
           <div className="h-full">{ChartComponent}</div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Help Dialog */}
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 p-6 max-w-2xl">
+          <div className="flex flex-col">
+            <h2 className="text-xl font-bold text-white mb-4">
+              Action Variance Chart Help
+            </h2>
+
+            <div className="space-y-4 text-gray-200">
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  What is this chart?
+                </h3>
+                <p className="mb-2">
+                  The Action Variance Chart visualizes the predicted variance in
+                  actions over different time windows up to 2.0 seconds in the
+                  future. Lower variance indicates more predictable and stable
+                  actions, while higher variance suggests more unpredictable
+                  behavior.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Color Scale
+                </h3>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-green-500 rounded"></div>
+                    <span>
+                      <strong>Green (Low Variance):</strong> Values below 0.01 -
+                      Highly predictable actions
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-lime-500 rounded"></div>
+                    <span>
+                      <strong>Lime Green:</strong> Values around 0.01-0.02 -
+                      Moderately predictable actions
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
+                    <span>
+                      <strong>Yellow/Amber:</strong> Values around 0.02-0.03 -
+                      Medium variability in actions
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-orange-500 rounded"></div>
+                    <span>
+                      <strong>Orange:</strong> Values around 0.03-0.04 - High
+                      variability in actions
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-red-500 rounded"></div>
+                    <span>
+                      <strong>Red (High Variance):</strong> Values above 0.04 -
+                      Highly unpredictable actions
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Median Line
+                </h3>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-purple-500 border-dashed bg-transparent"></div>
+                  <p>
+                    The purple dashed line represents the median value of all
+                    displayed variance values. This helps identify the central
+                    tendency of the data.
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Time Windows
+                </h3>
+                <p>
+                  Each bar represents a specific time window in the future (from
+                  0.2s to 2.0s). The horizontal axis shows the action variance
+                  value (from 0.000 to 0.050).
+                </p>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-2">
+                  Data Source
+                </h3>
+                <p>
+                  This chart displays data received in real-time via WebSocket.
+                </p>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </>

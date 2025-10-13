@@ -158,7 +158,7 @@ export const CameraView = ({
               )}
 
               {/* Top overlay with controls - semi-transparent black gradient */}
-              <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-center">
+              <div className="absolute top-0 left-0 gap-2 px-2 py-1 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-center">
                 <div className="flex items-center gap-1 text-white">
                   <Camera className={`h-3 w-3 ${
                     cameraType === "base" ? "text-blue-400" :

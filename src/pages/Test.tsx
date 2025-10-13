@@ -1,3 +1,4 @@
+import { InputTracker } from "@/components/InputTracker";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
@@ -60,6 +61,9 @@ export default function TestPage() {
           &copy; 2025 Robot Teaching Interface | Version 1.0.0
         </div>
       </footer>
+
+      {/* Input tracker overlay */}
+      <InputTracker controlType={selectedControl} />
     </div>
   );
 }

@@ -201,16 +201,17 @@ export const TrainingInterface = () => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background text-foreground">
+    <div className="h-screen w-screen overflow-hidden bg-black">
       {/* <Header onToggleSidebar={toggleSidebar} /> */}
 
-      <div className="flex h-full">
-        <main className="flex-1 h-full">
-          {/* Using viewport height units for better fitting on screen */}
+      {/* Fixed height container that fills the width */}
+      <div className="h-full w-full">
+        <main className="h-full">
+          {/* Fixed height divisions with vh units */}
           <div className="h-full flex flex-col">
-            {/* Main Camera with Chart Overlay - Takes approximately 75% of the screen height */}
-            <div className="relative h-[75%]">
-              {/* Main Camera View - Takes most of the screen */}
+            {/* Main Camera with Chart Overlay - Fixed 75vh height */}
+            <div className="relative h-[75vh]">
+              {/* Main Camera View - Takes full width */}
               <div className="h-full w-full">
                 <CameraView
                   cameraType="base"
@@ -339,14 +340,18 @@ export const TrainingInterface = () => {
                 </SheetContent>
               </Sheet>
             </div>
-            {/* Bottom Row with Wrist Cameras and Controls - Taking remaining 25% of height */}
-            <div className="grid grid-cols-7 gap-1 h-[25%]">
-              {/* Left Wrist Camera */}
+            {/* Bottom Row with Wrist Cameras and Controls - Fixed 25vh height with 3:1:3 ratio */}
+            <div className="grid grid-cols-7 gap-1 h-[25vh]">
+              {/* Left Wrist Camera - 3/7 of width */}
               <div className="col-span-3 h-full">
-                <CameraView cameraType="wrist" title="Left Wrist" fullHeight />
+                <CameraView
+                  cameraType="wrist_left"
+                  title="Left Wrist"
+                  fullHeight
+                />
               </div>
 
-              {/* Center Controls */}
+              {/* Center Controls - 1/7 of width */}
               <div className="col-span-1 flex flex-col justify-center items-center gap-1">
                 <Button
                   onClick={isRecording ? endEpisode : startEpisode}
@@ -376,9 +381,13 @@ export const TrainingInterface = () => {
                 </Button>
               </div>
 
-              {/* Right Wrist Camera */}
+              {/* Right Wrist Camera - 3/7 of width */}
               <div className="col-span-3 h-full">
-                <CameraView cameraType="wrist" title="Right Wrist" fullHeight />
+                <CameraView
+                  cameraType="wrist_right"
+                  title="Right Wrist"
+                  fullHeight
+                />
               </div>
             </div>
           </div>

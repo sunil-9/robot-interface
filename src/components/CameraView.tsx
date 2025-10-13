@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Slider } from "@/components/ui/slider";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { Camera, Maximize2, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface CameraViewProps {
-  cameraType: "base" | "wrist";
+  cameraType: "base" | "wrist" | "wrist_left" | "wrist_right";
   title: string;
   fullHeight?: boolean;
   showTitle?: boolean;
@@ -20,16 +21,33 @@ export const CameraView = ({
 }: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showMask, setShowMask] = useState(true);
-  const [maskOpacity, setMaskOpacity] = useState([20]); // Opacity as percentage (0-100) default 20%
+  const [maskOpacity, setMaskOpacity] = useState([90]); // Opacity as percentage (0-100)
   const [fps, setFps] = useState(0);
   const [frameCount, setFrameCount] = useState(0);
   const [lastFpsUpdate, setLastFpsUpdate] = useState(Date.now());
   const bridgeData = useBridgeData();
 
-  const imageData =
-    cameraType === "base" ? bridgeData.camera_base : bridgeData.camera_wrist;
-  const maskData =
-    cameraType === "base" ? bridgeData.mask_base : bridgeData.mask_wrist;
+  // For debugging, uncomment this line to use test data instead of WebSocket data
+  // const useTestData = true;
+  const useTestData = false;
+    
+  // Select appropriate camera data based on type
+  const imageData = useTestData ? 
+    // Test data placeholders
+    (cameraType === "base" ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : 
+     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : null) :
+    // Actual WebSocket data 
+    (cameraType === "base" ? bridgeData.camera_base : 
+     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? bridgeData.camera_wrist : null);
+    
+  // Select appropriate mask data based on type
+  const maskData = useTestData ?
+    // Test mask data placeholder
+    (cameraType === "base" ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : 
+     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : null) :
+    // Actual WebSocket mask data
+    (cameraType === "base" ? bridgeData.mask_base : 
+     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? bridgeData.mask_wrist : null);
 
   // FPS calculation
   useEffect(() => {
@@ -59,7 +77,7 @@ export const CameraView = ({
     }
   }, [imageData]);
 
-  // Debug logging
+  // Debug logging - more verbose to help diagnose the issue
   useEffect(() => {
     console.log(`CameraView ${cameraType}:`, {
       isConnected: bridgeData.isConnected,
@@ -77,13 +95,39 @@ export const CameraView = ({
         mask_base: !!bridgeData.mask_base,
         mask_wrist: !!bridgeData.mask_wrist,
       },
+      rawBaseData: bridgeData.camera_base
+        ? bridgeData.camera_base.substring(0, 50) + "..."
+        : "none",
+      rawWristData: bridgeData.camera_wrist
+        ? bridgeData.camera_wrist.substring(0, 50) + "..."
+        : "none",
     });
   }, [cameraType, bridgeData, imageData, maskData, showMask]);
 
   return (
     <>
-      <Card className="h-full p-0 overflow-hidden">
-        <div className="relative h-full w-full bg-gray-100 overflow-hidden">
+      <Card className="h-full w-full p-0 overflow-hidden rounded-none">
+        <div
+          className={`relative h-full w-full bg-black overflow-hidden ${
+            cameraType === "base" ? "border-l-4 border-blue-500" :
+            cameraType === "wrist_left" ? "border-l-4 border-green-500" :
+            cameraType === "wrist_right" ? "border-l-4 border-amber-500" :
+            ""
+          }`}
+          style={{ width: '100%', height: '100%' }}
+        >
+          {/* TEST DATA - Uncomment this to test the layout with placeholder images */}
+          {/* {true ? (
+            <div className="relative w-full h-full">
+              <img
+                src={cameraType === "base" ? "https://placehold.co/800x600/black/444444?text=Main+Camera" : 
+                      cameraType === "wrist_left" ? "https://placehold.co/400x300/black/226622?text=Left+Wrist" :
+                      "https://placehold.co/400x300/black/886622?text=Right+Wrist"}
+                alt={title}
+                className="w-full h-full object-cover"
+              />
+          */}
+          
           {imageData ? (
             <div className="relative w-full h-full">
               {/* Base camera image */}
@@ -126,8 +170,25 @@ export const CameraView = ({
               {/* Top overlay with controls - semi-transparent black gradient */}
               <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-center">
                 <div className="flex items-center gap-1 text-white">
-                  <Camera className="h-3 w-3" />
-                  <h3 className="text-xs font-medium">{title}</h3>
+                  <Camera className={`h-3 w-3 ${
+                    cameraType === "base" ? "text-blue-400" :
+                    cameraType === "wrist_left" ? "text-green-400" :
+                    cameraType === "wrist_right" ? "text-amber-400" :
+                    ""
+                  }`} />
+                  <h3 className={`text-xs font-medium ${
+                    cameraType === "base" ? "text-blue-200" :
+                    cameraType === "wrist_left" ? "text-green-200" :
+                    cameraType === "wrist_right" ? "text-amber-200" :
+                    ""
+                  }`}>
+                    {title} 
+                    <span className="opacity-75 ml-1 text-[10px]">
+                      {cameraType === "base" ? "(Main)" : 
+                       cameraType === "wrist_left" ? "(Left)" : 
+                       cameraType === "wrist_right" ? "(Right)" : ""}
+                    </span>
+                  </h3>
                   {bridgeData.isConnected ? (
                     <Wifi className="h-3 w-3 text-green-500 ml-1" />
                   ) : (
@@ -136,117 +197,70 @@ export const CameraView = ({
                   <span className="text-xs text-gray-300 ml-1">{fps} FPS</span>
                 </div>
                 <div className="flex gap-1 items-center">
-                  <button
-                    onClick={() => setShowMask(!showMask)}
-                    disabled={!maskData}
-                    className={`text-xs px-1 py-0.5 rounded ${
-                      showMask
-                        ? "bg-blue-500/80 text-white"
-                        : "bg-gray-700/80 text-gray-200"
-                    }`}
-                  >
-                    {showMask ? "Hide" : "Show"} Mask
-                  </button>
-                  <button
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-5 w-5 p-0.5 text-white hover:bg-white/10"
                     onClick={() => setIsFullscreen(true)}
-                    disabled={!imageData}
-                    className="text-gray-300 hover:text-white ml-1"
                   >
                     <Maximize2 className="h-3 w-3" />
-                  </button>
+                  </Button>
                 </div>
               </div>
-
-              {/* Mask status indicator */}
-              {maskData && (
-                <div className="absolute top-8 right-2 text-xs bg-black bg-opacity-50 text-white px-2 py-1 rounded">
-                  Mask: {showMask ? "ON" : "OFF"}
-                </div>
-              )}
             </div>
           ) : (
-            <div className="relative h-full">
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-gray-500">
-                  <Camera className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm">
-                    {bridgeData.isConnected
-                      ? "Waiting for camera data..."
-                      : "No connection"}
-                  </p>
-                  {bridgeData.error && (
-                    <p className="text-xs text-red-500 mt-1">
-                      {bridgeData.error}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-400 mt-1">
-                    Camera: {cameraType}
-                  </p>
-                </div>
-              </div>
-
-              {/* Top overlay with controls even when no image data */}
-              <div className="absolute top-0 left-0 right-0 px-2 py-1 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-center">
-                <div className="flex items-center gap-1 text-white">
-                  <Camera className="h-3 w-3" />
-                  <h3 className="text-xs font-medium">{title}</h3>
-                  {bridgeData.isConnected ? (
-                    <Wifi className="h-3 w-3 text-green-500 ml-1" />
-                  ) : (
-                    <WifiOff className="h-3 w-3 text-red-500 ml-1" />
-                  )}
-                </div>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setShowMask(!showMask)}
-                    disabled={!maskData}
-                    className="text-xs px-1 py-0.5 rounded bg-gray-700/80 text-gray-300 opacity-50 cursor-not-allowed"
-                  >
-                    Show Mask
-                  </button>
-                </div>
+            <div className="relative h-full flex items-center justify-center">
+              <div className="text-center p-4">
+                <Camera className={`h-8 w-8 mx-auto mb-2 ${
+                  cameraType === "base" ? "text-blue-500" :
+                  cameraType === "wrist_left" ? "text-green-500" :
+                  cameraType === "wrist_right" ? "text-amber-500" :
+                  "text-gray-500"
+                }`} />
+                <h3 className={`mb-1 ${
+                  cameraType === "base" ? "text-blue-400" :
+                  cameraType === "wrist_left" ? "text-green-400" :
+                  cameraType === "wrist_right" ? "text-amber-400" :
+                  "text-gray-400"
+                }`}>{title}</h3>
+                <p className="text-xs text-gray-500">No camera feed</p>
+                {!bridgeData.isConnected && (
+                  <div className="flex items-center justify-center gap-1 mt-2 text-red-500">
+                    <WifiOff className="h-3 w-3" />
+                    <p className="text-xs">Disconnected</p>
+                  </div>
+                )}
+                {bridgeData.isConnected && (
+                  <div className="flex items-center justify-center gap-1 mt-2 text-yellow-500">
+                    <Wifi className="h-3 w-3" />
+                    <p className="text-xs">Connected, awaiting data...</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
-
-        {/* Mask Opacity Slider */}
-        {/* {showMask && maskData && (
-          <div className="mt-4 space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <label className="text-gray-600">Mask Opacity</label>
-              <span className="text-gray-500">{maskOpacity[0]}%</span>
-            </div>
-            <Slider
-              value={maskOpacity}
-              onValueChange={setMaskOpacity}
-              max={100}
-              min={0}
-              step={5}
-              className="w-full"
-            />
-          </div>
-        )} */}
       </Card>
 
+      {/* Fullscreen Dialog */}
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-5xl p-0 overflow-hidden">
-          <div className="aspect-video relative">
+        <DialogContent className="max-w-4xl bg-black p-0 border-gray-700">
+          <div className="w-full h-full p-0">
             {imageData ? (
-              <div className="relative w-full h-full">
-                {/* Base camera image */}
+              <div className="relative">
+                {/* Fullscreen image */}
                 <img
                   src={imageData}
                   alt={title}
-                  className="w-full h-full object-cover"
+                  className="w-full object-contain max-h-[80vh]"
                 />
 
-                {/* Attention mask overlay in fullscreen */}
+                {/* Fullscreen mask overlay */}
                 {showMask && maskData && (
                   <img
                     src={maskData}
                     alt="Attention Mask"
-                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                     style={{
                       opacity: maskOpacity[0] / 100,
                       mixBlendMode: "multiply",
@@ -254,28 +268,75 @@ export const CameraView = ({
                   />
                 )}
 
-                {/* Control overlay in fullscreen mode */}
-                <div className="absolute top-0 left-0 right-0 px-4 py-2 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-center">
-                  <div className="flex items-center gap-2 text-white">
-                    <Camera className="h-5 w-5" />
-                    <h3 className="text-lg font-medium">{title}</h3>
+                {/* Fullscreen overlay controls */}
+                <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <Camera className={`h-4 w-4 ${
+                        cameraType === "base" ? "text-blue-400" :
+                        cameraType === "wrist_left" ? "text-green-400" :
+                        cameraType === "wrist_right" ? "text-amber-400" :
+                        ""
+                      }`} />
+                      <h2 className={`text-lg font-medium ${
+                        cameraType === "base" ? "text-blue-200" :
+                        cameraType === "wrist_left" ? "text-green-200" :
+                        cameraType === "wrist_right" ? "text-amber-200" :
+                        ""
+                      }`}>
+                        {title}
+                        <span className="opacity-75 ml-2 text-sm">
+                          {cameraType === "base" ? "(Main Camera)" : 
+                          cameraType === "wrist_left" ? "(Left Wrist Camera)" : 
+                          cameraType === "wrist_right" ? "(Right Wrist Camera)" : ""}
+                        </span>
+                      </h2>
+                    </div>
+                    <div className="text-sm text-gray-300">{fps} FPS</div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowMask(!showMask)}
-                      disabled={!maskData}
-                      className={`${showMask ? "bg-blue-500 text-white " : ""}`}
-                    >
-                      {showMask ? "Hide" : "Show"} Mask
-                    </Button>
-                  </div>
+
+                  {/* Mask visibility and opacity controls */}
+                  {maskData && (
+                    <div className="mt-4 space-y-2">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant={showMask ? "default" : "outline"}
+                            onClick={() => setShowMask(!showMask)}
+                            className="h-7 px-2"
+                          >
+                            {showMask ? "Hide Mask" : "Show Mask"}
+                          </Button>
+                          <span className="text-xs text-gray-300">
+                            Opacity: {maskOpacity[0]}%
+                          </span>
+                        </div>
+                      </div>
+                      {showMask && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400">0%</span>
+                          <Slider
+                            value={maskOpacity}
+                            onValueChange={setMaskOpacity}
+                            max={100}
+                            step={1}
+                            className="w-64"
+                          />
+                          <span className="text-xs text-gray-400">100%</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full bg-gray-900">
-                <p className="text-white">No image data available</p>
+              <div className="w-full flex items-center justify-center bg-black p-12">
+                <div className="text-center">
+                  <Camera className="h-16 w-16 mx-auto mb-4 text-gray-700" />
+                  <h2 className="text-xl text-gray-400 mb-2">{title}</h2>
+                  <p className="text-gray-500">No camera feed available</p>
+                </div>
               </div>
             )}
           </div>

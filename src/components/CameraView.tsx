@@ -10,6 +10,7 @@ interface CameraViewProps {
   cameraType: "base" | "wrist" | "wrist_left" | "wrist_right";
   title: string;
   fullHeight?: boolean;
+  fullWidth?: boolean;
   showTitle?: boolean;
 }
 
@@ -17,6 +18,7 @@ export const CameraView = ({
   cameraType,
   title,
   fullHeight = false,
+  fullWidth = false,
   showTitle = true,
 }: CameraViewProps) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -106,35 +108,23 @@ export const CameraView = ({
 
   return (
     <>
-      <Card className="h-full w-full p-0 overflow-hidden rounded-none">
+      <Card className="h-full w-full p-0 rounded-none">
         <div
-          className={`relative h-full w-full bg-black overflow-hidden ${
+          className={`relative h-full w-full bg-black ${
             cameraType === "base" ? "border-l-4 border-blue-500" :
             cameraType === "wrist_left" ? "border-l-4 border-green-500" :
             cameraType === "wrist_right" ? "border-l-4 border-amber-500" :
             ""
           }`}
-          style={{ width: '100%', height: '100%' }}
         >
-          {/* TEST DATA - Uncomment this to test the layout with placeholder images */}
-          {/* {true ? (
-            <div className="relative w-full h-full">
-              <img
-                src={cameraType === "base" ? "https://placehold.co/800x600/black/444444?text=Main+Camera" : 
-                      cameraType === "wrist_left" ? "https://placehold.co/400x300/black/226622?text=Left+Wrist" :
-                      "https://placehold.co/400x300/black/886622?text=Right+Wrist"}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
-          */}
           
           {imageData ? (
-            <div className="relative w-full h-full">
+            <div className="relative  h-full">
               {/* Base camera image */}
               <img
                 src={imageData}
                 alt={title}
-                className="w-full h-full object-cover"
+                className={`${fullWidth ? "w-full" : "w-auto"} h-full object-cover`} //full width or not check here
                 onLoad={() =>
                   console.log(`✅ ${cameraType} image loaded successfully`)
                 }

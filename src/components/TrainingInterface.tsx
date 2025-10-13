@@ -205,10 +205,9 @@ export const TrainingInterface = () => {
       {/* <Header onToggleSidebar={toggleSidebar} /> */}
 
       {/* Fixed height container that fills the width */}
-      <div className="h-full w-full">
         <main className="h-full">
           {/* Fixed height divisions with vh units */}
-          <div className="h-full flex flex-col">
+          <div className="flex flex-col">
             {/* Main Camera with Chart Overlay - Fixed 75vh height */}
             <div className="relative h-[75vh]">
               {/* Main Camera View - Takes full width */}
@@ -217,6 +216,7 @@ export const TrainingInterface = () => {
                   cameraType="base"
                   title="Main Camera"
                   fullHeight
+                  fullWidth
                   showTitle={true}
                 />
               </div>
@@ -392,7 +392,6 @@ export const TrainingInterface = () => {
             </div>
           </div>
         </main>
-      </div>
     </div>
   );
 };

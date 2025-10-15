@@ -85,24 +85,34 @@ def get_default_config() -> Dict[str, Any]:
                 "role": "command"
             },
             {
-                "name": "/rgb_base",
+                "name": "/head_camera/image_raw",
                 "type": "sensor_msgs/msg/Image",
-                "role": "camera_base"
+                "role": "camera_head"
             },
             {
-                "name": "/rgb_wrist",
+                "name": "/left_hand_camera/image_raw",
                 "type": "sensor_msgs/msg/Image",
-                "role": "camera_wrist"
+                "role": "camera_left"
             },
             {
-                "name": "/rgb_base_attention_mask",
+                "name": "/right_hand_camera/image_raw",
                 "type": "sensor_msgs/msg/Image",
-                "role": "mask_base"
+                "role": "camera_right"
             },
             {
-                "name": "/rgb_wrist_attention_mask",
+                "name": "/head_camera/attention_mask",
                 "type": "sensor_msgs/msg/Image",
-                "role": "mask_wrist"
+                "role": "mask_head"
+            },
+            {
+                "name": "/left_hand_camera/attention_mask",
+                "type": "sensor_msgs/msg/Image",
+                "role": "mask_left"
+            },
+            {
+                "name": "/right_hand_camera/attention_mask",
+                "type": "sensor_msgs/msg/Image",
+                "role": "mask_right"
             },
             {
                 "name": "/action_variance_windows",

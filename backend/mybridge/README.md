@@ -139,7 +139,7 @@ uv run mybridge
 ```json
 {
   "type": "subscribe",
-  "topics": ["camera_base", "action_variance"]
+  "topics": ["camera_head", "camera_left", "camera_right", "action_variance"]
 }
 ```
 
@@ -283,7 +283,13 @@ Response:
   "status": "healthy",
   "ros2_bridge": "connected",
   "websocket_clients": 2,
-  "latest_data_keys": ["action_variance", "camera_base", "state"]
+  "latest_data_keys": [
+    "action_variance",
+    "camera_head",
+    "camera_left",
+    "camera_right",
+    "state"
+  ]
 }
 ```
 

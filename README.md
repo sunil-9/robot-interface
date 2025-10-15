@@ -2,6 +2,14 @@
 
 A comprehensive web-based interface for robot teaching and control, featuring real-time data visualization, joint management, and camera feeds. This project consists of a React frontend and Python backend that bridges ROS2 topics with WebSocket connections.
 
+## 📝 Recent Updates
+
+- **Dynamic Robot Configuration**: Added JSON-based robot configuration system
+- **New Utility Functions**: Added `websocketConfig.ts` with configuration access methods
+- **Robot Config Hook**: Created `useRobotConfig` hook for accessing robot specifications
+- **Camera System Update**: Updated camera references to use head/left/right naming
+- **Documentation**: Added detailed [robot configuration docs](./docs/robot-config.md)
+
 ## 🚀 Features
 
 - **Real-time Robot Control**: Interactive interface for joint manipulation and control
@@ -105,11 +113,12 @@ python3 dummy_publisher.py
 
 This publishes dummy data to ROS2 topics for testing the interface.
 
-### 2. Start Backend WebSocket Server (Terminal 2) 
-`Note: Run this before frontend because  it uses port 8080 by default and you may face port issue if you run frontend first`
+### 2. Start Backend WebSocket Server (Terminal 2)
+
+`Note: Run this before frontend because it uses port 8080 by default and you may face port issue if you run frontend first`
 
 ```bash
-cd ./backend/mybridge/ && conda activate lerobot &&  uv run uvicorn mybridge.main:app --host 0.0.0.0 --port 8080 --reload 
+cd ./backend/mybridge/ && conda activate lerobot &&  uv run uvicorn mybridge.main:app --host 0.0.0.0 --port 8080 --reload
 ```
 
 This starts the WebSocket bridge that connects ROS2 topics to the web interface.

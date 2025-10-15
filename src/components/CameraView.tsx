@@ -3,11 +3,12 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Slider } from "@/components/ui/slider";
 import { useBridgeData } from "@/hooks/useBridgeData";
+import { useRobotConfig } from "@/hooks/useRobotConfig";
 import { Camera, Maximize2, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface CameraViewProps {
-  cameraType: "base" | "wrist" | "wrist_left" | "wrist_right";
+  cameraType: "head" | "left" | "right";
   title: string;
   fullHeight?: boolean;
   fullWidth?: boolean;
@@ -28,28 +29,48 @@ export const CameraView = ({
   const [frameCount, setFrameCount] = useState(0);
   const [lastFpsUpdate, setLastFpsUpdate] = useState(Date.now());
   const bridgeData = useBridgeData();
+  const { cameras, getCamera } = useRobotConfig();
 
   // For debugging, uncomment this line to use test data instead of WebSocket data
   // const useTestData = true;
   const useTestData = false;
-    
+
+  // Get camera configuration if available
+  const cameraConfig = getCamera(
+    cameraType === "head"
+      ? "base"
+      : cameraType === "left"
+      ? "left"
+      : cameraType === "right"
+      ? "wrist"
+      : ""
+  );
+
   // Select appropriate camera data based on type
-  const imageData = useTestData ? 
-    // Test data placeholders
-    (cameraType === "base" ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : 
-     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : null) :
-    // Actual WebSocket data 
-    (cameraType === "base" ? bridgeData.camera_base : 
-     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? bridgeData.camera_wrist : null);
-    
+  const imageData = useTestData
+    ? // Test data placeholders
+      "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD"
+    : // Actual WebSocket data
+    cameraType === "head"
+    ? bridgeData.camera_head
+    : cameraType === "left"
+    ? bridgeData.camera_left
+    : cameraType === "right"
+    ? bridgeData.camera_right
+    : null;
+
   // Select appropriate mask data based on type
-  const maskData = useTestData ?
-    // Test mask data placeholder
-    (cameraType === "base" ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : 
-     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD" : null) :
-    // Actual WebSocket mask data
-    (cameraType === "base" ? bridgeData.mask_base : 
-     (cameraType === "wrist_left" || cameraType === "wrist_right" || cameraType === "wrist") ? bridgeData.mask_wrist : null);
+  const maskData = useTestData
+    ? // Test mask data placeholder
+      "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD"
+    : // Actual WebSocket mask data
+    cameraType === "head"
+    ? bridgeData.mask_head
+    : cameraType === "left"
+    ? bridgeData.mask_left
+    : cameraType === "right"
+    ? bridgeData.mask_right
+    : null;
 
   // FPS calculation
   useEffect(() => {
@@ -92,16 +113,21 @@ export const CameraView = ({
       fullBridgeData: {
         state: !!bridgeData.state,
         command: !!bridgeData.command,
-        camera_base: !!bridgeData.camera_base,
-        camera_wrist: !!bridgeData.camera_wrist,
-        mask_base: !!bridgeData.mask_base,
-        mask_wrist: !!bridgeData.mask_wrist,
+        camera_head: !!bridgeData.camera_head,
+        camera_left: !!bridgeData.camera_left,
+        camera_right: !!bridgeData.camera_right,
+        mask_head: !!bridgeData.mask_head,
+        mask_left: !!bridgeData.mask_left,
+        mask_right: !!bridgeData.mask_right,
       },
-      rawBaseData: bridgeData.camera_base
-        ? bridgeData.camera_base.substring(0, 50) + "..."
+      headCameraData: bridgeData.camera_head
+        ? bridgeData.camera_head.substring(0, 50) + "..."
         : "none",
-      rawWristData: bridgeData.camera_wrist
-        ? bridgeData.camera_wrist.substring(0, 50) + "..."
+      leftCameraData: bridgeData.camera_left
+        ? bridgeData.camera_left.substring(0, 50) + "..."
+        : "none",
+      rightCameraData: bridgeData.camera_right
+        ? bridgeData.camera_right.substring(0, 50) + "..."
         : "none",
     });
   }, [cameraType, bridgeData, imageData, maskData, showMask]);
@@ -111,20 +137,24 @@ export const CameraView = ({
       <Card className="h-full w-full p-0 rounded-none">
         <div
           className={`relative h-full w-full bg-black ${
-            cameraType === "base" ? "border-l-4 border-blue-500" :
-            cameraType === "wrist_left" ? "border-l-4 border-green-500" :
-            cameraType === "wrist_right" ? "border-l-4 border-amber-500" :
-            ""
+            cameraType === "head"
+              ? "border-l-4 border-blue-500"
+              : cameraType === "left"
+              ? "border-l-4 border-green-500"
+              : cameraType === "right"
+              ? "border-l-4 border-amber-500"
+              : ""
           }`}
         >
-          
           {imageData ? (
             <div className="relative  h-full">
               {/* Base camera image */}
               <img
                 src={imageData}
                 alt={title}
-                className={`${fullWidth ? "w-full" : "w-auto"} h-full object-cover`} //full width or not check here
+                className={`${
+                  fullWidth ? "w-full" : "w-auto"
+                } h-full object-cover`} //full width or not check here
                 onLoad={() =>
                   console.log(`✅ ${cameraType} image loaded successfully`)
                 }
@@ -158,25 +188,39 @@ export const CameraView = ({
               )}
 
               {/* Top overlay with controls - semi-transparent black gradient */}
-              <div className="absolute top-0 left-0 gap-2 px-2 py-1 bg-gradient-to-b from-black/70 to-transparent flex justify-between items-center">
+              <div className="absolute top-0 left-0 gap-2 px-2 py-1 bg-gradient-to-b from-black/70 to-transparent flex z-50 justify-between items-center">
                 <div className="flex items-center gap-1 text-white">
-                  <Camera className={`h-3 w-3 ${
-                    cameraType === "base" ? "text-blue-400" :
-                    cameraType === "wrist_left" ? "text-green-400" :
-                    cameraType === "wrist_right" ? "text-amber-400" :
-                    ""
-                  }`} />
-                  <h3 className={`text-xs font-medium ${
-                    cameraType === "base" ? "text-blue-200" :
-                    cameraType === "wrist_left" ? "text-green-200" :
-                    cameraType === "wrist_right" ? "text-amber-200" :
-                    ""
-                  }`}>
-                    {title} 
+                  <Camera
+                    className={`h-3 w-3 ${
+                      cameraType === "head"
+                        ? "text-blue-400"
+                        : cameraType === "left"
+                        ? "text-green-400"
+                        : cameraType === "right"
+                        ? "text-amber-400"
+                        : ""
+                    }`}
+                  />
+                  <h3
+                    className={`text-xs font-medium ${
+                      cameraType === "head"
+                        ? "text-blue-200"
+                        : cameraType === "left"
+                        ? "text-green-200"
+                        : cameraType === "right"
+                        ? "text-amber-200"
+                        : ""
+                    }`}
+                  >
+                    {title}
                     <span className="opacity-75 ml-1 text-[10px]">
-                      {cameraType === "base" ? "(Main)" : 
-                       cameraType === "wrist_left" ? "(Left)" : 
-                       cameraType === "wrist_right" ? "(Right)" : ""}
+                      {cameraType === "head"
+                        ? "(Head)"
+                        : cameraType === "left"
+                        ? "(Left)"
+                        : cameraType === "right"
+                        ? "(Right)"
+                        : ""}
                     </span>
                   </h3>
                   {bridgeData.isConnected ? (
@@ -201,18 +245,30 @@ export const CameraView = ({
           ) : (
             <div className="relative h-full flex items-center justify-center">
               <div className="text-center p-4">
-                <Camera className={`h-8 w-8 mx-auto mb-2 ${
-                  cameraType === "base" ? "text-blue-500" :
-                  cameraType === "wrist_left" ? "text-green-500" :
-                  cameraType === "wrist_right" ? "text-amber-500" :
-                  "text-gray-500"
-                }`} />
-                <h3 className={`mb-1 ${
-                  cameraType === "base" ? "text-blue-400" :
-                  cameraType === "wrist_left" ? "text-green-400" :
-                  cameraType === "wrist_right" ? "text-amber-400" :
-                  "text-gray-400"
-                }`}>{title}</h3>
+                <Camera
+                  className={`h-8 w-8 mx-auto mb-2 ${
+                    cameraType === "head"
+                      ? "text-blue-500"
+                      : cameraType === "left"
+                      ? "text-green-500"
+                      : cameraType === "right"
+                      ? "text-amber-500"
+                      : "text-gray-500"
+                  }`}
+                />
+                <h3
+                  className={`mb-1 ${
+                    cameraType === "head"
+                      ? "text-blue-400"
+                      : cameraType === "left"
+                      ? "text-green-400"
+                      : cameraType === "right"
+                      ? "text-amber-400"
+                      : "text-gray-400"
+                  }`}
+                >
+                  {title}
+                </h3>
                 <p className="text-xs text-gray-500">No camera feed</p>
                 {!bridgeData.isConnected && (
                   <div className="flex items-center justify-center gap-1 mt-2 text-red-500">
@@ -262,23 +318,37 @@ export const CameraView = ({
                 <div className="absolute top-0 left-0 right-0 p-4 bg-gradient-to-b from-black/70 to-transparent">
                   <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
-                      <Camera className={`h-4 w-4 ${
-                        cameraType === "base" ? "text-blue-400" :
-                        cameraType === "wrist_left" ? "text-green-400" :
-                        cameraType === "wrist_right" ? "text-amber-400" :
-                        ""
-                      }`} />
-                      <h2 className={`text-lg font-medium ${
-                        cameraType === "base" ? "text-blue-200" :
-                        cameraType === "wrist_left" ? "text-green-200" :
-                        cameraType === "wrist_right" ? "text-amber-200" :
-                        ""
-                      }`}>
+                      <Camera
+                        className={`h-4 w-4 ${
+                          cameraType === "head"
+                            ? "text-blue-400"
+                            : cameraType === "left"
+                            ? "text-green-400"
+                            : cameraType === "right"
+                            ? "text-amber-400"
+                            : ""
+                        }`}
+                      />
+                      <h2
+                        className={`text-lg font-medium ${
+                          cameraType === "head"
+                            ? "text-blue-200"
+                            : cameraType === "left"
+                            ? "text-green-200"
+                            : cameraType === "right"
+                            ? "text-amber-200"
+                            : ""
+                        }`}
+                      >
                         {title}
                         <span className="opacity-75 ml-2 text-sm">
-                          {cameraType === "base" ? "(Main Camera)" : 
-                          cameraType === "wrist_left" ? "(Left Wrist Camera)" : 
-                          cameraType === "wrist_right" ? "(Right Wrist Camera)" : ""}
+                          {cameraType === "head"
+                            ? "(Head Camera)"
+                            : cameraType === "left"
+                            ? "(Left Hand Camera)"
+                            : cameraType === "right"
+                            ? "(Right Hand Camera)"
+                            : ""}
                         </span>
                       </h2>
                     </div>

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getRoleByTopicName, getWebSocketUrl } from "../utils/websocketConfig";
 
 interface WebSocketMessage {
   topic: string;
@@ -26,15 +27,25 @@ interface WebSocketMessage {
 }
 
 interface UseWebSocketOptions {
-  url: string;
+  url?: string;
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onMessage?: (message: WebSocketMessage | any) => void; // Callback to handle messages
 }
 
-export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttempts = 5, onMessage }) => {
+export const useWebSocket = ({
+  url: customUrl,
+  reconnectInterval = 3000,
+  maxReconnectAttempts = 5,
+  onMessage,
+}: UseWebSocketOptions) => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState(null);
   const [error, setError] = useState(null);
+
+  // Use the URL from config if no custom URL is provided
+  const url = customUrl || getWebSocketUrl();
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectCount = useRef(0);
@@ -70,6 +81,11 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
             message = JSON.parse(message);
           }
 
+          // Make sure the role is assigned from config mapping if not provided
+          if (message.topic && !message.role) {
+            message.role = getRoleByTopicName(message.topic);
+          }
+
           // Log ALL messages to debug
           console.log("🔍 WebSocket message received:", {
             topic: message.topic,
@@ -87,6 +103,9 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
               topic: message.topic,
               role: message.role,
               hasData: message.normalized && !!message.normalized.data,
+              dataLength: message.normalized?.data
+                ? message.normalized.data.length
+                : 0,
               width: message.normalized?.width,
               height: message.normalized?.height,
             });

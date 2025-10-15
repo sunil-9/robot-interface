@@ -1,0 +1,120 @@
+{
+  "robot": {
+    "name": "jackal_kinova",
+    "description": "Jackal mobile base with Kinova Gen3 arm and wrist camera"
+  },
+  "joints": {
+    "position": [
+      "kinova_arm_joint_1",
+      "kinova_arm_joint_2",
+      "kinova_arm_joint_3",
+      "kinova_arm_joint_4",
+      "kinova_arm_joint_5",
+      "kinova_arm_joint_6",
+      "finger_joint"
+    ],
+    "velocity": [
+      "base_linear_forward",
+      "base_linear_backward",
+      "base_angular_left",
+      "base_angular_right"
+    ]
+  },
+  "ros": {
+    "data_collections": {
+      "states": {
+        "topic": "/joint_states_for_collection",
+        "msg_type": "sensor_msgs/msg/JointState",
+        "queue_size": 10
+      },
+      "actions": {
+        "topic": "/joint_command_for_collection",
+        "msg_type": "sensor_msgs/msg/JointState",
+        "queue_size": 10
+      }
+    },
+    "deployments": {
+      "states": {
+        "topic": "/joint_states_for_collection",
+        "msg_type": "sensor_msgs/msg/JointState",
+        "queue_size": 10
+      },
+      "actions": {
+        "topic": "/joint_command",
+        "msg_type": "sensor_msgs/msg/JointState",
+        "queue_size": 10
+      }
+    }
+  },
+  "cameras": [
+    {
+      "name": "base",
+      "topic": "/rgb_base",
+      "width": 1280,
+      "height": 720,
+      "observation_key": "observation.images.base",
+      "encoding": "bgr8",
+      "queue_size": 10
+    },
+    {
+      "name": "wrist",
+      "topic": "/rgb_wrist",
+      "width": 1280,
+      "height": 720,
+      "observation_key": "observation.images.wrist",
+      "encoding": "bgr8",
+      "queue_size": 10
+    }
+  ],
+  "websocket": {
+    "port": 8080
+  },
+  "topics": [
+    {
+      "name": "/joint_states_for_collection",
+      "type": "sensor_msgs/msg/JointState",
+      "role": "state"
+    },
+    {
+      "name": "/joint_command_for_collection",
+      "type": "sensor_msgs/msg/JointState",
+      "role": "command"
+    },
+    {
+      "name": "/head_camera/image_raw",
+      "type": "sensor_msgs/msg/Image",
+      "role": "camera_head"
+    },
+    {
+      "name": "/left_hand_camera/image_raw",
+      "type": "sensor_msgs/msg/Image",
+      "role": "camera_left"
+    },
+    {
+      "name": "/right_hand_camera/image_raw",
+      "type": "sensor_msgs/msg/Image",
+      "role": "camera_right"
+    },
+    {
+      "name": "/head_camera/attention_mask",
+      "type": "sensor_msgs/msg/Image",
+      "role": "mask_head"
+    },
+    {
+      "name": "/left_hand_camera/attention_mask",
+      "type": "sensor_msgs/msg/Image",
+      "role": "mask_left"
+    },
+    {
+      "name": "/right_hand_camera/attention_mask",
+      "type": "sensor_msgs/msg/Image",
+      "role": "mask_right"
+    },
+    {
+      "name": "/action_variance_windows",
+      "type": "std_msgs/msg/Float64MultiArray",
+      "role": "action_variance"
+    }
+  ],
+  "maxBuffer": 1000
+}

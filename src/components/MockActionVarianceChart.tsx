@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useWebSocket } from "@/hooks/useWebSocket";
+import { getTopicNameByRole } from "@/utils/websocketConfig";
 import {
   BarElement,
   CategoryScale,
@@ -44,12 +45,16 @@ export const MockActionVarianceChart = ({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [usingWebSocketData, setUsingWebSocketData] = useState(false);
 
+  // Get action variance topic name from configuration
+  const actionVarianceTopicName = getTopicNameByRole("action_variance");
+
   // WebSocket message handler
   const handleWebSocketMessage = useCallback(
     (message: { topic: string; normalized?: { data?: number[] } }) => {
       try {
         if (
-          message.topic === "/action_variance_windows" &&
+          actionVarianceTopicName &&
+          message.topic === actionVarianceTopicName &&
           message.normalized?.data
         ) {
           const newData = message.normalized.data;
@@ -66,12 +71,11 @@ export const MockActionVarianceChart = ({
         console.error("Error processing action variance data:", error);
       }
     },
-    []
+    [actionVarianceTopicName]
   );
 
-  // WebSocket connection
+  // WebSocket connection (no need to specify URL - will use config)
   const { isConnected } = useWebSocket({
-    url: "ws://localhost:8080/ws",
     onMessage: handleWebSocketMessage,
   });
 
@@ -141,7 +145,8 @@ export const MockActionVarianceChart = ({
                     content: `Median: ${
                       data.length > 0
                         ? [...data]
-                            .sort((a, b) => a - b)[Math.floor(data.length / 2)].toFixed(3)
+                            .sort((a, b) => a - b)
+                            [Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",

@@ -4,7 +4,7 @@ interface HeaderProps {
 
 export const Header = ({ onToggleSidebar }: HeaderProps) => {
   return (
-    <header className="h-12 bg-card border-b border-border flex items-center px-4 sticky top-0 z-50">
+    <header className="h-12 bg-card border-b border-border flex items-center px-4 sticky top-0 z-20">
       {/* todo: add sidebar toggle icon  */}
       {/* <Button
         variant="ghost"

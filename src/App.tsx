@@ -10,6 +10,7 @@ import Index from "./pages/Index"; // Keep as legacy entry point
 import NotFound from "./pages/NotFound";
 import Test from "./pages/Test";
 import Train from "./pages/Train";
+import WebRTCDebug from "./pages/WebRTCDebug";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/train" element={<Train />} />
             <Route path="/test" element={<Test />} />
             <Route path="/deploy" element={<Deploy />} />
+            <Route path="/webrtc-debug" element={<WebRTCDebug />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

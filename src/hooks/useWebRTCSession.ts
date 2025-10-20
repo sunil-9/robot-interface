@@ -5,6 +5,27 @@ import { cloudConfig } from "@/lib/config";
 
 type TelemetryListener = (message: unknown) => void;
 
+type SignalingEndpoints = {
+  baseUrl: string;
+  joinUrl: string;
+  pollUrl: string;
+  messageUrl: string;
+};
+
+const DEFAULT_POLL_TIMEOUT_MS = 25_000;
+
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
+
+const createSignalingEndpoints = (baseUrl: string): SignalingEndpoints => {
+  const normalized = trimTrailingSlash(baseUrl || cloudConfig.signalingBaseUrl);
+  return {
+    baseUrl: normalized,
+    joinUrl: `${normalized}/join`,
+    pollUrl: `${normalized}/poll`,
+    messageUrl: `${normalized}/message`,
+  };
+};
+
 export interface WebRTCSession {
   robotId: string | null;
   connectionState: RTCPeerConnectionState | "new";
@@ -19,12 +40,16 @@ export interface WebRTCSession {
 
 export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
   const pcRef = useRef<RTCPeerConnection | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const remotePeerIdRef = useRef<string | null>(null);
   const telemetryListenersRef = useRef<Set<TelemetryListener>>(new Set());
   const pendingOfferRef = useRef(false);
-  const signalingUrlRef = useRef<string>(cloudConfig.signalingWsUrl);
+  const signalingConfigRef = useRef<SignalingEndpoints>(
+    createSignalingEndpoints(cloudConfig.signalingBaseUrl)
+  );
+  const pollAbortRef = useRef<AbortController | null>(null);
+  const pollTimeoutRef = useRef<number>(DEFAULT_POLL_TIMEOUT_MS);
+  const joinedRef = useRef(false);
 
   const [connectionState, setConnectionState] =
     useState<RTCPeerConnectionState | "new">("new");
@@ -38,19 +63,28 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
   // Discover which signaling server URL to use before establishing a session.
   useEffect(() => {
     if (cloudConfig.signalingOverride) {
-      signalingUrlRef.current = cloudConfig.signalingWsUrl;
+      signalingConfigRef.current = createSignalingEndpoints(
+        cloudConfig.signalingOverride
+      );
       return;
     }
 
     let disposed = false;
-    const resolveSignalingUrl = async () => {
+    const resolveSignalingConfig = async () => {
       const discovered = await fetchSignalingConfig();
-      if (!disposed && discovered) {
-        signalingUrlRef.current = discovered;
+      if (disposed || !discovered) {
+        return;
       }
+      const fallback = createSignalingEndpoints(cloudConfig.signalingBaseUrl);
+      signalingConfigRef.current = {
+        baseUrl: trimTrailingSlash(discovered.baseUrl ?? fallback.baseUrl),
+        joinUrl: discovered.joinUrl ?? fallback.joinUrl,
+        pollUrl: discovered.pollUrl ?? fallback.pollUrl,
+        messageUrl: discovered.messageUrl ?? fallback.messageUrl,
+      };
     };
 
-    resolveSignalingUrl();
+    void resolveSignalingConfig();
 
     return () => {
       disposed = true;
@@ -67,25 +101,29 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     setLastError(null);
   }, []);
 
-  // Dispose of peer connections, tracks, sockets, and cached peer IDs.
+  // Dispose of peer connections, data channels, and background polls.
   const closeResources = useCallback(() => {
+    pollAbortRef.current?.abort();
+    pollAbortRef.current = null;
+
     dataChannelRef.current?.close();
     dataChannelRef.current = null;
 
-    pcRef.current?.getSenders().forEach((sender) => {
-      try {
-        pcRef.current?.removeTrack(sender);
-      } catch {
-        // ignore
-      }
-    });
-    pcRef.current?.close();
+    const pc = pcRef.current;
+    if (pc) {
+      pc.getSenders().forEach((sender) => {
+        try {
+          pc.removeTrack(sender);
+        } catch {
+          // ignore removal errors
+        }
+      });
+      pc.close();
+    }
     pcRef.current = null;
 
-    wsRef.current?.close();
-    wsRef.current = null;
-
     remotePeerIdRef.current = null;
+    joinedRef.current = false;
   }, []);
 
   // Build or tear down the full WebRTC stack whenever the selected robot changes.
@@ -97,28 +135,29 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     }
 
     resetState();
+    const currentRobotId = robotId;
     const operatorPeerId = `operator-${crypto.randomUUID()}`;
     const pc = new RTCPeerConnection();
     pcRef.current = pc;
+    let cancelled = false;
+
+    const wait = (ms: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, ms));
 
     try {
       pc.addTransceiver("video", { direction: "recvonly" });
     } catch (error) {
-      console.warn("Failed to add video transceiver; remote video may be unavailable.", error);
+      console.warn(
+        "Failed to add video transceiver; remote video may be unavailable.",
+        error
+      );
     }
-    // TODO: Multiple Streams support
-    // Merge all tracks from the robot into a single MediaStream exposed to React state.
+
     pc.ontrack = (event) => {
-      console.info("Received remote track", {
-        id: event.track?.id,
-        kind: event.track?.kind,
-        streams: event.streams?.map((remote) => remote.id) ?? [],
-      });
       if (event.streams && event.streams.length > 0) {
         setRemoteStream(event.streams[0]);
       } else if (event.track) {
-        const fallbackStream = new MediaStream([event.track]);
-        setRemoteStream(fallbackStream);
+        setRemoteStream(new MediaStream([event.track]));
       }
     };
 
@@ -130,30 +169,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       setSignalingState(pc.signalingState);
     };
 
-    // Send ICE candidates to the robot
-    pc.onicecandidate = (event) => {
-      if (!event.candidate) {
-        return;
-      }
-      const target = remotePeerIdRef.current;
-      const ws = wsRef.current;
-      if (!target || !ws || ws.readyState !== WebSocket.OPEN) {
-        return;
-      }
-      ws.send(
-        JSON.stringify({
-          type: "ice",
-          room_id: robotId,
-          target_id: target,
-          candidate: event.candidate.toJSON(),
-        })
-      );
-    };
-
-    // Reliable data channel carries telemetry from the robot and control commands back.
-    const dataChannel = pc.createDataChannel("telemetry", {
-      ordered: true,
-    });
+    const dataChannel = pc.createDataChannel("telemetry", { ordered: true });
     dataChannelRef.current = dataChannel;
 
     dataChannel.onopen = () => {
@@ -164,20 +180,17 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       setTelemetryOpen(false);
     };
 
-    dataChannel.onerror = (event) => {
-      console.error("Telemetry data channel error:", event);
+    dataChannel.onerror = () => {
       setLastError("Telemetry channel error");
     };
 
-    // Receive telemetry payloads from the robot
     dataChannel.onmessage = (event) => {
-      // Coerce incoming telemetry payloads into JSON objects before broadcasting.
       let payload: unknown = event.data;
       if (typeof payload === "string") {
         try {
           payload = JSON.parse(payload);
         } catch {
-          // ignore malformed telemetry
+          payload = null;
         }
       } else if (payload instanceof ArrayBuffer) {
         try {
@@ -201,30 +214,42 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       });
     };
 
-    const signalingUrl = signalingUrlRef.current;
-    const ws = new WebSocket(signalingUrl);
-    wsRef.current = ws;
-
-    // Send join request to the signaling server
-    ws.onopen = () => {
-      setSignalingConnected(true);
-      ws.send(
-        JSON.stringify({
-          type: "join",
-          room_id: robotId,
-          peer_id: operatorPeerId,
-          role: "operator",
-        })
-      );
+    const sendSignalingMessage = async (
+      payload: Record<string, unknown>
+    ): Promise<void> => {
+      if (cancelled) {
+        return;
+      }
+      const { messageUrl } = signalingConfigRef.current;
+      try {
+        const response = await fetch(messageUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            room_id: currentRobotId,
+            sender_id: operatorPeerId,
+          }),
+        });
+        if (!response.ok && !cancelled) {
+          const detail = await response.text();
+          console.warn(
+            `Signaling message '${String(payload.type ?? "unknown")}' failed (${response.status}): ${detail}`
+          );
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to send signaling message:", error);
+        }
+      }
     };
 
-    // Operator drives the offer side once both peers are in the signaling room.
     const ensureNegotiation = async () => {
       if (pendingOfferRef.current) {
         return;
       }
       const target = remotePeerIdRef.current;
-      if (!target || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      if (!target) {
         return;
       }
       pendingOfferRef.current = true;
@@ -234,99 +259,248 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
           offerToReceiveVideo: true,
         });
         await pc.setLocalDescription(offer);
-        wsRef.current.send(
-          JSON.stringify({
-            type: "offer",
-            room_id: robotId,
-            target_id: target,
-            sdp: {
-              type: offer.type,
-              sdp: offer.sdp,
-            },
-          })
-        );
+        await sendSignalingMessage({
+          type: "offer",
+          target_id: target,
+          sdp: {
+            type: offer.type,
+            sdp: offer.sdp ?? "",
+          },
+        });
       } catch (error) {
-        console.error("Failed to create/send offer:", error);
-        setLastError("Failed to negotiate WebRTC session");
+        if (!cancelled) {
+          console.error("Failed to create/send offer:", error);
+          setLastError("Failed to negotiate WebRTC session");
+        }
       } finally {
         pendingOfferRef.current = false;
       }
     };
 
-    // Handle signaling messages from the cloud service to complete negotiation.
-    ws.onmessage = async (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        switch (message.type) {
-          case "join-ack": {
-            const peerRoles =
-              (message.peer_roles as Record<string, string>) ?? {};
-            const robotEntry = Object.entries(peerRoles).find(
-              ([, role]) => role === "robot"
-            );
-            if (robotEntry) {
-              remotePeerIdRef.current = robotEntry[0];
-              await ensureNegotiation();
-            } else {
-              console.info("Waiting for robot peer to join signaling room.");
-            }
-            break;
+    const handleSignalingMessage = async (message: Record<string, any>) => {
+      switch (message.type) {
+        case "join-ack": {
+          const peerRoles = (message.peer_roles as Record<string, string>) ?? {};
+          const robotEntry = Object.entries(peerRoles).find(
+            ([, role]) => role === "robot"
+          );
+          if (robotEntry) {
+            remotePeerIdRef.current = robotEntry[0];
+            await ensureNegotiation();
+          } else {
+            remotePeerIdRef.current = null;
           }
-          case "peer-joined":
-            if (message.role === "robot") {
-              remotePeerIdRef.current = message.peer_id as string;
-              await ensureNegotiation();
-            }
-            break;
-          case "answer":
-            if (
-              message.sdp &&
-              message.peer_id === remotePeerIdRef.current
-            ) {
-              const { sdp, type } = message.sdp;
-              try {
-                await pc.setRemoteDescription({ type, sdp });
-              } catch (error) {
-                console.warn("Failed to apply remote answer:", error);
-              }
-            }
-            break;
-          case "ice":
-            if (message.candidate) {
-              try {
-                await pc.addIceCandidate(message.candidate);
-              } catch (error) {
-                console.warn("Failed to add ICE candidate:", error);
-              }
-            }
-            break;
-          case "peer-left":
-            if (message.peer_id === remotePeerIdRef.current) {
-              remotePeerIdRef.current = null;
-              setTelemetryOpen(false);
-            }
-            break;
-          case "error":
-            setLastError(message.message ?? "Signaling server reported an error.");
-            break;
-          default:
-            break;
+          break;
         }
-      } catch (error) {
-        console.error("Failed to handle signaling message:", error);
+        case "peer-joined":
+          if (message.role === "robot") {
+            remotePeerIdRef.current = message.peer_id as string;
+            await ensureNegotiation();
+          }
+          break;
+        case "answer":
+          if (
+            message.sdp &&
+            message.peer_id === remotePeerIdRef.current &&
+            typeof message.sdp.sdp === "string" &&
+            typeof message.sdp.type === "string"
+          ) {
+            try {
+              await pc.setRemoteDescription({
+                type: message.sdp.type,
+                sdp: message.sdp.sdp,
+              });
+            } catch (error) {
+              console.warn("Failed to apply remote answer:", error);
+            }
+          }
+          break;
+        case "ice":
+          if (message.candidate) {
+            try {
+              await pc.addIceCandidate(message.candidate);
+            } catch (error) {
+              console.warn("Failed to add ICE candidate:", error);
+            }
+          }
+          break;
+        case "peer-left":
+          if (message.peer_id === remotePeerIdRef.current) {
+            remotePeerIdRef.current = null;
+            setTelemetryOpen(false);
+          }
+          break;
+        case "error":
+          setLastError(
+            message.message ?? "Signaling server reported an error."
+          );
+          break;
+        default:
+          break;
       }
     };
 
-    ws.onerror = (event) => {
-      console.error("Signaling websocket error:", event);
-      setLastError("Signaling connection error");
+    const joinSignaling = async (): Promise<boolean> => {
+      const { joinUrl } = signalingConfigRef.current;
+      try {
+        const response = await fetch(joinUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "join",
+            room_id: currentRobotId,
+            peer_id: operatorPeerId,
+            role: "operator",
+          }),
+        });
+
+        if (!response.ok) {
+          if (!cancelled) {
+            const detail = await response.text();
+            console.warn(
+              `Failed to join signaling (${response.status}): ${detail}`
+            );
+            setLastError("Failed to connect to signaling");
+            setSignalingConnected(false);
+          }
+          return false;
+        }
+
+        const ack = (await response.json()) as Record<string, any>;
+        const timeoutValue = ack.poll_timeout_ms ?? DEFAULT_POLL_TIMEOUT_MS;
+        pollTimeoutRef.current =
+          typeof timeoutValue === "number" && Number.isFinite(timeoutValue)
+            ? timeoutValue
+            : DEFAULT_POLL_TIMEOUT_MS;
+
+        joinedRef.current = true;
+        setSignalingConnected(true);
+        setLastError(null);
+        await handleSignalingMessage(ack);
+        return true;
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to join signaling:", error);
+          setLastError("Failed to connect to signaling");
+          setSignalingConnected(false);
+        }
+        return false;
+      }
     };
 
-    ws.onclose = () => {
-      setSignalingConnected(false);
+    const pollLoop = async (): Promise<boolean> => {
+      const controller = new AbortController();
+      pollAbortRef.current = controller;
+      let shouldRejoin = false;
+
+      try {
+        while (!controller.signal.aborted && !cancelled) {
+          try {
+            const response = await fetch(signalingConfigRef.current.pollUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                room_id: currentRobotId,
+                peer_id: operatorPeerId,
+                timeout_ms:
+                  pollTimeoutRef.current ?? DEFAULT_POLL_TIMEOUT_MS,
+              }),
+              signal: controller.signal,
+            });
+
+            if (response.status === 404) {
+              shouldRejoin = true;
+              setSignalingConnected(false);
+              break;
+            }
+
+            if (!response.ok) {
+              const detail = await response.text();
+              console.warn(
+                `Signaling poll failed (${response.status}) – retrying soon. Details: ${detail}`
+              );
+              await wait(2_000);
+              continue;
+            }
+
+            const payload = (await response.json()) as {
+              messages?: Record<string, any>[];
+            };
+            const messages = Array.isArray(payload.messages)
+              ? payload.messages
+              : [];
+            for (const message of messages) {
+              if (cancelled || controller.signal.aborted) {
+                break;
+              }
+              await handleSignalingMessage(message);
+            }
+          } catch (error) {
+            if (controller.signal.aborted || cancelled) {
+              break;
+            }
+            console.error("Signaling poll error:", error);
+            await wait(2_000);
+          }
+        }
+      } finally {
+        pollAbortRef.current = null;
+        if (shouldRejoin) {
+          joinedRef.current = false;
+        }
+      }
+
+      return shouldRejoin && !cancelled;
     };
+
+    pc.onicecandidate = (event) => {
+      if (!event.candidate) {
+        return;
+      }
+      const target = remotePeerIdRef.current;
+      if (!target) {
+        return;
+      }
+      void sendSignalingMessage({
+        type: "ice",
+        target_id: target,
+        candidate: event.candidate.toJSON(),
+      });
+    };
+
+    const run = async () => {
+      while (!cancelled) {
+        const joined = await joinSignaling();
+        if (!joined) {
+          await wait(3_000);
+          continue;
+        }
+
+        const retry = await pollLoop();
+        if (!retry || cancelled) {
+          break;
+        }
+        setSignalingConnected(false);
+        await wait(1_000);
+      }
+    };
+
+    void run();
 
     return () => {
+      cancelled = true;
+      if (joinedRef.current) {
+        const leavePayload = {
+          type: "leave",
+          room_id: currentRobotId,
+          sender_id: operatorPeerId,
+        };
+        fetch(signalingConfigRef.current.messageUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(leavePayload),
+        }).catch(() => undefined);
+      }
       closeResources();
       resetState();
     };
@@ -340,32 +514,28 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     };
   }, []);
 
-  // TODO: This is a placeholder for the actual control messages. To be defined later
   // Push control messages over the telemetry channel, normalizing payload format.
-  const sendControl = useCallback(
-    (payload: unknown) => {
-      const channel = dataChannelRef.current;
-      if (!channel || channel.readyState !== "open") {
-        return false;
+  const sendControl = useCallback((payload: unknown) => {
+    const channel = dataChannelRef.current;
+    if (!channel || channel.readyState !== "open") {
+      return false;
+    }
+    try {
+      let envelope: unknown = payload;
+      if (
+        !payload ||
+        typeof payload !== "object" ||
+        !("type" in (payload as Record<string, unknown>))
+      ) {
+        envelope = { type: "command", data: payload };
       }
-      try {
-        let envelope: unknown = payload;
-        if (
-          !payload ||
-          typeof payload !== "object" ||
-          !("type" in (payload as Record<string, unknown>))
-        ) {
-          envelope = { type: "command", data: payload };
-        }
-        channel.send(JSON.stringify(envelope));
-        return true;
-      } catch (error) {
-        console.error("Failed to send command payload:", error);
-        return false;
-      }
-    },
-    []
-  );
+      channel.send(JSON.stringify(envelope));
+      return true;
+    } catch (error) {
+      console.error("Failed to send command payload:", error);
+      return false;
+    }
+  }, []);
 
   return useMemo(
     () => ({
@@ -392,3 +562,4 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     ]
   );
 };
+

@@ -190,17 +190,11 @@ const WebRTCDebugPage = () => {
               )}
               {selectedRobotMeta && (
                 <div className="rounded border border-purple-900/40 bg-gray-950/60 p-3 text-xs text-gray-300">
-                  <p>Capabilities: {Object.keys(selectedRobotMeta.capabilities).join(", ") || "n/a"}</p>
+                  <p>Heartbeat interval: {selectedRobotMeta.heartbeat_interval ?? "n/a"}s</p>
+                  <p>Last seen: {new Date(selectedRobotMeta.last_seen).toLocaleTimeString()}</p>
                   <p>
-                    Telemetry Channels:{" "}
-                    {Array.isArray(
-                      (selectedRobotMeta.capabilities as Record<string, unknown>).telemetry_channels
-                    )
-                      ? (
-                          (selectedRobotMeta.capabilities as Record<string, unknown>)
-                            .telemetry_channels as string[]
-                        ).join(", ")
-                      : "n/a"}
+                    Operators connected: {selectedRobotMeta.signaling?.controller_count ?? 0} · Robot
+                    signaling: {selectedRobotMeta.signaling?.robot_connected ? "online" : "offline"}
                   </p>
                 </div>
               )}

@@ -3,7 +3,6 @@ import { buildApiUrl } from "./config";
 export interface RobotPresenceSummary {
   robot_id: string;
   address: string | null;
-  capabilities: Record<string, unknown>;
   heartbeat_interval: number | null;
   last_seen: string;
   heartbeat_age_ms: number;

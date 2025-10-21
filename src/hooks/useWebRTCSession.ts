@@ -205,7 +205,9 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     const wait = (ms: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+    // Tracks which configured camera labels are still unassigned to incoming tracks.
     const availableCameraNames = new Set(expectedCameras);
+    // Remembers which track ID has been paired with which camera label for stable UI naming.
     const assignedByTrack = new Map<string, string | null>();
 
     const parseCameraName = (trackId: string | undefined): string | null => {
@@ -229,6 +231,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       return requested;
     };
 
+    // Pre-flight a recvonly transceiver per expected camera so the offer advertises enough slots.
     const videoSlots = Math.max(expectedCameras.length, 1);
     for (let index = 0; index < videoSlots; index += 1) {
       try {
@@ -255,6 +258,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
         assignedByTrack.set(trackId, cameraName);
       }
 
+      // Preserve the stream provided by WebRTC when available; otherwise synthesize one for the UI.
       const stream =
         event.streams && event.streams.length > 0
           ? event.streams[0]
@@ -274,6 +278,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       });
 
       track.onended = () => {
+        // Drop the ended track from state and free its camera label for future tracks.
         setRemoteStreams((prev) => prev.filter((item) => item.id !== trackId));
         const assigned = assignedByTrack.get(trackId);
         if (assigned) {

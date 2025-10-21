@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fetchSignalingConfig } from "@/lib/api";
+import { fetchRobotCameras, fetchSignalingConfig, type RobotCameraConfig } from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
 
 type TelemetryListener = (message: unknown) => void;
@@ -26,13 +26,20 @@ const createSignalingEndpoints = (baseUrl: string): SignalingEndpoints => {
   };
 };
 
+export interface RemoteStreamEntry {
+  id: string;
+  camera: string | null;
+  stream: MediaStream;
+}
+
 export interface WebRTCSession {
   robotId: string | null;
   connectionState: RTCPeerConnectionState | "new";
   signalingState: RTCSignalingState | "new";
   signalingConnected: boolean;
   telemetryOpen: boolean;
-  remoteStream: MediaStream | null;
+  remoteStreams: RemoteStreamEntry[];
+  expectedCameras: string[];
   lastError: string | null;
   onTelemetry: (listener: TelemetryListener) => () => void;
   sendControl: (payload: unknown) => boolean;
@@ -57,7 +64,8 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     useState<RTCSignalingState | "new">("new");
   const [signalingConnected, setSignalingConnected] = useState(false);
   const [telemetryOpen, setTelemetryOpen] = useState(false);
-  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  const [remoteStreams, setRemoteStreams] = useState<RemoteStreamEntry[]>([]);
+  const [cameraInfos, setCameraInfos] = useState<RobotCameraConfig[] | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
 
   // Discover which signaling server URL to use before establishing a session.
@@ -91,14 +99,56 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!robotId) {
+      setCameraInfos(null);
+      return;
+    }
+
+    let disposed = false;
+    setCameraInfos(null);
+
+    // Fetch the camera config for the robot.
+    const resolveCameraConfig = async () => {
+      try {
+        const cameras = await fetchRobotCameras(robotId);
+        if (!disposed) {
+          setCameraInfos(cameras);
+        }
+      } catch (error) {
+        console.warn("Failed to load camera config for robot:", error);
+        if (!disposed) {
+          setCameraInfos([]);
+        }
+      }
+    };
+
+    void resolveCameraConfig();
+
+    return () => {
+      disposed = true;
+    };
+  }, [robotId]);
+
+  // Build a list of camera names from the config.
+  const expectedCameras = useMemo(() => {
+    if (!cameraInfos) {
+      return [] as string[];
+    }
+    return cameraInfos
+      .map((camera) => (camera && typeof camera.name === "string" ? camera.name.trim() : null))
+      .filter((name): name is string => !!name);
+  }, [cameraInfos]);
+
   // Reset the public session fields so the UI starts from a clean slate.
   const resetState = useCallback(() => {
     setConnectionState("new");
     setSignalingState("new");
     setSignalingConnected(false);
     setTelemetryOpen(false);
-    setRemoteStream(null);
+    setRemoteStreams([]);
     setLastError(null);
+    pendingOfferRef.current = false;
   }, []);
 
   // Dispose of peer connections, data channels, and background polls.
@@ -124,7 +174,8 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
 
     remotePeerIdRef.current = null;
     joinedRef.current = false;
-  }, []);
+    setRemoteStreams([]);
+  }, [setRemoteStreams]);
 
   // Build or tear down the full WebRTC stack whenever the selected robot changes.
   useEffect(() => {
@@ -134,31 +185,102 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       return;
     }
 
+    // Wait for the camera config to be loaded before establishing a session.
+    if (cameraInfos === null) {
+      closeResources();
+      resetState();
+      return;
+    }
+
+    closeResources();
     resetState();
+
     const currentRobotId = robotId;
     const operatorPeerId = `operator-${crypto.randomUUID()}`;
+    let cancelled = false;
+
     const pc = new RTCPeerConnection();
     pcRef.current = pc;
-    let cancelled = false;
 
     const wait = (ms: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-    try {
-      pc.addTransceiver("video", { direction: "recvonly" });
-    } catch (error) {
-      console.warn(
-        "Failed to add video transceiver; remote video may be unavailable.",
-        error
-      );
+    const availableCameraNames = new Set(expectedCameras);
+    const assignedByTrack = new Map<string, string | null>();
+
+    const parseCameraName = (trackId: string | undefined): string | null => {
+      if (!trackId) {
+        return null;
+      }
+      const prefix = "camera::";
+      return trackId.startsWith(prefix) ? trackId.slice(prefix.length) : null;
+    };
+
+    const allocateCameraName = (requested: string | null): string | null => {
+      if (requested && availableCameraNames.has(requested)) {
+        availableCameraNames.delete(requested);
+        return requested;
+      }
+      const next = availableCameraNames.values().next();
+      if (!next.done) {
+        availableCameraNames.delete(next.value);
+        return next.value;
+      }
+      return requested;
+    };
+
+    const videoSlots = Math.max(expectedCameras.length, 1);
+    for (let index = 0; index < videoSlots; index += 1) {
+      try {
+        pc.addTransceiver("video", { direction: "recvonly" });
+      } catch (error) {
+        console.warn(
+          "Failed to add video transceiver; remote video may be unavailable.",
+          error
+        );
+        break;
+      }
     }
 
     pc.ontrack = (event) => {
-      if (event.streams && event.streams.length > 0) {
-        setRemoteStream(event.streams[0]);
-      } else if (event.track) {
-        setRemoteStream(new MediaStream([event.track]));
+      const track = event.track;
+      if (!track) {
+        return;
       }
+      const trackId = track.id ?? `track-${crypto.randomUUID()}`;
+      const requested = parseCameraName(trackId);
+      let cameraName = assignedByTrack.get(trackId) ?? null;
+      if (!cameraName) {
+        cameraName = allocateCameraName(requested);
+        assignedByTrack.set(trackId, cameraName);
+      }
+
+      const stream =
+        event.streams && event.streams.length > 0
+          ? event.streams[0]
+          : new MediaStream([track]);
+
+      const entryCamera = cameraName ?? requested ?? null;
+      setRemoteStreams((prev) => {
+        const next = [...prev];
+        const existing = next.findIndex((item) => item.id === trackId);
+        const updated = { id: trackId, camera: entryCamera, stream };
+        if (existing >= 0) {
+          next[existing] = updated;
+        } else {
+          next.push(updated);
+        }
+        return next;
+      });
+
+      track.onended = () => {
+        setRemoteStreams((prev) => prev.filter((item) => item.id !== trackId));
+        const assigned = assignedByTrack.get(trackId);
+        if (assigned) {
+          availableCameraNames.add(assigned);
+        }
+        assignedByTrack.delete(trackId);
+      };
     };
 
     pc.onconnectionstatechange = () => {
@@ -328,6 +450,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
           if (message.peer_id === remotePeerIdRef.current) {
             remotePeerIdRef.current = null;
             setTelemetryOpen(false);
+            setRemoteStreams([]);
           }
           break;
         case "error":
@@ -504,7 +627,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       closeResources();
       resetState();
     };
-  }, [robotId, resetState, closeResources]);
+  }, [robotId, cameraInfos, expectedCameras, closeResources, resetState]);
 
   // Allow callers to subscribe to decoded telemetry payloads.
   const onTelemetry = useCallback((listener: TelemetryListener) => {
@@ -544,7 +667,8 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       signalingState,
       signalingConnected,
       telemetryOpen,
-      remoteStream,
+      remoteStreams,
+      expectedCameras,
       lastError,
       onTelemetry,
       sendControl,
@@ -555,11 +679,11 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       signalingState,
       signalingConnected,
       telemetryOpen,
-      remoteStream,
+      remoteStreams,
+      expectedCameras,
       lastError,
       onTelemetry,
       sendControl,
     ]
   );
 };
-

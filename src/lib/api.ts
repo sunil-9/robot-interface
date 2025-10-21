@@ -32,6 +32,12 @@ export interface DiscoveredSignalingConfig {
   messageUrl?: string;
 }
 
+export interface RobotCameraConfig {
+  name?: string;
+  topic?: string;
+  [key: string]: unknown;
+}
+
 export const fetchRobots = async (): Promise<RobotPresenceSummary[]> => {
   const response = await fetch(buildApiUrl("/robots"));
   if (!response.ok) {
@@ -57,5 +63,29 @@ export const fetchSignalingConfig = async (): Promise<DiscoveredSignalingConfig 
   } catch (error) {
     console.warn("Unable to fetch signaling config:", error);
     return null;
+  }
+};
+
+export const fetchRobotCameras = async (robotId: string): Promise<RobotCameraConfig[]> => {
+  if (!robotId) {
+    return [];
+  }
+
+  try {
+    const response = await fetch(
+      buildApiUrl(`/robot-configs/${encodeURIComponent(robotId)}/camera`)
+    );
+    if (!response.ok) {
+      return [];
+    }
+    const payload = (await response.json()) as unknown;
+    if (!Array.isArray(payload)) {
+      return [];
+    }
+
+    return payload.filter((item): item is RobotCameraConfig => !!item && typeof item === "object");
+  } catch (error) {
+    console.warn(`Failed to load camera config for robot '${robotId}':`, error);
+    return [];
   }
 };

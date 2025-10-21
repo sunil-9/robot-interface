@@ -18,6 +18,75 @@ const formatTimestamp = (date: Date) =>
     .toString()
     .padStart(2, "0")}:${date.getSeconds().toString().padStart(2, "0")}`;
 
+const RemoteVideoTile = ({
+  cameraLabel,
+  stream,
+  connected,
+}: {
+  cameraLabel: string;
+  stream: MediaStream | null;
+  connected: boolean;
+}) => {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const element = videoRef.current;
+    if (!element) {
+      return;
+    }
+
+    if (!stream) {
+      element.pause();
+      element.srcObject = null;
+      return;
+    }
+
+    if (element.srcObject !== stream) {
+      element.srcObject = stream;
+    }
+
+    const playPromise = element.play();
+    if (playPromise) {
+      playPromise.catch((error) => {
+        console.warn("Failed to autoplay remote stream:", error);
+      });
+    }
+
+    return () => {
+      element.pause();
+      element.srcObject = null;
+    };
+  }, [stream]);
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-sm text-gray-300">
+        <span>{cameraLabel}</span>
+        <Badge
+          variant="outline"
+          className={connected ? "border-green-500 text-green-300" : "border-yellow-500 text-yellow-200"}
+        >
+          {connected ? "connected" : "waiting"}
+        </Badge>
+      </div>
+      <div className="relative aspect-video w-full overflow-hidden rounded border border-purple-900/40 bg-black">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="h-full w-full object-contain"
+        />
+        {!stream && (
+          <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-500">
+            Waiting for stream...
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const WebRTCDebugPage = () => {
   const { data: robots = [], isLoading, error, refetch } = useRobots();
   const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
@@ -25,29 +94,39 @@ const WebRTCDebugPage = () => {
   const [telemetryLog, setTelemetryLog] = useState<Array<{ stamp: Date; data: unknown }>>([]);
 
   const session = useWebRTCSession(selectedRobot);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const videoTiles = useMemo(() => {
+    const matched =
+      session.expectedCameras.length > 0
+        ? session.expectedCameras.map((camera) => {
+            const entry = session.remoteStreams.find((item) => item.camera === camera);
+            return {
+              key: camera,
+              label: camera,
+              stream: entry?.stream ?? null,
+              connected: Boolean(entry),
+            };
+          })
+        : [];
 
-  useEffect(() => {
-    if (!videoRef.current) {
-      return;
-    }
-    const element = videoRef.current;
-    const stream = session.remoteStream ?? null;
-    if (element.srcObject !== stream) {
-      element.pause();
-      element.srcObject = stream;
-    }
-    if (stream) {
-      const playPromise = element.play();
-      if (playPromise) {
-        playPromise.catch((error) => {
-          console.warn("Failed to autoplay remote stream:", error);
-        });
-      }
-    } else {
-      element.srcObject = null;
-    }
-  }, [session.remoteStream]);
+    const extras = session.remoteStreams
+      .filter((item) => {
+        if (session.expectedCameras.length === 0) {
+          return true;
+        }
+        if (!item.camera) {
+          return true;
+        }
+        return !session.expectedCameras.includes(item.camera);
+      })
+      .map((item) => ({
+        key: item.id,
+        label: item.camera ?? item.id,
+        stream: item.stream,
+        connected: true,
+      }));
+
+    return [...matched, ...extras];
+  }, [session.expectedCameras, session.remoteStreams]);
 
   useEffect(() => {
     if (!session.robotId) {
@@ -207,17 +286,31 @@ const WebRTCDebugPage = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-3 lg:flex-row">
-                <div className="flex-1 space-y-2">
-                  <p className="text-sm text-gray-300">Remote Media Stream</p>
-                  <div className="aspect-video w-full overflow-hidden rounded border border-purple-900/40 bg-black">
-                    <video
-                      ref={videoRef}
-                      autoPlay
-                      playsInline
-                      muted
-                      className="h-full w-full object-contain"
-                    />
+                <div className="flex-1 space-y-3">
+                  <div className="flex items-center justify-between text-sm text-gray-300">
+                    <p>Remote Media Streams</p>
+                    {session.expectedCameras.length > 0 && (
+                      <span className="text-xs text-gray-500">
+                        {session.expectedCameras.length} configured cameras
+                      </span>
+                    )}
                   </div>
+                  {videoTiles.length > 0 ? (
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {videoTiles.map((tile) => (
+                        <RemoteVideoTile
+                          key={tile.key}
+                          cameraLabel={tile.label}
+                          stream={tile.stream}
+                          connected={tile.connected}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded border border-dashed border-purple-900/40 bg-gray-950/60 p-6 text-center text-sm text-gray-400">
+                      No remote streams detected yet.
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 space-y-2">
                   <p className="text-sm text-gray-300">Telemetry Log (latest {MAX_LOG_ENTRIES})</p>

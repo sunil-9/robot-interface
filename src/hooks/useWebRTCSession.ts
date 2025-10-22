@@ -130,14 +130,25 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     };
   }, [robotId]);
 
-  // Build a list of camera names from the config.
+  // Build a list of camera labels from the config (prefer positions when available).
   const expectedCameras = useMemo(() => {
     if (!cameraInfos) {
       return [] as string[];
     }
+    const normalize = (value: unknown): string | null => {
+      if (!value || typeof value !== "string") {
+        return null;
+      }
+      const trimmed = value.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
     return cameraInfos
-      .map((camera) => (camera && typeof camera.name === "string" ? camera.name.trim() : null))
-      .filter((name): name is string => !!name);
+      .map((camera) => {
+        const position = normalize(camera?.position);
+        const name = normalize(camera?.name);
+        return position ?? name;
+      })
+      .filter((label): label is string => !!label);
   }, [cameraInfos]);
 
   // Reset the public session fields so the UI starts from a clean slate.
@@ -206,11 +217,13 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       new Promise<void>((resolve) => setTimeout(resolve, ms));
 
     // Tracks which configured camera labels are still unassigned to incoming tracks.
-    const availableCameraNames = new Set(expectedCameras);
+    const availableCameraLabels = new Set(expectedCameras);
     // Remembers which track ID has been paired with which camera label for stable UI naming.
     const assignedByTrack = new Map<string, string | null>();
+    // Keeps track of synthetic MediaStreams we create when remote streams bundle multiple tracks.
+    const syntheticStreamsByTrack = new Map<string, MediaStream>();
 
-    const parseCameraName = (trackId: string | undefined): string | null => {
+    const parseCameraLabel = (trackId: string | undefined): string | null => {
       if (!trackId) {
         return null;
       }
@@ -218,14 +231,14 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       return trackId.startsWith(prefix) ? trackId.slice(prefix.length) : null;
     };
 
-    const allocateCameraName = (requested: string | null): string | null => {
-      if (requested && availableCameraNames.has(requested)) {
-        availableCameraNames.delete(requested);
+    const allocateCameraLabel = (requested: string | null): string | null => {
+      if (requested && availableCameraLabels.has(requested)) {
+        availableCameraLabels.delete(requested);
         return requested;
       }
-      const next = availableCameraNames.values().next();
+      const next = availableCameraLabels.values().next();
       if (!next.done) {
-        availableCameraNames.delete(next.value);
+        availableCameraLabels.delete(next.value);
         return next.value;
       }
       return requested;
@@ -251,20 +264,42 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
         return;
       }
       const trackId = track.id ?? `track-${crypto.randomUUID()}`;
-      const requested = parseCameraName(trackId);
-      let cameraName = assignedByTrack.get(trackId) ?? null;
-      if (!cameraName) {
-        cameraName = allocateCameraName(requested);
-        assignedByTrack.set(trackId, cameraName);
+      const requested = parseCameraLabel(trackId);
+      let cameraLabel = assignedByTrack.get(trackId) ?? null;
+      if (!cameraLabel) {
+        cameraLabel = allocateCameraLabel(requested);
+        assignedByTrack.set(trackId, cameraLabel);
       }
 
-      // Preserve the stream provided by WebRTC when available; otherwise synthesize one for the UI.
-      const stream =
-        event.streams && event.streams.length > 0
-          ? event.streams[0]
-          : new MediaStream([track]);
+      // Use the remote stream when it only carries this track; otherwise synthesize a dedicated stream.
+      const [remoteStream] = event.streams ?? [];
+      let stream: MediaStream;
+      if (remoteStream) {
+        const videoTracks = remoteStream.getVideoTracks();
+        if (videoTracks.length <= 1) {
+          stream = remoteStream;
+        } else {
+          stream = syntheticStreamsByTrack.get(trackId) ?? new MediaStream();
+          if (!syntheticStreamsByTrack.has(trackId)) {
+            syntheticStreamsByTrack.set(trackId, stream);
+          }
+          const currentTracks = stream.getTracks();
+          if (!currentTracks.includes(track)) {
+            stream.addTrack(track);
+          }
+        }
+      } else {
+        stream = syntheticStreamsByTrack.get(trackId) ?? new MediaStream();
+        if (!syntheticStreamsByTrack.has(trackId)) {
+          syntheticStreamsByTrack.set(trackId, stream);
+        }
+        const currentTracks = stream.getTracks();
+        if (!currentTracks.includes(track)) {
+          stream.addTrack(track);
+        }
+      }
 
-      const entryCamera = cameraName ?? requested ?? null;
+      const entryCamera = cameraLabel ?? requested ?? null;
       setRemoteStreams((prev) => {
         const next = [...prev];
         const existing = next.findIndex((item) => item.id === trackId);
@@ -282,9 +317,16 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
         setRemoteStreams((prev) => prev.filter((item) => item.id !== trackId));
         const assigned = assignedByTrack.get(trackId);
         if (assigned) {
-          availableCameraNames.add(assigned);
+          availableCameraLabels.add(assigned);
         }
         assignedByTrack.delete(trackId);
+        if (syntheticStreamsByTrack.has(trackId)) {
+          const syntheticStream = syntheticStreamsByTrack.get(trackId);
+          syntheticStream?.getTracks().forEach((mediaTrack) => {
+            syntheticStream.removeTrack(mediaTrack);
+          });
+          syntheticStreamsByTrack.delete(trackId);
+        }
       };
     };
 

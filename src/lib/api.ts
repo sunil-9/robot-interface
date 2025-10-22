@@ -35,6 +35,7 @@ export interface DiscoveredSignalingConfig {
 export interface RobotCameraConfig {
   name?: string;
   topic?: string;
+  position?: string;
   [key: string]: unknown;
 }
 

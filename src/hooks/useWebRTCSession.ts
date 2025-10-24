@@ -7,12 +7,8 @@ type TelemetryListener = (message: unknown) => void;
 
 type SignalingEndpoints = {
   baseUrl: string;
-  joinUrl: string;
-  pollUrl: string;
-  messageUrl: string;
+  wsUrl: string;
 };
-
-const DEFAULT_POLL_TIMEOUT_MS = 25_000;
 
 const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
@@ -20,9 +16,7 @@ const createSignalingEndpoints = (baseUrl: string): SignalingEndpoints => {
   const normalized = trimTrailingSlash(baseUrl || cloudConfig.signalingBaseUrl);
   return {
     baseUrl: normalized,
-    joinUrl: `${normalized}/join`,
-    pollUrl: `${normalized}/poll`,
-    messageUrl: `${normalized}/message`,
+    wsUrl: normalized.endsWith("/ws") ? normalized : `${normalized}/ws`,
   };
 };
 
@@ -54,8 +48,8 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
   const signalingConfigRef = useRef<SignalingEndpoints>(
     createSignalingEndpoints(cloudConfig.signalingBaseUrl)
   );
-  const pollAbortRef = useRef<AbortController | null>(null);
-  const pollTimeoutRef = useRef<number>(DEFAULT_POLL_TIMEOUT_MS);
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<number | null>(null);
   const joinedRef = useRef(false);
 
   const [connectionState, setConnectionState] =
@@ -86,9 +80,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       const fallback = createSignalingEndpoints(cloudConfig.signalingBaseUrl);
       signalingConfigRef.current = {
         baseUrl: trimTrailingSlash(discovered.baseUrl ?? fallback.baseUrl),
-        joinUrl: discovered.joinUrl ?? fallback.joinUrl,
-        pollUrl: discovered.pollUrl ?? fallback.pollUrl,
-        messageUrl: discovered.messageUrl ?? fallback.messageUrl,
+        wsUrl: discovered.wsUrl ?? fallback.wsUrl,
       };
     };
 
@@ -162,10 +154,23 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
     pendingOfferRef.current = false;
   }, []);
 
-  // Dispose of peer connections, data channels, and background polls.
+  // Dispose of peer connections, data channels, and signaling socket.
   const closeResources = useCallback(() => {
-    pollAbortRef.current?.abort();
-    pollAbortRef.current = null;
+    const timer = reconnectTimerRef.current;
+    if (timer !== null) {
+      window.clearTimeout(timer);
+      reconnectTimerRef.current = null;
+    }
+
+    const socket = socketRef.current;
+    socketRef.current = null;
+    if (socket) {
+      try {
+        socket.close();
+      } catch {
+        // ignore close errors while reclaiming resources
+      }
+    }
 
     dataChannelRef.current?.close();
     dataChannelRef.current = null;
@@ -212,9 +217,6 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
 
     const pc = new RTCPeerConnection();
     pcRef.current = pc;
-
-    const wait = (ms: number) =>
-      new Promise<void>((resolve) => setTimeout(resolve, ms));
 
     // Tracks which configured camera labels are still unassigned to incoming tracks.
     const availableCameraLabels = new Set(expectedCameras);
@@ -389,23 +391,18 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       if (cancelled) {
         return;
       }
-      const { messageUrl } = signalingConfigRef.current;
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return;
+      }
       try {
-        const response = await fetch(messageUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        socket.send(
+          JSON.stringify({
             ...payload,
             room_id: currentRobotId,
             sender_id: operatorPeerId,
-          }),
-        });
-        if (!response.ok && !cancelled) {
-          const detail = await response.text();
-          console.warn(
-            `Signaling message '${String(payload.type ?? "unknown")}' failed (${response.status}): ${detail}`
-          );
-        }
+          })
+        );
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to send signaling message:", error);
@@ -510,119 +507,6 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       }
     };
 
-    const joinSignaling = async (): Promise<boolean> => {
-      const { joinUrl } = signalingConfigRef.current;
-      try {
-        const response = await fetch(joinUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "join",
-            room_id: currentRobotId,
-            peer_id: operatorPeerId,
-            role: "operator",
-          }),
-        });
-
-        if (!response.ok) {
-          if (!cancelled) {
-            const detail = await response.text();
-            console.warn(
-              `Failed to join signaling (${response.status}): ${detail}`
-            );
-            setLastError("Failed to connect to signaling");
-            setSignalingConnected(false);
-          }
-          return false;
-        }
-
-        const ack = (await response.json()) as Record<string, any>;
-        const timeoutValue = ack.poll_timeout_ms ?? DEFAULT_POLL_TIMEOUT_MS;
-        pollTimeoutRef.current =
-          typeof timeoutValue === "number" && Number.isFinite(timeoutValue)
-            ? timeoutValue
-            : DEFAULT_POLL_TIMEOUT_MS;
-
-        joinedRef.current = true;
-        setSignalingConnected(true);
-        setLastError(null);
-        await handleSignalingMessage(ack);
-        return true;
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to join signaling:", error);
-          setLastError("Failed to connect to signaling");
-          setSignalingConnected(false);
-        }
-        return false;
-      }
-    };
-
-    const pollLoop = async (): Promise<boolean> => {
-      const controller = new AbortController();
-      pollAbortRef.current = controller;
-      let shouldRejoin = false;
-
-      try {
-        while (!controller.signal.aborted && !cancelled) {
-          try {
-            const response = await fetch(signalingConfigRef.current.pollUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                room_id: currentRobotId,
-                peer_id: operatorPeerId,
-                timeout_ms:
-                  pollTimeoutRef.current ?? DEFAULT_POLL_TIMEOUT_MS,
-              }),
-              signal: controller.signal,
-            });
-
-            if (response.status === 404) {
-              shouldRejoin = true;
-              setSignalingConnected(false);
-              break;
-            }
-
-            if (!response.ok) {
-              const detail = await response.text();
-              console.warn(
-                `Signaling poll failed (${response.status}) – retrying soon. Details: ${detail}`
-              );
-              await wait(2_000);
-              continue;
-            }
-
-            const payload = (await response.json()) as {
-              messages?: Record<string, any>[];
-            };
-            const messages = Array.isArray(payload.messages)
-              ? payload.messages
-              : [];
-            for (const message of messages) {
-              if (cancelled || controller.signal.aborted) {
-                break;
-              }
-              await handleSignalingMessage(message);
-            }
-          } catch (error) {
-            if (controller.signal.aborted || cancelled) {
-              break;
-            }
-            console.error("Signaling poll error:", error);
-            await wait(2_000);
-          }
-        }
-      } finally {
-        pollAbortRef.current = null;
-        if (shouldRejoin) {
-          joinedRef.current = false;
-        }
-      }
-
-      return shouldRejoin && !cancelled;
-    };
-
     pc.onicecandidate = (event) => {
       if (!event.candidate) {
         return;
@@ -638,39 +522,169 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       });
     };
 
-    const run = async () => {
-      while (!cancelled) {
-        const joined = await joinSignaling();
-        if (!joined) {
-          await wait(3_000);
-          continue;
+    const scheduleReconnect = () => {
+      if (cancelled) {
+        return;
+      }
+      if (reconnectTimerRef.current !== null) {
+        return;
+      }
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        if (!cancelled) {
+          openWebSocket();
         }
+      }, 2_000);
+    };
 
-        const retry = await pollLoop();
-        if (!retry || cancelled) {
-          break;
-        }
-        setSignalingConnected(false);
-        await wait(1_000);
+    const openWebSocket = () => {
+      if (cancelled) {
+        return;
+      }
+      const existing = socketRef.current;
+      if (
+        existing &&
+        (existing.readyState === WebSocket.OPEN ||
+          existing.readyState === WebSocket.CONNECTING)
+      ) {
+        return;
+      }
+
+      const endpoints = signalingConfigRef.current;
+      const targetUrl =
+        endpoints.wsUrl ?? `${endpoints.baseUrl.replace(/\/+$/, "")}/ws`;
+
+      try {
+        const socket = new WebSocket(targetUrl);
+        socketRef.current = socket;
+
+        socket.onopen = () => {
+          if (cancelled) {
+            socket.close();
+            return;
+          }
+          const joinPayload = {
+            type: "join",
+            room_id: currentRobotId,
+            peer_id: operatorPeerId,
+            role: "operator",
+          };
+          try {
+            socket.send(JSON.stringify(joinPayload));
+          } catch (error) {
+            console.error("Failed to send join payload:", error);
+          }
+        };
+
+        socket.onmessage = async (event: MessageEvent) => {
+          if (cancelled) {
+            return;
+          }
+
+          let rawData: string;
+          if (typeof event.data === "string") {
+            rawData = event.data;
+          } else if (event.data instanceof Blob) {
+            rawData = await event.data.text();
+          } else if (event.data instanceof ArrayBuffer) {
+            rawData = new TextDecoder().decode(event.data);
+          } else {
+            console.warn("Unsupported signaling payload type:", typeof event.data);
+            return;
+          }
+
+          let message: Record<string, any> | null = null;
+          try {
+            message = JSON.parse(rawData);
+          } catch (error) {
+            console.warn("Failed to parse signaling payload:", error);
+            return;
+          }
+
+          if (!message || typeof message !== "object") {
+            return;
+          }
+
+          if (message.type === "error") {
+            setLastError(
+              message.detail ?? message.message ?? "Signaling server reported an error."
+            );
+            return;
+          }
+
+          if (message.type === "join-ack") {
+            joinedRef.current = true;
+            setSignalingConnected(true);
+            setLastError(null);
+          }
+
+          await handleSignalingMessage(message);
+        };
+
+        socket.onerror = (event) => {
+          if (!cancelled) {
+            console.error("Signaling websocket error:", event);
+          }
+        };
+
+        socket.onclose = (event) => {
+          if (socketRef.current === socket) {
+            socketRef.current = null;
+          }
+          if (reconnectTimerRef.current !== null) {
+            window.clearTimeout(reconnectTimerRef.current);
+            reconnectTimerRef.current = null;
+          }
+          if (joinedRef.current && event.wasClean) {
+            console.info("Signaling websocket closed:", event.reason || "normal closure");
+          }
+          joinedRef.current = false;
+          remotePeerIdRef.current = null;
+          setSignalingConnected(false);
+          setTelemetryOpen(false);
+          setRemoteStreams([]);
+          if (!cancelled) {
+            scheduleReconnect();
+          }
+        };
+      } catch (error) {
+        console.error("Failed to open signaling websocket:", error);
+        scheduleReconnect();
       }
     };
 
-    void run();
+    openWebSocket();
 
     return () => {
       cancelled = true;
-      if (joinedRef.current) {
-        const leavePayload = {
-          type: "leave",
-          room_id: currentRobotId,
-          sender_id: operatorPeerId,
-        };
-        fetch(signalingConfigRef.current.messageUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(leavePayload),
-        }).catch(() => undefined);
+      const timer = reconnectTimerRef.current;
+      if (timer !== null) {
+        window.clearTimeout(timer);
+        reconnectTimerRef.current = null;
       }
+      const socket = socketRef.current;
+      socketRef.current = null;
+      if (socket) {
+        if (socket.readyState === WebSocket.OPEN) {
+          try {
+            socket.send(
+              JSON.stringify({
+                type: "leave",
+                room_id: currentRobotId,
+                sender_id: operatorPeerId,
+              })
+            );
+          } catch {
+            // ignore send errors during shutdown
+          }
+        }
+        try {
+          socket.close();
+        } catch {
+          // ignore close errors during shutdown
+        }
+      }
+      joinedRef.current = false;
       closeResources();
       resetState();
     };

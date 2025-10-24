@@ -20,16 +20,12 @@ export interface RobotPresenceListResponse {
 
 export interface SignalingConfigResponse {
   signaling_base_url?: string;
-  signaling_join_url?: string;
-  signaling_poll_url?: string;
-  signaling_message_url?: string;
+  signaling_ws_url?: string;
 }
 
 export interface DiscoveredSignalingConfig {
   baseUrl?: string;
-  joinUrl?: string;
-  pollUrl?: string;
-  messageUrl?: string;
+  wsUrl?: string;
 }
 
 export interface RobotCameraConfig {
@@ -57,9 +53,7 @@ export const fetchSignalingConfig = async (): Promise<DiscoveredSignalingConfig 
     const payload = (await response.json()) as SignalingConfigResponse;
     return {
       baseUrl: payload.signaling_base_url ?? undefined,
-      joinUrl: payload.signaling_join_url ?? undefined,
-      pollUrl: payload.signaling_poll_url ?? undefined,
-      messageUrl: payload.signaling_message_url ?? undefined,
+      wsUrl: payload.signaling_ws_url ?? undefined,
     };
   } catch (error) {
     console.warn("Unable to fetch signaling config:", error);

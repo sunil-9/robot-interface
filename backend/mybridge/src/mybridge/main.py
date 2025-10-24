@@ -14,7 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .models import AppState
 from .ros_bridge import ROSBridge
-from .routers import episodes, websocket
+from .routers import episodes
+from .routers import webrtc as webrtc_router
+from .routers import websocket
 
 # Configure logging
 logging.basicConfig(
@@ -80,6 +82,7 @@ app.add_middleware(
 # Include routers
 app.include_router(episodes.router, prefix="/api/episodes", tags=["episodes"])
 app.include_router(websocket.router, tags=["websocket"])
+app.include_router(webrtc_router.router, prefix="/api/webrtc", tags=["webrtc"])
 
 
 @app.get("/")

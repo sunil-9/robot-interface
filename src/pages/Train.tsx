@@ -1,5 +1,5 @@
 import { InputTracker } from "@/components/InputTracker";
-import { TrainingInterface as OriginalTrainingInterface } from "@/components/TrainingInterface";
+import { TrainingInterface } from "@/components/TrainingInterface";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { ArrowLeft } from "lucide-react";
@@ -127,7 +127,10 @@ export default function TrainPage() {
 
       {/* Main content takes full height */}
       <main className="h-full">
-        <OriginalTrainingInterface />
+        <TrainingInterface
+          robotId={selectedRobot}
+          controllerId={selectedControl}
+        />
       </main>
 
       {/* Input tracker overlay */}

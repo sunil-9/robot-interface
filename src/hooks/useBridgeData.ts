@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useCallback, useEffect, useState } from "react";
+import { useWebRTCClient } from "./useWebRTCClient";
 import { useWebSocket } from "./useWebSocket";
 
 interface JointData {
@@ -219,20 +220,49 @@ export const useBridgeData = () => {
   );
 
   // Use the WebSocket configuration from our utils
-  const { isConnected, lastMessage, error } = useWebSocket({
+  const {
+    isConnected: wsConnected,
+    lastMessage,
+    error,
+  } = useWebSocket({
     // No need to explicitly provide URL, it will use the one from config
     reconnectInterval: 3000,
     maxReconnectAttempts: 10,
-    onMessage: handleMessage,
+    onMessage: (msg) => {
+      // Only process websocket messages when RTC is not connected
+      if (!rtcApi.connected) {
+        handleMessage(msg as { role: string; normalized: any });
+      }
+    },
   });
+
+  const rtcApi = useWebRTCClient();
+
+  // Subscribe to RTC datachannel messages when connected
+  useEffect(() => {
+    if (!rtcApi || !rtcApi.connected) return;
+    const off = rtcApi.addDataListener((payload) => {
+      if (!payload || typeof payload !== "object") return;
+      // payload is expected to be a mapping role -> data dict
+      try {
+        for (const [role, data] of Object.entries(payload)) {
+          handleMessage({ role, normalized: (data as any).normalized ?? data });
+        }
+      } catch (e) {
+        console.warn("Failed to process rtc payload", e);
+      }
+    });
+
+    return () => off && off();
+  }, [rtcApi, rtcApi?.connected, handleMessage]);
 
   useEffect(() => {
     setBridgeData((prev) => ({
       ...prev,
-      isConnected,
+      isConnected: rtcApi?.connected || wsConnected,
       error,
     }));
-  }, [isConnected, error]);
+  }, [rtcApi?.connected, wsConnected, error]);
 
   // Old useEffect removed - now using callback pattern to avoid React batching issues
 

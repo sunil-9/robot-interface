@@ -1,21 +1,101 @@
 import { InputTracker } from "@/components/InputTracker";
 import { TrainingInterface as OriginalTrainingInterface } from "@/components/TrainingInterface";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
 import { ArrowLeft } from "lucide-react";
-import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 export default function TrainPage() {
   const navigate = useNavigate();
-  const selectedRobot = sessionStorage.getItem("selectedRobot");
-  const selectedControl = sessionStorage.getItem("selectedControl");
-
-  // Redirect to home if no selections are made
-  useEffect(() => {
-    if (!selectedRobot || !selectedControl) {
-      navigate("/");
+  const location = useLocation();
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+  // Get session data from URL params or from session storage
+  const sessionData = (() => {
+    try {
+      const storedData = sessionStorage.getItem("sessionData");
+      return storedData ? JSON.parse(storedData) : null;
+    } catch (e) {
+      console.error("Failed to parse session data", e);
+      return null;
     }
-  }, [selectedRobot, selectedControl, navigate]);
+  })();
+
+  // Prioritize URL params over session storage for better user experience
+  const selectedRobot = params.get("robot") || sessionData?.robot || null;
+  const selectedControl =
+    params.get("controller") || sessionData?.controller || null;
+
+  // On mount: validate URL params and test connectivity; fail -> toast + redirect home
+  useEffect(() => {
+    (async () => {
+      if (!selectedRobot || !selectedControl) {
+        toast({
+          title: "Missing info",
+          description: "Robot or controller missing. Please choose from home.",
+          variant: "destructive",
+        });
+        navigate("/");
+        return;
+      }
+
+      // Support legacy components with individual session storage items
+      // while maintaining our new structured approach
+      try {
+        // Update session storage with current values for backward compatibility
+        if (sessionData) {
+          Object.entries(sessionData).forEach(([key, value]) => {
+            if (typeof value === "string") {
+              sessionStorage.setItem(key, value);
+            }
+          });
+        }
+
+        // Fallback for direct session storage access in legacy components
+        sessionStorage.setItem("selectedRobot", selectedRobot);
+        sessionStorage.setItem("selectedControl", selectedControl);
+
+        // Check if connection was tested and signaling config is available
+        const connectionReady = sessionStorage.getItem("connection_ready");
+        const signalingConfig = sessionStorage.getItem("signalingConfig");
+
+        if (!connectionReady || !signalingConfig) {
+          throw new Error(
+            "Connection test required. Please test connection from the home page."
+          );
+        }
+
+        // Parse the signaling config to verify it's valid
+        try {
+          const parsedConfig = JSON.parse(signalingConfig);
+          if (!parsedConfig.signaling_base_url) {
+            throw new Error(
+              "Invalid signaling configuration: missing signaling_base_url"
+            );
+          }
+          console.info(
+            "Training session initialized with valid signaling config",
+            parsedConfig.signaling_base_url
+          );
+        } catch (e) {
+          throw new Error(
+            "Invalid signaling configuration. Please test connection again."
+          );
+        }
+      } catch (e) {
+        console.error("Error initializing session data", e);
+        toast({
+          title: "Session initialization failed",
+          description: "Could not initialize session data. Please try again.",
+          variant: "destructive",
+        });
+        navigate("/");
+      }
+    })();
+  }, [selectedRobot, selectedControl, sessionData, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">

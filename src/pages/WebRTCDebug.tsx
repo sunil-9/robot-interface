@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { useRobots } from "@/hooks/useRobots";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
+import type { Robot } from "@/types/robot";
 
 const MAX_LOG_ENTRIES = 20;
 const AXIS_DEADZONE = 0.08;
 const AXIS_DELTA_THRESHOLD = 0.05;
+const EMPTY_ROBOT_LIST: Robot[] = [];
 
 const formatTimestamp = (date: Date) =>
   `${date.getHours().toString().padStart(2, "0")}:${date
@@ -66,7 +68,11 @@ const RemoteVideoTile = ({
         <span>{cameraLabel}</span>
         <Badge
           variant="outline"
-          className={connected ? "border-green-500 text-green-300" : "border-yellow-500 text-yellow-200"}
+          className={
+            connected
+              ? "border-green-500 text-green-300"
+              : "border-yellow-500 text-yellow-200"
+          }
         >
           {connected ? "connected" : "waiting"}
         </Badge>
@@ -103,19 +109,27 @@ type GamepadSnapshot = {
 };
 
 const WebRTCDebugPage = () => {
-  const { data: robots = [], isLoading, error, refetch } = useRobots();
+  const {
+    robotPresence: robotPresenceList,
+    loading: isLoading,
+    error: robotsError,
+    refreshRobots,
+  } = useRobots();
+  const robots = robotPresenceList ?? EMPTY_ROBOT_LIST;
   const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
   const [commandPayload, setCommandPayload] = useState<string>("{}");
-  const [telemetryLog, setTelemetryLog] = useState<Array<{ stamp: Date; data: unknown }>>([]);
-  const [gamepadSummaries, setGamepadSummaries] = useState<GamepadSummary[]>([]);
-  const [gamepadSnapshots, setGamepadSnapshots] = useState<GamepadSnapshot[]>([]);
+  const [telemetryLog, setTelemetryLog] = useState<
+    Array<{ stamp: Date; data: unknown }>
+  >([]);
 
   const session = useWebRTCSession(selectedRobot);
   const videoTiles = useMemo(() => {
     const matched =
       session.expectedCameras.length > 0
         ? session.expectedCameras.map((camera) => {
-            const entry = session.remoteStreams.find((item) => item.camera === camera);
+            const entry = session.remoteStreams.find(
+              (item) => item.camera === camera
+            );
             return {
               key: camera,
               label: camera,
@@ -360,13 +374,19 @@ const WebRTCDebugPage = () => {
       <header className="border-b border-purple-900/40 bg-black/80 py-4">
         <div className="container mx-auto flex items-center justify-between px-6">
           <div>
-            <h1 className="text-2xl font-semibold text-purple-300">WebRTC Debugger</h1>
+            <h1 className="text-2xl font-semibold text-purple-300">
+              WebRTC Debugger
+            </h1>
             <p className="text-sm text-gray-400">
-              Use this page to exercise the signaling flow between the operator UI and the robot
-              backend via the cloud server.
+              Use this page to exercise the signaling flow between the operator
+              UI and the robot backend via the cloud server.
             </p>
           </div>
-          <Button asChild variant="ghost" className="text-purple-200 hover:text-white">
+          <Button
+            asChild
+            variant="ghost"
+            className="text-purple-200 hover:text-white"
+          >
             <Link to="/">Back to Home</Link>
           </Button>
         </div>
@@ -375,15 +395,22 @@ const WebRTCDebugPage = () => {
       <main className="container mx-auto grid gap-6 px-6 py-6 lg:grid-cols-[320px_1fr]">
         <Card className="bg-gray-900 border-purple-900/40">
           <CardHeader>
-            <CardTitle className="text-lg text-purple-200">1. Pick a Robot</CardTitle>
+            <CardTitle className="text-lg text-purple-200">
+              1. Pick a Robot
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button size="sm" variant="secondary" onClick={() => refetch()} disabled={isLoading}>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => refreshRobots()}
+              disabled={isLoading}
+            >
               {isLoading ? "Refreshing..." : "Refresh"}
             </Button>
-            {error && (
+            {robotsError && (
               <p className="text-sm text-red-300">
-                {(error as Error).message ?? "Failed to load robots."}
+                {robotsError ?? "Failed to load robots."}
               </p>
             )}
             <ScrollArea className="h-64 rounded border border-purple-900/40 bg-gray-950/60 p-2">
@@ -406,23 +433,31 @@ const WebRTCDebugPage = () => {
                         <Badge
                           variant="outline"
                           className={
-                            robot.signaling.robot_connected
+                            robot.signaling?.robot_connected
                               ? "border-green-500 text-green-300"
                               : "border-yellow-500 text-yellow-200"
                           }
                         >
-                          {robot.signaling.robot_connected ? "signaling" : "waiting"}
+                          {robot.signaling?.robot_connected
+                            ? "signaling"
+                            : "waiting"}
                         </Badge>
                       </div>
                       <p className="mt-1 text-xs text-gray-400">
-                        Controllers: {robot.signaling.controller_count} · Last heartbeat{" "}
+                        Controllers:{" "}
+                        {robot.signaling?.controller_count ??
+                          robot.signaling?.operator_count ??
+                          0}{" "}
+                        · Last heartbeat{" "}
                         {(robot.heartbeat_age_ms / 1000).toFixed(1)}s ago
                       </p>
                     </button>
                   );
                 })}
                 {robots.length === 0 && (
-                  <p className="text-sm text-gray-400">No robots are advertising heartbeats.</p>
+                  <p className="text-sm text-gray-400">
+                    No robots are advertising heartbeats.
+                  </p>
                 )}
               </div>
             </ScrollArea>
@@ -440,7 +475,13 @@ const WebRTCDebugPage = () => {
               <div className="flex flex-wrap items-center gap-3 text-sm text-gray-200">
                 <span>
                   Signaling:{" "}
-                  <strong className={session.signalingConnected ? "text-green-300" : "text-yellow-200"}>
+                  <strong
+                    className={
+                      session.signalingConnected
+                        ? "text-green-300"
+                        : "text-yellow-200"
+                    }
+                  >
                     {session.signalingConnected ? "connected" : "connecting"}
                   </strong>
                 </span>
@@ -449,21 +490,41 @@ const WebRTCDebugPage = () => {
                 </span>
                 <span>
                   Telemetry:{" "}
-                  <strong className={session.telemetryOpen ? "text-green-300" : "text-yellow-200"}>
+                  <strong
+                    className={
+                      session.telemetryOpen
+                        ? "text-green-300"
+                        : "text-yellow-200"
+                    }
+                  >
                     {session.telemetryOpen ? "open" : "pending"}
                   </strong>
                 </span>
               </div>
               {session.lastError && (
-                <p className="text-sm text-red-300">Last error: {session.lastError}</p>
+                <p className="text-sm text-red-300">
+                  Last error: {session.lastError}
+                </p>
               )}
               {selectedRobotMeta && (
                 <div className="rounded border border-purple-900/40 bg-gray-950/60 p-3 text-xs text-gray-300">
-                  <p>Heartbeat interval: {selectedRobotMeta.heartbeat_interval ?? "n/a"}s</p>
-                  <p>Last seen: {new Date(selectedRobotMeta.last_seen).toLocaleTimeString()}</p>
                   <p>
-                    Operators connected: {selectedRobotMeta.signaling?.controller_count ?? 0} · Robot
-                    signaling: {selectedRobotMeta.signaling?.robot_connected ? "online" : "offline"}
+                    Heartbeat interval:{" "}
+                    {selectedRobotMeta.heartbeat_interval ?? "n/a"}s
+                  </p>
+                  <p>
+                    Last seen:{" "}
+                    {new Date(selectedRobotMeta.last_seen).toLocaleTimeString()}
+                  </p>
+                  <p>
+                    Operators connected:{" "}
+                    {selectedRobotMeta.signaling?.controller_count ??
+                      selectedRobotMeta.signaling?.operator_count ??
+                      0}{" "}
+                    · Robot signaling:{" "}
+                    {selectedRobotMeta.signaling?.robot_connected
+                      ? "online"
+                      : "offline"}
                   </p>
                 </div>
               )}
@@ -472,7 +533,9 @@ const WebRTCDebugPage = () => {
 
           <Card className="bg-gray-900 border-purple-900/40">
             <CardHeader>
-              <CardTitle className="text-lg text-purple-200">3. Video / Telemetry</CardTitle>
+              <CardTitle className="text-lg text-purple-200">
+                3. Video / Telemetry
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-3 lg:flex-row">
@@ -503,19 +566,25 @@ const WebRTCDebugPage = () => {
                   )}
                 </div>
                 <div className="flex-1 space-y-2">
-                  <p className="text-sm text-gray-300">Telemetry Log (latest {MAX_LOG_ENTRIES})</p>
+                  <p className="text-sm text-gray-300">
+                    Telemetry Log (latest {MAX_LOG_ENTRIES})
+                  </p>
                   <ScrollArea className="h-60 rounded border border-purple-900/40 bg-gray-950/60 p-3 text-xs text-gray-200">
                     <div className="space-y-2">
                       {telemetryLog.map((entry, idx) => (
                         <div key={idx} className="rounded bg-gray-900/80 p-2">
-                          <p className="text-purple-300">{formatTimestamp(entry.stamp)}</p>
+                          <p className="text-purple-300">
+                            {formatTimestamp(entry.stamp)}
+                          </p>
                           <pre className="whitespace-pre-wrap break-words text-gray-200">
                             {JSON.stringify(entry.data, null, 2)}
                           </pre>
                         </div>
                       ))}
                       {telemetryLog.length === 0 && (
-                        <p className="text-gray-500">No telemetry received yet.</p>
+                        <p className="text-gray-500">
+                          No telemetry received yet.
+                        </p>
                       )}
                     </div>
                   </ScrollArea>
@@ -622,6 +691,9 @@ const WebRTCDebugPage = () => {
           <Card className="bg-gray-900 border-purple-900/40">
             <CardHeader>
               <CardTitle className="text-lg text-purple-200">5. Send Control Messages</CardTitle>
+              <CardTitle className="text-lg text-purple-200">
+                4. Send Control Messages
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">
@@ -649,7 +721,10 @@ const WebRTCDebugPage = () => {
                 </Button>
               </div>
               <div className="space-y-2">
-                <label htmlFor="commandPayload" className="text-sm text-gray-300">
+                <label
+                  htmlFor="commandPayload"
+                  className="text-sm text-gray-300"
+                >
                   Command payload (JSON)
                 </label>
                 <Input
@@ -664,7 +739,8 @@ const WebRTCDebugPage = () => {
 
           <Separator className="border-purple-900/40" />
           <p className="text-xs text-gray-500">
-            Tip: open browser devtools to inspect raw signaling messages and confirm ICE negotiation.
+            Tip: open browser devtools to inspect raw signaling messages and
+            confirm ICE negotiation.
           </p>
         </div>
       </main>

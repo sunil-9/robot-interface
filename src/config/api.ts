@@ -11,6 +11,7 @@ export const API_CONFIG = {
   ENDPOINTS: {
     ROBOTS: "/robots/",
     OPERATOR_DEVICES: "/robots/operator_device",
+    SIGNALING_CONFIG: "/config/signaling",
     WEBRTC_BASE: "/api/webrtc",
     WEBRTC_TEST: "/api/webrtc/test",
     WEBRTC_OFFER: "/api/webrtc/offer",

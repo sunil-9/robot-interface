@@ -11,6 +11,8 @@ import { useRobots } from "@/hooks/useRobots";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 
 const MAX_LOG_ENTRIES = 20;
+const AXIS_DEADZONE = 0.08;
+const AXIS_DELTA_THRESHOLD = 0.05;
 
 const formatTimestamp = (date: Date) =>
   `${date.getHours().toString().padStart(2, "0")}:${date
@@ -87,11 +89,26 @@ const RemoteVideoTile = ({
   );
 };
 
+type GamepadSummary = {
+  index: number;
+  id: string;
+};
+
+type GamepadSnapshot = {
+  index: number;
+  id: string;
+  timestamp: number;
+  axes: Record<string, number>;
+  buttons: Record<string, { pressed: boolean; value: number }>;
+};
+
 const WebRTCDebugPage = () => {
   const { data: robots = [], isLoading, error, refetch } = useRobots();
   const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
   const [commandPayload, setCommandPayload] = useState<string>("{}");
   const [telemetryLog, setTelemetryLog] = useState<Array<{ stamp: Date; data: unknown }>>([]);
+  const [gamepadSummaries, setGamepadSummaries] = useState<GamepadSummary[]>([]);
+  const [gamepadSnapshots, setGamepadSnapshots] = useState<GamepadSnapshot[]>([]);
 
   const session = useWebRTCSession(selectedRobot);
   const videoTiles = useMemo(() => {
@@ -151,6 +168,179 @@ const WebRTCDebugPage = () => {
     () => robots.find((robot) => robot.robot_id === selectedRobot) ?? null,
     [robots, selectedRobot]
   );
+
+  const { robotId: activeRobotId, telemetryOpen: telemetryActive, sendControl: sendTelemetryControl } = session;
+
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("getGamepads" in navigator)) {
+      return;
+    }
+
+    let disposed = false;
+    let animationFrameId = 0;
+    const previousState = new Map<
+      number,
+      { buttons: Array<{ pressed: boolean; value: number }>; axes: number[] }
+    >();
+
+    const pollGamepads = () => {
+      if (disposed) {
+        return;
+      }
+
+      const rawGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const connected = Array.from(rawGamepads).filter((item): item is Gamepad => Boolean(item));
+
+      const connectedIndexes = new Set(connected.map((gamepad) => gamepad.index));
+      previousState.forEach((_, index) => {
+        if (!connectedIndexes.has(index)) {
+          previousState.delete(index);
+        }
+      });
+
+      const snapshot = connected
+        .map((gamepad) => ({
+          index: gamepad.index,
+          id: gamepad.id,
+        }))
+        .sort((a, b) => a.index - b.index);
+
+      setGamepadSummaries((prev) => {
+        if (
+          prev.length === snapshot.length &&
+          prev.every(
+            (item, idx) =>
+              item.index === snapshot[idx]?.index && item.id === snapshot[idx]?.id
+          )
+        ) {
+          return prev;
+        }
+        return snapshot;
+      });
+
+      const snapshots: GamepadSnapshot[] = [];
+
+      connected.forEach((gamepad) => {
+        const stored =
+          previousState.get(gamepad.index) ??
+          {
+            buttons: gamepad.buttons.map((button) => ({
+              pressed: button.pressed,
+              value: button.value,
+            })),
+            axes: [...gamepad.axes],
+          };
+
+        if (stored.buttons.length < gamepad.buttons.length) {
+          stored.buttons = gamepad.buttons.map((button, idx) => ({
+            pressed: stored.buttons[idx]?.pressed ?? button.pressed,
+            value: stored.buttons[idx]?.value ?? button.value,
+          }));
+        }
+        if (stored.axes.length < gamepad.axes.length) {
+          stored.axes = gamepad.axes.map((value, idx) => stored.axes[idx] ?? value);
+        }
+
+        const normalizedAxes = gamepad.axes.map((value, index) => {
+          const adjusted = index === 3 ? value * -1 : value;
+          return Math.abs(adjusted) < AXIS_DEADZONE ? 0 : adjusted;
+        });
+
+        const axesRecord: Record<string, number> = {};
+        normalizedAxes.forEach((value, index) => {
+          axesRecord[index.toString()] = value;
+        });
+
+        const buttonsRecord: Record<string, { pressed: boolean; value: number }> = {};
+        gamepad.buttons.forEach((button, index) => {
+          buttonsRecord[index.toString()] = {
+            pressed: button.pressed,
+            value: button.value,
+          };
+        });
+
+        const timestamp = Date.now();
+
+        snapshots.push({
+          index: gamepad.index,
+          id: gamepad.id,
+          timestamp,
+          axes: axesRecord,
+          buttons: buttonsRecord,
+        });
+
+        if (telemetryActive && activeRobotId) {
+          const payload = {
+            type: "control",
+            timestamp,
+            gamepad: { id: gamepad.id, index: gamepad.index },
+            axes: axesRecord,
+            buttons: buttonsRecord,
+          };
+          console.log("WebRTC sending control snapshot:", payload);
+          const sent = sendTelemetryControl(payload);
+          if (!sent) {
+            console.warn("Failed to forward gamepad state over telemetry channel.");
+          }
+        }
+
+        previousState.set(gamepad.index, {
+          axes: normalizedAxes,
+          buttons: gamepad.buttons.map((button) => ({
+            pressed: button.pressed,
+            value: button.value,
+          })),
+        });
+      });
+
+      setGamepadSnapshots((prev) => {
+        if (prev.length === snapshots.length) {
+          const same = prev.every((item, index) => {
+            const next = snapshots[index];
+            if (!next) {
+              return false;
+            }
+            if (item.index !== next.index || item.id !== next.id) {
+              return false;
+            }
+            const axesEqual =
+              Object.keys(item.axes).length === Object.keys(next.axes).length &&
+              Object.entries(item.axes).every(([key, value]) => next.axes[key] === value);
+            if (!axesEqual) {
+              return false;
+            }
+            const buttonsEqual =
+              Object.keys(item.buttons).length === Object.keys(next.buttons).length &&
+              Object.entries(item.buttons).every(([key, value]) => {
+                const target = next.buttons[key];
+                return (
+                  target &&
+                  target.pressed === value.pressed &&
+                  target.value === value.value
+                );
+              });
+            return buttonsEqual;
+          });
+          if (same) {
+            return prev;
+          }
+        }
+        return snapshots;
+      });
+
+      animationFrameId = window.requestAnimationFrame(pollGamepads);
+    };
+
+    animationFrameId = window.requestAnimationFrame(pollGamepads);
+
+    return () => {
+      disposed = true;
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+      previousState.clear();
+    };
+  }, [activeRobotId, telemetryActive, sendTelemetryControl]);
 
   const handleSendPing = () => {
     session.sendControl({ type: "ping", timestamp: Date.now() });
@@ -336,7 +526,102 @@ const WebRTCDebugPage = () => {
 
           <Card className="bg-gray-900 border-purple-900/40">
             <CardHeader>
-              <CardTitle className="text-lg text-purple-200">4. Send Control Messages</CardTitle>
+              <CardTitle className="text-lg text-purple-200">4. Gamepad Input Monitor</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-300">Connected gamepads</p>
+                {gamepadSummaries.length > 0 ? (
+                  <div className="mt-2 space-y-2">
+                    {gamepadSummaries.map((summary) => (
+                      <div
+                        key={`${summary.index}-${summary.id}`}
+                        className="rounded border border-purple-900/40 bg-gray-950/70 p-2 text-xs text-gray-200"
+                      >
+                        <p className="text-purple-300 font-medium">
+                          #{summary.index} &mdash; {summary.id || "Unnamed controller"}
+                        </p>
+                      </div>
+                    ))}
+                    <p className="text-xs text-gray-500">
+                      Press any button to wake a sleeping controller.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-xs text-gray-500">
+                    No gamepads detected. Connect a controller and press any button to wake it.
+                  </p>
+                )}
+              </div>
+              <div>
+                <p className="text-sm text-gray-300">Current controller state</p>
+                <ScrollArea className="mt-2 max-h-80 rounded border border-purple-900/40 bg-gray-950/60 p-3">
+                  <div className="space-y-3">
+                    {gamepadSnapshots.length > 0 ? (
+                      gamepadSnapshots.map((snapshot) => (
+                        <div
+                          key={`${snapshot.index}-${snapshot.id}`}
+                          className="space-y-2 rounded bg-gray-900/80 p-2 text-xs text-gray-200"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-purple-300 font-medium">
+                              #{snapshot.index} &mdash; {snapshot.id || "Controller"}
+                            </p>
+                            <span className="text-[10px] text-gray-500">
+                              {formatTimestamp(new Date(snapshot.timestamp))}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Axes</p>
+                            <div className="mt-1 grid grid-cols-2 gap-1">
+                              {Object.entries(snapshot.axes).map(([key, value]) => (
+                                <div
+                                  key={`axis-${key}`}
+                                  className="rounded border border-purple-900/40 bg-gray-950/70 px-2 py-1"
+                                >
+                                  <p className="font-medium text-purple-200">Axis {key}</p>
+                                  <p className="text-gray-300">{value.toFixed(2)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Buttons</p>
+                            <div className="mt-1 grid grid-cols-2 gap-1">
+                              {Object.entries(snapshot.buttons).map(([key, info]) => (
+                                <div
+                                  key={`button-${key}`}
+                                  className={`rounded border px-2 py-1 ${
+                                    info.pressed
+                                      ? "border-green-600 bg-green-900/40 text-green-200"
+                                      : "border-purple-900/40 bg-gray-950/70 text-gray-300"
+                                  }`}
+                                >
+                                  <p className="font-medium">
+                                    Button {key} {info.pressed ? "●" : ""}
+                                  </p>
+                                  <p className="text-gray-300">{info.value.toFixed(2)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-xs text-gray-500">No inputs captured yet.</p>
+                    )}
+                  </div>
+                </ScrollArea>
+                <p className="mt-2 text-xs text-gray-500">
+                  Controller snapshots stream continuously over the telemetry channel.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gray-900 border-purple-900/40">
+            <CardHeader>
+              <CardTitle className="text-lg text-purple-200">5. Send Control Messages</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">

@@ -121,6 +121,10 @@ const WebRTCDebugPage = () => {
   const [telemetryLog, setTelemetryLog] = useState<
     Array<{ stamp: Date; data: unknown }>
   >([]);
+  const [gamepadSummaries, setGamepadSummaries] = useState<GamepadSummary[]>([]);
+  const [gamepadSnapshots, setGamepadSnapshots] = useState<GamepadSnapshot[]>(
+    []
+  );
 
   const session = useWebRTCSession(selectedRobot);
   const videoTiles = useMemo(() => {

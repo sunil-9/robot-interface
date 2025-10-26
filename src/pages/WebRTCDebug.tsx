@@ -695,9 +695,6 @@ const WebRTCDebugPage = () => {
           <Card className="bg-gray-900 border-purple-900/40">
             <CardHeader>
               <CardTitle className="text-lg text-purple-200">5. Send Control Messages</CardTitle>
-              <CardTitle className="text-lg text-purple-200">
-                4. Send Control Messages
-              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">

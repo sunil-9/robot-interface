@@ -1,14 +1,16 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
+import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import { Gamepad, Keyboard, MousePointer, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface InputTrackerProps {
   controlType: string | null;
+  session?: WebRTCSession;
 }
 
-export const InputTracker = ({ controlType }: InputTrackerProps) => {
+export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   const [lastInput, setLastInput] = useState<{
     type: "mouse" | "keyboard" | "gamepad" | null;
     key?: string;
@@ -29,9 +31,39 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
     Record<string, GamepadStateType>
   >({});
 
+  const canTrackKeyboard = !controlType
+    ? true
+    : controlType.toLowerCase().includes("keyboard");
+  const canTrackMouse = !controlType
+    ? true
+    : controlType.toLowerCase().includes("mouse");
+  const canTrackGamepad = !controlType
+    ? true
+    : controlType.toLowerCase().includes("gamepad") ||
+      controlType.toLowerCase().includes("joystick");
+
+  const sendTelemetry = useCallback(
+    (payload: Record<string, unknown>) => {
+      if (!session) {
+        return;
+      }
+      const envelope = {
+        type: "command",
+        controller: controlType ?? "unknown",
+        timestamp: Date.now(),
+        ...payload,
+      };
+      const ok = session.sendControl(envelope);
+      if (!ok) {
+        console.warn("Failed to send input telemetry", envelope);
+      }
+    },
+    [session, controlType]
+  );
+
   // Track mouse movements and clicks
   useEffect(() => {
-    if (controlType !== "mouse" && controlType !== null) return;
+    if (!canTrackMouse) return;
 
     const handleMouseMove = (e: MouseEvent) => {
       // Only track significant movements to avoid flooding
@@ -73,11 +105,11 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mousedown", handleMouseClick);
     };
-  }, [controlType, lastInput]);
+  }, [canTrackMouse, lastInput]);
 
   // Track keyboard input
   useEffect(() => {
-    if (controlType !== "keyboard" && controlType !== null) return;
+    if (!canTrackKeyboard) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't capture F5, browser shortcuts etc.
@@ -87,6 +119,13 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
         type: "keyboard",
         key: e.key,
         timestamp: Date.now(),
+      });
+
+      sendTelemetry({
+        source: "keyboard",
+        key: e.key,
+        code: e.code,
+        repeat: e.repeat,
       });
 
       toast({
@@ -101,16 +140,11 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [controlType]);
+  }, [canTrackKeyboard, sendTelemetry]);
 
   // Track gamepad/joystick input
   useEffect(() => {
-    if (
-      controlType !== "joystick" &&
-      controlType !== "gamepad" &&
-      controlType !== null
-    )
-      return;
+    if (!canTrackGamepad) return;
 
     let animationFrameId: number;
 
@@ -144,6 +178,13 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
                 type: "gamepad",
                 button: index,
                 timestamp: Date.now(),
+              });
+
+              sendTelemetry({
+                source: "gamepad",
+                kind: "button",
+                button: index,
+                value: button.value,
               });
 
               toast({
@@ -184,6 +225,13 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
                   type: "gamepad",
                   key: `axis-${index}`,
                   timestamp: Date.now(),
+                });
+
+                sendTelemetry({
+                  source: "gamepad",
+                  kind: "axis",
+                  axis: index,
+                  value: axis,
                 });
 
                 toast({
@@ -237,7 +285,7 @@ export const InputTracker = ({ controlType }: InputTrackerProps) => {
         handleGamepadDisconnected
       );
     };
-  }, [controlType, gamepadState]);
+  }, [canTrackGamepad, gamepadState, sendTelemetry]);
 
   if (!isVisible) return null;
 

@@ -1,5 +1,5 @@
 import { useBridgeData } from "@/hooks/useBridgeData";
-import { useWebRTCSession } from "@/hooks/useWebRTCSession";
+import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import { fetchRobotCameras, type RobotCameraConfig } from "@/lib/api";
 import {
   Calendar,
@@ -42,9 +42,13 @@ interface Episode {
 interface TrainingInterfaceProps {
   robotId: string | null;
   controllerId: string | null;
+  session: WebRTCSession;
 }
 
-export const TrainingInterface = ({ robotId }: TrainingInterfaceProps) => {
+export const TrainingInterface = ({
+  robotId,
+  session,
+}: TrainingInterfaceProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +58,6 @@ export const TrainingInterface = ({ robotId }: TrainingInterfaceProps) => {
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const bridgeData = useBridgeData();
-  const session = useWebRTCSession(robotId ?? null);
 
   const API_BASE = "http://localhost:8080/api/episodes";
 

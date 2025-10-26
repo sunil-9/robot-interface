@@ -42,3 +42,9 @@ Each camera is identified by a role in the configuration file, making it easy to
 ## Further Documentation
 
 For more detailed information about the WebSocket configuration system, see the [WebSocket Configuration Documentation](./docs/websocket-config.md).
+
+
+
+
+ros2 topic pub  /toy_robot/move_right_hand_forward std_msgs/msg/Bool "{data: true}"
+ros2 topic pub  /toy_robot/move_left_hand_backward std_msgs/msg/Bool "{data: true}"

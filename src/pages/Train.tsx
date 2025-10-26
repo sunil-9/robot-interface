@@ -2,6 +2,7 @@ import { InputTracker } from "@/components/InputTracker";
 import { TrainingInterface } from "@/components/TrainingInterface";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -28,6 +29,8 @@ export default function TrainPage() {
   const selectedRobot = params.get("robot") || sessionData?.robot || null;
   const selectedControl =
     params.get("controller") || sessionData?.controller || null;
+
+  const session = useWebRTCSession(selectedRobot);
 
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
@@ -130,11 +133,12 @@ export default function TrainPage() {
         <TrainingInterface
           robotId={selectedRobot}
           controllerId={selectedControl}
+          session={session}
         />
       </main>
 
       {/* Input tracker overlay */}
-      <InputTracker controlType={selectedControl} />
+      <InputTracker controlType={selectedControl} session={session} />
     </div>
   );
 }

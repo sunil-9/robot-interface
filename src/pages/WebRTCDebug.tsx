@@ -105,7 +105,7 @@ type GamepadSnapshot = {
   id: string;
   timestamp: number;
   axes: Record<string, number>;
-  buttons: Record<string, { pressed: boolean; value: number }>;
+  buttons: Record<string, number>;
 };
 
 const WebRTCDebugPage = () => {
@@ -269,12 +269,9 @@ const WebRTCDebugPage = () => {
           axesRecord[index.toString()] = value;
         });
 
-        const buttonsRecord: Record<string, { pressed: boolean; value: number }> = {};
+        const buttonsRecord: Record<string, number> = {};
         gamepad.buttons.forEach((button, index) => {
-          buttonsRecord[index.toString()] = {
-            pressed: button.pressed,
-            value: button.value,
-          };
+          buttonsRecord[index.toString()] = button.value;
         });
 
         const timestamp = Date.now();
@@ -291,7 +288,9 @@ const WebRTCDebugPage = () => {
           const payload = {
             type: "control",
             timestamp,
-            gamepad: { id: gamepad.id, index: gamepad.index },
+            device: {
+              gamepad: { id: gamepad.id, index: gamepad.index },
+            },
             axes: axesRecord,
             buttons: buttonsRecord,
           };
@@ -329,14 +328,7 @@ const WebRTCDebugPage = () => {
             }
             const buttonsEqual =
               Object.keys(item.buttons).length === Object.keys(next.buttons).length &&
-              Object.entries(item.buttons).every(([key, value]) => {
-                const target = next.buttons[key];
-                return (
-                  target &&
-                  target.pressed === value.pressed &&
-                  target.value === value.value
-                );
-              });
+              Object.entries(item.buttons).every(([key, value]) => next.buttons[key] === value);
             return buttonsEqual;
           });
           if (same) {
@@ -661,21 +653,24 @@ const WebRTCDebugPage = () => {
                           <div>
                             <p className="text-[11px] text-gray-400 uppercase tracking-wide">Buttons</p>
                             <div className="mt-1 grid grid-cols-2 gap-1">
-                              {Object.entries(snapshot.buttons).map(([key, info]) => (
-                                <div
-                                  key={`button-${key}`}
-                                  className={`rounded border px-2 py-1 ${
-                                    info.pressed
-                                      ? "border-green-600 bg-green-900/40 text-green-200"
-                                      : "border-purple-900/40 bg-gray-950/70 text-gray-300"
-                                  }`}
-                                >
-                                  <p className="font-medium">
-                                    Button {key} {info.pressed ? "●" : ""}
-                                  </p>
-                                  <p className="text-gray-300">{info.value.toFixed(2)}</p>
-                                </div>
-                              ))}
+                              {Object.entries(snapshot.buttons).map(([key, value]) => {
+                                const isPressed = value >= 0.5;
+                                return (
+                                  <div
+                                    key={`button-${key}`}
+                                    className={`rounded border px-2 py-1 ${
+                                      isPressed
+                                        ? "border-green-600 bg-green-900/40 text-green-200"
+                                        : "border-purple-900/40 bg-gray-950/70 text-gray-300"
+                                    }`}
+                                  >
+                                    <p className="font-medium">
+                                      Button {key} {isPressed ? "●" : ""}
+                                    </p>
+                                    <p className="text-gray-300">{value.toFixed(2)}</p>
+                                  </div>
+                                );
+                              })}
                             </div>
                           </div>
                         </div>

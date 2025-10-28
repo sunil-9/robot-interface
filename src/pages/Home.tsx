@@ -486,78 +486,185 @@ export default function Home() {
                                   signalingConfig
                                 );
 
-                                // Test signaling join endpoint with a temporary peer ID
+                                // Test signaling WebSocket connection with a temporary peer ID
                                 const testPeerId = `test-${Date.now()}-${Math.random()
                                   .toString(36)
                                   .substring(2, 7)}`;
-                                // Use signaling_base_url from the config
-                                const signalingBaseUrl =
-                                  signalingConfig.signaling_base_url;
 
-                                if (!signalingBaseUrl) {
+                                // Use signaling_ws_url from the config
+                                const signalingWsUrl =
+                                  signalingConfig.signaling_ws_url;
+
+                                if (!signalingWsUrl) {
                                   console.error(
-                                    "Missing signaling_base_url in config:",
+                                    "Missing signaling_ws_url in config:",
                                     signalingConfig
                                   );
                                   throw new Error(
-                                    "Invalid signaling configuration: missing base URL"
+                                    "Invalid signaling configuration: missing WebSocket URL"
                                   );
                                 }
 
-                                const joinResponse = await fetch(
-                                  signalingConfig.signaling_join_url ||
-                                    `${signalingBaseUrl}/join`,
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      type: "join",
-                                      room_id: selectedRobot,
-                                      peer_id: testPeerId,
-                                      role: "operator",
-                                    }),
+                                // Create a WebSocket connection for testing
+                                const testConnection = await new Promise<{
+                                  hasRobot: boolean;
+                                  socket: WebSocket;
+                                }>((resolve, reject) => {
+                                  const socket = new WebSocket(signalingWsUrl);
+                                  const timeout = setTimeout(() => {
+                                    socket.close();
+                                    reject(new Error("Connection timeout"));
+                                  }, 10000); // 10 second timeout
+
+                                  socket.onopen = () => {
+                                    // Send join message
+                                    try {
+                                      socket.send(
+                                        JSON.stringify({
+                                          type: "join",
+                                          room_id: selectedRobot,
+                                          peer_id: testPeerId,
+                                          role: "operator",
+                                        })
+                                      );
+                                    } catch (error) {
+                                      clearTimeout(timeout);
+                                      socket.close();
+                                      reject(error);
+                                    }
+                                  };
+
+                                  socket.onmessage = async (event) => {
+                                    try {
+                                      const message = JSON.parse(event.data);
+
+                                      if (message.type === "error") {
+                                        clearTimeout(timeout);
+                                        socket.close();
+                                        reject(
+                                          new Error(
+                                            message.detail ||
+                                              message.message ||
+                                              "Signaling server error"
+                                          )
+                                        );
+                                        return;
+                                      }
+
+                                      if (message.type === "join-ack") {
+                                        clearTimeout(timeout);
+                                        console.info(
+                                          "Join acknowledged:",
+                                          message
+                                        );
+
+                                        // Check for robot presence in peer_roles
+                                        const peerRoles =
+                                          message.peer_roles || {};
+                                        const hasRobot =
+                                          Object.values(peerRoles).includes(
+                                            "robot"
+                                          );
+
+                                        resolve({ hasRobot, socket });
+                                      }
+                                    } catch (error) {
+                                      clearTimeout(timeout);
+                                      socket.close();
+                                      reject(error);
+                                    }
+                                  };
+
+                                  socket.onerror = (event) => {
+                                    clearTimeout(timeout);
+                                    reject(
+                                      new Error("WebSocket connection error")
+                                    );
+                                  };
+
+                                  socket.onclose = (event) => {
+                                    clearTimeout(timeout);
+                                    if (!event.wasClean) {
+                                      reject(
+                                        new Error(
+                                          `WebSocket closed unexpectedly: ${
+                                            event.reason || "Unknown reason"
+                                          }`
+                                        )
+                                      );
+                                    }
+                                  };
+                                });
+
+                                // Check if robot is present
+                                if (!testConnection.hasRobot) {
+                                  // Properly clean up before throwing error
+                                  try {
+                                    testConnection.socket.send(
+                                      JSON.stringify({
+                                        type: "leave",
+                                        room_id: selectedRobot,
+                                        sender_id: testPeerId,
+                                      })
+                                    );
+                                  } catch (e) {
+                                    // Ignore cleanup errors
                                   }
-                                );
-
-                                if (!joinResponse.ok) {
-                                  throw new Error(
-                                    `Failed to join signaling: ${joinResponse.status}`
-                                  );
-                                }
-
-                                const joinResult = await joinResponse.json();
-                                console.info("Join response:", joinResult);
-
-                                // Check for robot presence
-                                if (
-                                  !joinResult.peer_roles ||
-                                  !Object.values(
-                                    joinResult.peer_roles
-                                  ).includes("robot")
-                                ) {
+                                  testConnection.socket.close();
                                   throw new Error(
                                     "No robot found in this room. Please ensure the robot is online."
                                   );
                                 }
 
                                 // Send leave message to clean up temporary peer
-                                await fetch(
-                                  signalingConfig.signaling_message_url ||
-                                    `${signalingBaseUrl}/message`,
-                                  {
-                                    method: "POST",
-                                    headers: {
-                                      "Content-Type": "application/json",
-                                    },
-                                    body: JSON.stringify({
-                                      type: "leave",
-                                      room_id: selectedRobot,
-                                      sender_id: testPeerId,
-                                    }),
+                                try {
+                                  if (
+                                    testConnection.socket.readyState ===
+                                    WebSocket.OPEN
+                                  ) {
+                                    testConnection.socket.send(
+                                      JSON.stringify({
+                                        type: "leave",
+                                        room_id: selectedRobot,
+                                        sender_id: testPeerId,
+                                      })
+                                    );
+
+                                    // Wait a brief moment for the leave message to be processed
+                                    await new Promise((resolve) =>
+                                      setTimeout(resolve, 100)
+                                    );
                                   }
-                                );
+                                } catch (error) {
+                                  console.warn(
+                                    "Failed to send leave message:",
+                                    error
+                                  );
+                                }
+
+                                // Close the WebSocket and wait for it to fully close
+                                testConnection.socket.close();
+
+                                // Wait for close to complete
+                                await new Promise<void>((resolve) => {
+                                  if (
+                                    testConnection.socket.readyState ===
+                                    WebSocket.CLOSED
+                                  ) {
+                                    resolve();
+                                  } else {
+                                    const closeHandler = () => {
+                                      resolve();
+                                    };
+                                    testConnection.socket.addEventListener(
+                                      "close",
+                                      closeHandler,
+                                      { once: true }
+                                    );
+                                    // Fallback timeout
+                                    setTimeout(resolve, 1000);
+                                  }
+                                });
 
                                 // Store signaling configuration in session storage for later use
                                 sessionStorage.setItem(

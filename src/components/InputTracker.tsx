@@ -3,7 +3,35 @@ import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import { Gamepad, Keyboard, MousePointer, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+const FRAME_INTERVAL_MS = 20;
+const BUTTON_VALUE_EPSILON = 0.05;
+const AXIS_DEADZONE = 0.1;
+const AXIS_EPSILON = 0.02;
+
+type ButtonHoldEntry = {
+  pressed: boolean;
+  startTime: number;
+  lastSent: number;
+  value: number;
+  repeat: number;
+};
+
+type AxisHoldEntry = {
+  active: boolean;
+  startTime: number;
+  lastSent: number;
+  value: number;
+};
+
+type GamepadHoldState = Record<
+  string,
+  {
+    buttons: Record<number, ButtonHoldEntry>;
+    axes: Record<number, AxisHoldEntry>;
+  }
+>;
 
 interface InputTrackerProps {
   controlType: string | null;
@@ -21,15 +49,9 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
   const [isVisible, setIsVisible] = useState(true);
   const [gamepads, setGamepads] = useState<Gamepad[]>([]);
+  const holdStateRef = useRef<GamepadHoldState>({});
 
-  type GamepadStateType = {
-    buttons: Array<{ pressed: boolean; value: number }>;
-    axes: number[];
-  };
-
-  const [gamepadState, setGamepadState] = useState<
-    Record<string, GamepadStateType>
-  >({});
+  const frameRequestRef = useRef<number>();
 
   const canTrackKeyboard = !controlType
     ? true
@@ -144,40 +166,53 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
   // Track gamepad/joystick input
   useEffect(() => {
-    if (!canTrackGamepad) return;
+    if (!canTrackGamepad) {
+      return;
+    }
 
-    let animationFrameId: number;
+    const pollGamepads = () => {
+      const rawGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+      const connected = Array.from(rawGamepads).filter(
+        (item): item is Gamepad => Boolean(item)
+      );
 
-    const updateGamepadState = () => {
-      // Get all gamepads
-      const connectedGamepads = navigator.getGamepads();
-      const activeGamepads: Gamepad[] = [];
+      setGamepads(connected);
 
-      for (const gamepad of connectedGamepads) {
-        if (gamepad) {
-          activeGamepads.push(gamepad);
+      const now = Date.now();
+      const holdState = holdStateRef.current;
+
+      // Clean up hold state for disconnected controllers
+      Object.keys(holdState).forEach((id) => {
+        if (!connected.some((gamepad) => gamepad.id === id)) {
+          delete holdState[id];
         }
-      }
+      });
 
-      if (activeGamepads.length > 0) {
-        setGamepads(activeGamepads);
+      connected.forEach((gamepad) => {
+        const id = gamepad.id;
+        if (!holdState[id]) {
+          holdState[id] = { buttons: {}, axes: {} };
+        }
+        const state = holdState[id];
 
-        // Check for button presses
-        activeGamepads.forEach((gamepad) => {
-          const id = gamepad.id;
-          const currentState = gamepadState[id] || { buttons: [] };
+        // Buttons
+        gamepad.buttons.forEach((button, index) => {
+          const entry = state.buttons[index];
 
-          // Check if any button state changed
-          gamepad.buttons.forEach((button, index) => {
-            const wasPressed =
-              currentState.buttons && currentState.buttons[index]?.pressed;
-            const isPressed = button.pressed;
+          if (button.pressed) {
+            if (!entry) {
+              state.buttons[index] = {
+                pressed: true,
+                startTime: now,
+                lastSent: now,
+                value: button.value,
+                repeat: 0,
+              };
 
-            if (isPressed && !wasPressed) {
               setLastInput({
                 type: "gamepad",
                 button: index,
-                timestamp: Date.now(),
+                timestamp: now,
               });
 
               sendTelemetry({
@@ -185,107 +220,184 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
                 kind: "button",
                 button: index,
                 value: button.value,
+                phase: "press",
+                durationMs: 0,
+                repeat: 0,
               });
 
               toast({
                 title: "Gamepad Input",
-                description: `Button: ${index} pressed`,
+                description: `Button ${index} pressed`,
                 duration: 1500,
               });
-            }
-          });
+            } else {
+              const elapsed = now - entry.startTime;
+              const delta = button.value - entry.value;
+              const shouldEmit =
+                now - entry.lastSent >= FRAME_INTERVAL_MS ||
+                Math.abs(delta) >= BUTTON_VALUE_EPSILON;
 
-          // Store new state
-          setGamepadState((prev) => ({
-            ...prev,
-            [id]: {
-              buttons: gamepad.buttons.map((b) => ({
-                pressed: b.pressed,
-                value: b.value,
-              })),
-              axes: [...gamepad.axes],
-            },
-          }));
-
-          // Check for significant axis movements
-          gamepad.axes.forEach((axis, index) => {
-            if (Math.abs(axis) > 0.5) {
-              // Get previous axis value safely - handle potential undefined/incompatible types
-              const prevAxis =
-                typeof currentState === "object" &&
-                currentState !== null &&
-                "axes" in currentState &&
-                Array.isArray(currentState.axes)
-                  ? currentState.axes[index] || 0
-                  : 0;
-
-              // Only toast if significant change
-              if (Math.abs(axis - prevAxis) > 0.3) {
-                setLastInput({
-                  type: "gamepad",
-                  key: `axis-${index}`,
-                  timestamp: Date.now(),
+              if (shouldEmit) {
+                entry.repeat += 1;
+                entry.lastSent = now;
+                sendTelemetry({
+                  source: "gamepad",
+                  kind: "button",
+                  button: index,
+                  value: button.value,
+                  delta,
+                  phase: "hold",
+                  durationMs: elapsed,
+                  repeat: entry.repeat,
                 });
+              }
 
+              entry.value = button.value;
+            }
+          } else if (entry) {
+            const duration = now - entry.startTime;
+            sendTelemetry({
+              source: "gamepad",
+              kind: "button",
+              button: index,
+              value: 0,
+              delta: -entry.value,
+              phase: "release",
+              durationMs: duration,
+              repeat: entry.repeat,
+            });
+            delete state.buttons[index];
+          }
+        });
+
+        // Axes
+        gamepad.axes.forEach((axisValue, index) => {
+          const entry = state.axes[index];
+          const magnitude = Math.abs(axisValue);
+
+          if (magnitude >= AXIS_DEADZONE) {
+            if (!entry) {
+              state.axes[index] = {
+                active: true,
+                startTime: now,
+                lastSent: now,
+                value: axisValue,
+              };
+
+              setLastInput({
+                type: "gamepad",
+                key: `axis-${index}`,
+                timestamp: now,
+              });
+
+              sendTelemetry({
+                source: "gamepad",
+                kind: "axis",
+                axis: index,
+                value: axisValue,
+                delta: axisValue,
+                magnitude,
+                phase: "start",
+                durationMs: 0,
+              });
+
+              toast({
+                title: "Joystick Input",
+                description: `Axis ${index}: ${axisValue.toFixed(2)}`,
+                duration: 1500,
+              });
+            } else {
+              const delta = axisValue - entry.value;
+              const elapsed = now - entry.startTime;
+              const shouldEmit =
+                now - entry.lastSent >= FRAME_INTERVAL_MS ||
+                Math.abs(delta) >= AXIS_EPSILON;
+
+              if (shouldEmit) {
+                entry.lastSent = now;
                 sendTelemetry({
                   source: "gamepad",
                   kind: "axis",
                   axis: index,
-                  value: axis,
-                });
-
-                toast({
-                  title: "Joystick Input",
-                  description: `Axis ${index}: ${axis.toFixed(2)}`,
-                  duration: 1500,
+                  value: axisValue,
+                  delta,
+                  magnitude,
+                  phase: "move",
+                  durationMs: elapsed,
                 });
               }
-            }
-          });
-        });
-      }
 
-      animationFrameId = requestAnimationFrame(updateGamepadState);
+              entry.value = axisValue;
+            }
+          } else if (entry) {
+            const duration = now - entry.startTime;
+            sendTelemetry({
+              source: "gamepad",
+              kind: "axis",
+              axis: index,
+              value: 0,
+              delta: -entry.value,
+              magnitude: 0,
+              phase: "stop",
+              durationMs: duration,
+            });
+            delete state.axes[index];
+          }
+        });
+
+        // Cleanup entries that exceed current gamepad array lengths
+        Object.keys(state.buttons).forEach((key) => {
+          const idx = Number.parseInt(key, 10);
+          if (Number.isNaN(idx) || idx >= gamepad.buttons.length) {
+            delete state.buttons[idx];
+          }
+        });
+        Object.keys(state.axes).forEach((key) => {
+          const idx = Number.parseInt(key, 10);
+          if (Number.isNaN(idx) || idx >= gamepad.axes.length) {
+            delete state.axes[idx];
+          }
+        });
+      });
+
+      frameRequestRef.current = requestAnimationFrame(pollGamepads);
     };
 
-    // Start polling for gamepad input
-    animationFrameId = requestAnimationFrame(updateGamepadState);
+    frameRequestRef.current = requestAnimationFrame(pollGamepads);
 
-    // Handle gamepad connections
-    const handleGamepadConnected = (e: GamepadEvent) => {
+    const handleGamepadConnected = (event: GamepadEvent) => {
       toast({
         title: "Gamepad Connected",
-        description: e.gamepad.id,
+        description: event.gamepad.id,
         duration: 3000,
       });
     };
 
-    const handleGamepadDisconnected = (e: GamepadEvent) => {
+    const handleGamepadDisconnected = (event: GamepadEvent) => {
       toast({
         title: "Gamepad Disconnected",
-        description: e.gamepad.id,
+        description: event.gamepad.id,
         duration: 3000,
       });
 
-      setGamepadState((prev) => {
-        const newState = { ...prev };
-        delete newState[e.gamepad.id];
-        return newState;
-      });
+      delete holdStateRef.current[event.gamepad.id];
     };
 
     window.addEventListener("gamepadconnected", handleGamepadConnected);
     window.addEventListener("gamepaddisconnected", handleGamepadDisconnected);
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (frameRequestRef.current !== undefined) {
+        cancelAnimationFrame(frameRequestRef.current);
+        frameRequestRef.current = undefined;
+      }
       window.removeEventListener("gamepadconnected", handleGamepadConnected);
       window.removeEventListener(
         "gamepaddisconnected",
         handleGamepadDisconnected
       );
     };
-  }, [canTrackGamepad, gamepadState, sendTelemetry]);
+  }, [canTrackGamepad, sendTelemetry]);
 
   if (!isVisible) return null;
 

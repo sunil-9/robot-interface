@@ -278,6 +278,7 @@ export const TrainingInterface = ({
             fallbackImage={fallbackImageForPosition(
               slot.position === "extra" ? fallbackPosition : slot.position
             )}
+            position={slot.position}
             isConnected={Boolean(slot.stream)}
             className="rounded-lg border border-purple-900/40 bg-gray-950/40"
           />
@@ -435,7 +436,7 @@ export const TrainingInterface = ({
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-black text-white">
-      <main className="grid h-full grid-rows-[75%_25%]">
+      <main className="grid h-full grid-rows-[60%_40%]">
         <div className="relative h-full">
           <CameraView
             key={mainSlot?.key ?? "main"}
@@ -444,8 +445,10 @@ export const TrainingInterface = ({
             fallbackImage={fallbackImageForPosition(
               mainSlot?.position ?? "main"
             )}
+            position={mainSlot?.position ?? "main"}
             isConnected={Boolean(mainSlot?.stream)}
             className="h-full rounded-none border border-purple-900/40 bg-black"
+            
           />
 
           <div className="absolute top-10 left-4 z-10 w-[260px] opacity-90 transition-opacity hover:opacity-100">
@@ -457,7 +460,7 @@ export const TrainingInterface = ({
             />
           </div>
 
-          <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-2 text-xs">
+          <div className="absolute top-8 right-4 z-10 flex flex-col items-end gap-2 text-xs">
             <div className="rounded-lg border border-purple-900/40 bg-black/70 px-3 py-2 shadow-lg">
               <div>
                 <span className="text-gray-400">Signaling:</span>{" "}

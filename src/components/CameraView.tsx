@@ -10,6 +10,7 @@ interface CameraViewProps {
   isConnected?: boolean;
   showTitle?: boolean;
   className?: string;
+  position?: "main" | "right" | "left" | "extra";
 }
 
 export const CameraView = ({
@@ -19,6 +20,7 @@ export const CameraView = ({
   isConnected = false,
   showTitle = true,
   className,
+  position = "main",
 }: CameraViewProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -66,11 +68,21 @@ export const CameraView = ({
         className
       )}
     >
-      <div className="relative flex h-full w-full items-center justify-center bg-black">
+      <div
+        className={`relative flex h-full w-full ${
+          position === "main"
+            ? "items-center justify-center"
+            : position === "right"
+            ? "items-start justify-end"
+            : ""
+        } bg-black`}
+      >
         {hasVideo ? (
           <video
             ref={videoRef}
-            className="h-full w-full object-cover"
+            className={`${
+              position === "main" ? "h-full w-full " + position : "h-[370px]"
+            } object-cover`}
             muted
             playsInline
           />
@@ -90,16 +102,24 @@ export const CameraView = ({
         )}
 
         {showTitle && (
-          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white">
-            <span className="font-medium tracking-wide">{title}</span>
-            <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
-              {isConnected ? (
-                <Wifi className="h-3 w-3 text-green-400" />
-              ) : (
-                <WifiOff className="h-3 w-3 text-yellow-400" />
-              )}
-              {isConnected ? "Connected" : "Waiting"}
-            </span>
+          <div className={`absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white ${
+          position === "main"
+            ? "items-center justify-center"
+            : position === "right"
+            ? "items-start justify-end"
+            : ""
+        }`}>
+            <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white ">
+              <span className="font-medium tracking-wide">{title}</span>
+              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
+                {isConnected ? (
+                  <Wifi className="h-3 w-3 text-green-400" />
+                ) : (
+                  <WifiOff className="h-3 w-3 text-yellow-400" />
+                )}
+                {isConnected ? "Connected" : "Waiting"}
+              </span>
+            </div>
           </div>
         )}
       </div>

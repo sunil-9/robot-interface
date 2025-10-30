@@ -61,6 +61,24 @@ export const CameraView = ({
   const hasVideo = Boolean(stream);
   const hasFallback = Boolean(fallbackImage);
 
+  const alignmentClasses = clsx(
+    "relative flex h-full w-full bg-black",
+    position === "main"
+      ? "items-center justify-center"
+      : position === "right"
+      ? "items-start justify-end"
+      : position === "left"
+      ? "items-start justify-start"
+      : "items-start justify-center"
+  );
+
+  const frameClasses = clsx(
+    "relative overflow-hidden bg-black",
+    position === "main"
+      ? "h-full w-full"
+      : "h-[370px] w-[640px] rounded-lg border border-purple-900/40"
+  );
+
   return (
     <Card
       className={clsx(
@@ -68,48 +86,32 @@ export const CameraView = ({
         className
       )}
     >
-      <div
-        className={`relative flex h-full w-full ${
-          position === "main"
-            ? "items-center justify-center"
-            : position === "right"
-            ? "items-start justify-end"
-            : ""
-        } bg-black`}
-      >
-        {hasVideo ? (
-          <video
-            ref={videoRef}
-            className={`${
-              position === "main" ? "h-full w-full " + position : "h-[370px]"
-            } object-cover`}
-            muted
-            playsInline
-          />
-        ) : hasFallback ? (
-          <img
-            src={fallbackImage ?? undefined}
-            alt={title}
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          <div className="flex flex-col items-center gap-2 text-gray-500">
-            <Camera className="h-8 w-8" />
-            <span className="text-xs uppercase tracking-wide">
-              Waiting for stream
-            </span>
-          </div>
-        )}
+      <div className={alignmentClasses}>
+        <div className={frameClasses}>
+          {hasVideo ? (
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              muted
+              playsInline
+            />
+          ) : hasFallback ? (
+            <img
+              src={fallbackImage ?? undefined}
+              alt={title}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
+              <Camera className="h-8 w-8" />
+              <span className="text-xs uppercase tracking-wide">
+                Waiting for stream
+              </span>
+            </div>
+          )}
 
-        {showTitle && (
-          <div className={`absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white ${
-          position === "main"
-            ? "items-center justify-center"
-            : position === "right"
-            ? "items-start justify-end"
-            : ""
-        }`}>
-            <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white ">
+          {showTitle && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white">
               <span className="font-medium tracking-wide">{title}</span>
               <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
                 {isConnected ? (
@@ -120,8 +122,8 @@ export const CameraView = ({
                 {isConnected ? "Connected" : "Waiting"}
               </span>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </Card>
   );

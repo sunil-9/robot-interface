@@ -20,6 +20,99 @@ const createSignalingEndpoints = (baseUrl: string): SignalingEndpoints => {
   };
 };
 
+const KEYBOARD_PREVENT_DEFAULT_KEYS = new Set([
+  "ArrowUp",
+  "ArrowDown",
+  "ArrowLeft",
+  "ArrowRight",
+  " ", // space
+  "Tab",
+]);
+
+const STORAGE_CONTROLLER_KEYS = [
+  "controller",
+  "selectedControl",
+  "controlType",
+];
+
+const isEditableTarget = (target: EventTarget | null): boolean => {
+  if (!target || typeof (target as HTMLElement).tagName !== "string") {
+    return false;
+  }
+
+  const element = target as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  return tag === "input" || tag === "textarea" || tag === "select";
+};
+
+const resolvePreferredControllerId = (): string | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  let fromQuery: string | null = null;
+  try {
+    const query = new URLSearchParams(window.location.search);
+    fromQuery = query.get("controller");
+  } catch {
+    fromQuery = null;
+  }
+  if (fromQuery && fromQuery.trim().length > 0) {
+    return fromQuery;
+  }
+
+  const storages: Array<Storage | null> = [];
+  try {
+    storages.push(window.sessionStorage);
+  } catch {
+    storages.push(null);
+  }
+
+  try {
+    storages.push(window.localStorage);
+  } catch {
+    storages.push(null);
+  }
+
+  for (const storage of storages) {
+    if (!storage) {
+      continue;
+    }
+    for (const key of STORAGE_CONTROLLER_KEYS) {
+      try {
+        const candidate = storage.getItem(key);
+        if (candidate && candidate.trim().length > 0) {
+          return candidate;
+        }
+      } catch {
+        // Ignore storage access errors
+      }
+    }
+  }
+
+  return null;
+};
+
+const toRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const getStringField = (
+  record: Record<string, unknown>,
+  key: string
+): string | null => {
+  const value = record[key];
+  return typeof value === "string" ? value : null;
+};
+
 export interface RemoteStreamEntry {
   id: string;
   camera: string | null;
@@ -443,7 +536,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       }
     };
 
-    const handleSignalingMessage = async (message: Record<string, any>) => {
+  const handleSignalingMessage = async (message: Record<string, unknown>) => {
       switch (message.type) {
         case "join-ack": {
           const peerRoles = (message.peer_roles as Record<string, string>) ?? {};
@@ -593,7 +686,7 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
             return;
           }
 
-          let message: Record<string, any> | null = null;
+          let message: Record<string, unknown> | null = null;
           try {
             message = JSON.parse(rawData);
           } catch (error) {

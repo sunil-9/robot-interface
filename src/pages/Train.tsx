@@ -3,6 +3,8 @@ import { TrainingInterface } from "@/components/TrainingInterface";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
+import { fetchSignalingConfig } from "@/lib/api";
+import { cloudConfig } from "@/lib/config";
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -34,14 +36,164 @@ export default function TrainPage() {
 
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
+    let disposed = false;
+
+    const trimTrailingSlash = (value: string): string =>
+      value.replace(/\/+$/, "");
+
+    const parseUrl = (value: string | null | undefined): URL | null => {
+      if (!value || typeof value !== "string") {
+        return null;
+      }
+      const candidate = value.trim();
+      if (!candidate) {
+        return null;
+      }
+      try {
+        if (!/^[a-zA-Z][a-zA-Z\d+.-]*:/.test(candidate)) {
+          return new URL(`http://${candidate}`);
+        }
+        return new URL(candidate);
+      } catch {
+        return null;
+      }
+    };
+
+    const defaultApiUrl = (() => {
+      try {
+        return new URL(cloudConfig.apiBaseUrl);
+      } catch {
+        return new URL("http://127.0.0.1:8100");
+      }
+    })();
+
+    const defaultHost =
+      defaultApiUrl.hostname === "localhost"
+        ? "127.0.0.1"
+        : defaultApiUrl.hostname;
+    const defaultPort =
+      defaultApiUrl.port ||
+      (defaultApiUrl.protocol === "https:" ? "443" : "8100");
+    const buildUrl = (
+      protocol: "http" | "https" | "ws" | "wss",
+      host: string,
+      port: string,
+      path: string
+    ) => {
+      const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+      const portSegment = port ? `:${port}` : "";
+      return `${protocol}://${host}${portSegment}${normalizedPath}`;
+    };
+
+    const toHttpBase = (value: string | null | undefined): string => {
+      const parsed = parseUrl(value);
+      const protocol =
+        parsed && parsed.protocol === "https:" ? "https" : "http";
+      const host = parsed
+        ? parsed.hostname === "localhost"
+          ? "127.0.0.1"
+          : parsed.hostname
+        : defaultHost;
+      const port = parsed && parsed.port ? parsed.port : defaultPort;
+      return buildUrl(protocol, host, port, "/signaling");
+    };
+
+    const toWebSocketUrl = (value: string | null | undefined): string => {
+      const parsed = parseUrl(value);
+      const secure = parsed
+        ? parsed.protocol === "https:" || parsed.protocol === "wss:"
+        : defaultApiUrl.protocol === "https:";
+      const protocol = secure ? "wss" : "ws";
+      const host = parsed
+        ? parsed.hostname === "localhost"
+          ? "127.0.0.1"
+          : parsed.hostname
+        : defaultHost;
+      const port = parsed && parsed.port ? parsed.port : defaultPort;
+      return buildUrl(protocol, host, port, "/signaling/ws");
+    };
+
+    const parseStoredConfig = (): { baseUrl: string; wsUrl: string } | null => {
+      const stored = sessionStorage.getItem("signalingConfig");
+      if (!stored) {
+        return null;
+      }
+      try {
+        const parsed = JSON.parse(stored);
+        if (!parsed || typeof parsed !== "object") {
+          return null;
+        }
+        const record = parsed as Record<string, unknown>;
+        const baseCandidate =
+          typeof record.webrtc_base_url === "string"
+            ? record.webrtc_base_url
+            : typeof record.signaling_base_url === "string"
+            ? record.signaling_base_url
+            : null;
+        const wsCandidate =
+          typeof record.signaling_ws_url === "string"
+            ? record.signaling_ws_url
+            : null;
+        if (!baseCandidate && !wsCandidate) {
+          return null;
+        }
+        const baseUrl = toHttpBase(baseCandidate);
+        const wsUrl = trimTrailingSlash(
+          wsCandidate ? toWebSocketUrl(wsCandidate) : toWebSocketUrl(baseUrl)
+        );
+        return { baseUrl, wsUrl };
+      } catch (error) {
+        console.warn("Failed to parse stored signaling config", error);
+        return null;
+      }
+    };
+
+    const persistConfig = (config: { baseUrl: string; wsUrl: string }) => {
+      sessionStorage.setItem(
+        "signalingConfig",
+        JSON.stringify({
+          signaling_base_url: config.baseUrl,
+          webrtc_base_url: config.baseUrl,
+          signaling_ws_url: config.wsUrl,
+        })
+      );
+      sessionStorage.setItem("connection_ready", "1");
+    };
+
+    const ensureSignalingConfig = async (): Promise<{
+      baseUrl: string;
+      wsUrl: string;
+    }> => {
+      const fromStorage = parseStoredConfig();
+      if (fromStorage) {
+        sessionStorage.setItem("connection_ready", "1");
+        return fromStorage;
+      }
+
+      const discovered = await fetchSignalingConfig();
+      const baseUrl = toHttpBase(discovered?.baseUrl);
+      const wsUrl = trimTrailingSlash(
+        discovered?.wsUrl ? discovered.wsUrl : toWebSocketUrl(baseUrl)
+      );
+      const normalized = { baseUrl, wsUrl };
+      persistConfig(normalized);
+      return normalized;
+    };
+
+    const failAndRedirect = (title: string, description: string) => {
+      if (disposed) {
+        return;
+      }
+      toast({ title, description, variant: "destructive" });
+      navigate("/");
+    };
+
     (async () => {
       if (!selectedRobot || !selectedControl) {
-        toast({
-          title: "Missing info",
-          description: "Robot or controller missing. Please choose from home.",
-          variant: "destructive",
-        });
-        navigate("/");
+        failAndRedirect(
+          "Missing info",
+          "Robot or controller missing. Please choose from home."
+        );
         return;
       }
 
@@ -50,6 +202,7 @@ export default function TrainPage() {
       try {
         // Update session storage with current values for backward compatibility
         if (sessionData) {
+          console.log("Storing session data for training session", sessionData);
           Object.entries(sessionData).forEach(([key, value]) => {
             if (typeof value === "string") {
               sessionStorage.setItem(key, value);
@@ -61,43 +214,26 @@ export default function TrainPage() {
         sessionStorage.setItem("selectedRobot", selectedRobot);
         sessionStorage.setItem("selectedControl", selectedControl);
 
-        // Check if connection was tested and signaling config is available
-        const connectionReady = sessionStorage.getItem("connection_ready");
-        const signalingConfig = sessionStorage.getItem("signalingConfig");
-
-        if (!connectionReady || !signalingConfig) {
-          throw new Error(
-            "Connection test required. Please test connection from the home page."
-          );
+        const config = await ensureSignalingConfig();
+        if (disposed) {
+          return;
         }
-
-        // Parse the signaling config to verify it's valid
-        try {
-          const parsedConfig = JSON.parse(signalingConfig);
-          if (!parsedConfig.signaling_base_url) {
-            throw new Error(
-              "Invalid signaling configuration: missing signaling_base_url"
-            );
-          }
-          console.info(
-            "Training session initialized with valid signaling config",
-            parsedConfig.signaling_base_url
-          );
-        } catch (e) {
-          throw new Error(
-            "Invalid signaling configuration. Please test connection again."
-          );
-        }
+        console.info(
+          "Training session initialized with signaling endpoints",
+          config
+        );
       } catch (e) {
         console.error("Error initializing session data", e);
-        toast({
-          title: "Session initialization failed",
-          description: "Could not initialize session data. Please try again.",
-          variant: "destructive",
-        });
-        navigate("/");
+        failAndRedirect(
+          "Session initialization failed",
+          "Could not initialize session data. Please try again."
+        );
       }
     })();
+
+    return () => {
+      disposed = true;
+    };
   }, [selectedRobot, selectedControl, sessionData, navigate]);
 
   return (

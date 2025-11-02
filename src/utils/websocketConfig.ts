@@ -1,3 +1,5 @@
+import { cloudConfig } from "@/lib/config";
+
 import websocketConfig from "../data/websocket-config.json";
 
 export interface Topic {
@@ -43,7 +45,10 @@ export interface WebSocketConfig {
   };
   cameras?: Camera[];
   websocket: {
-    port: number;
+    url?: string;
+    host?: string;
+    port?: number;
+    path?: string;
   };
   topics: Topic[];
   maxBuffer: number;
@@ -54,10 +59,67 @@ export const getWebSocketConfig = (): WebSocketConfig => {
   return websocketConfig as WebSocketConfig;
 };
 
-// Get WebSocket URL with port from config
+const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
+
+const ensureLeadingSlash = (value: string): string =>
+  value.startsWith("/") ? value : `/${value}`;
+
+const resolveProtocol = (secure?: boolean, inferred?: string): "ws" | "wss" => {
+  if (secure !== undefined) {
+    return secure ? "wss" : "ws";
+  }
+  return inferred === "https:" ? "wss" : "ws";
+};
+
+const buildUrlFromHost = (
+  host: string,
+  port: number | undefined,
+  path: string
+): string => {
+  const normalizedPath = ensureLeadingSlash(path || "/ws");
+  const inferredProtocol = port === 443 ? "https:" : undefined;
+  const scheme = resolveProtocol(undefined, inferredProtocol);
+  const portSegment = port ? `:${port}` : "";
+  return `${scheme}://${host}${portSegment}${normalizedPath}`;
+};
+
+const inferFromApiBase = (path: string): string => {
+  const normalizedPath = ensureLeadingSlash(path || "/ws");
+  try {
+    const base = new URL(cloudConfig.apiBaseUrl);
+    const scheme = resolveProtocol(undefined, base.protocol);
+    return `${scheme}://${base.host}${normalizedPath}`;
+  } catch (error) {
+    console.warn("Failed to infer WebSocket URL from apiBaseUrl:", error);
+    return `ws://localhost${normalizedPath}`;
+  }
+};
+
+// Get WebSocket URL with overrides from config/environment
 export const getWebSocketUrl = (): string => {
   const config = getWebSocketConfig();
-  return `ws://localhost:${config.websocket.port}/ws`;
+  const path = config.websocket?.path ?? "/ws";
+  const envOverride = import.meta.env.VITE_BRIDGE_WEBSOCKET_URL as
+    | string
+    | undefined;
+
+  if (envOverride && typeof envOverride === "string") {
+    return trimTrailingSlash(envOverride);
+  }
+
+  if (config.websocket?.url) {
+    return trimTrailingSlash(config.websocket.url);
+  }
+
+  if (config.websocket?.host) {
+    return buildUrlFromHost(config.websocket.host, config.websocket.port, path);
+  }
+
+  if (config.websocket?.port) {
+    return buildUrlFromHost("localhost", config.websocket.port, path);
+  }
+
+  return inferFromApiBase(path);
 };
 
 // Get topic by role

@@ -1,7 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -76,7 +81,7 @@ export const LineChart = ({ title }: LineChartProps) => {
 
   // WebSocket connection to ROS2 bridge
   const { isConnected, lastMessage, error } = useWebSocket({
-    url: "ws://localhost:8080",
+    url: "ws://localhost:8080/ws",
     reconnectInterval: 3000,
     maxReconnectAttempts: 10,
   });
@@ -423,11 +428,11 @@ export const LineChart = ({ title }: LineChartProps) => {
 
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
         <DialogContent className="max-w-[90vw] max-h-[90vh] p-6">
+          <DialogHeader>
+            <DialogTitle>{title} - Fullscreen</DialogTitle>
+          </DialogHeader>
           <div className="h-[70vh]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-foreground">
-                {title} - Fullscreen
-              </h3>
+            <div className="flex items-center justify-end mb-4">
               <Select
                 value={dataType}
                 onValueChange={(value: typeof dataType) => setDataType(value)}

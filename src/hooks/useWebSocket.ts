@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getRoleByTopicName, getWebSocketUrl } from "../utils/websocketConfig";
 
 interface WebSocketMessage {
   topic: string;
@@ -26,26 +27,61 @@ interface WebSocketMessage {
 }
 
 interface UseWebSocketOptions {
-  url: string;
+  url?: string;
   reconnectInterval?: number;
   maxReconnectAttempts?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onMessage?: (message: WebSocketMessage | any) => void; // Callback to handle messages
 }
 
-export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttempts = 5, onMessage }) => {
+export const useWebSocket = ({
+  url: customUrl,
+  reconnectInterval = 3000,
+  maxReconnectAttempts = 5,
+  onMessage,
+}: UseWebSocketOptions) => {
   const [isConnected, setIsConnected] = useState(false);
   const [lastMessage, setLastMessage] = useState(null);
   const [error, setError] = useState(null);
+
+  // Use the URL from config if no custom URL is provided
+  const url = customUrl || getWebSocketUrl();
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectCount = useRef(0);
   const reconnectTimeoutId = useRef<NodeJS.Timeout | null>(null);
 
+  // Store onMessage callback in a ref to avoid reconnection on every callback change
+  const onMessageRef = useRef(onMessage);
+
+  // Update the ref when onMessage changes, but don't trigger reconnection
+  useEffect(() => {
+    onMessageRef.current = onMessage;
+  }, [onMessage]);
+
   const connect = useCallback(() => {
+    // Prevent creating a new connection if one already exists and is open
+    if (
+      ws.current &&
+      (ws.current.readyState === WebSocket.CONNECTING ||
+        ws.current.readyState === WebSocket.OPEN)
+    ) {
+      console.log("⚠️ WebSocket already connected or connecting, skipping...");
+      return;
+    }
+
+    // Close existing connection before creating a new one
+    if (ws.current) {
+      console.log("🔄 Closing existing WebSocket before reconnecting...");
+      ws.current.close(1000, "Reconnecting");
+    }
+
     try {
+      console.log("🔌 Creating new WebSocket connection to:", url);
       ws.current = new WebSocket(url);
 
       ws.current.onopen = () => {
-        console.log("WebSocket connected to ROS2 bridge");
+        console.log("✅ WebSocket connected to ROS2 bridge");
         setIsConnected(true);
         setError(null);
         reconnectCount.current = 0;
@@ -70,6 +106,11 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
             message = JSON.parse(message);
           }
 
+          // Make sure the role is assigned from config mapping if not provided
+          if (message.topic && !message.role) {
+            message.role = getRoleByTopicName(message.topic);
+          }
+
           // Log ALL messages to debug
           console.log("🔍 WebSocket message received:", {
             topic: message.topic,
@@ -87,6 +128,9 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
               topic: message.topic,
               role: message.role,
               hasData: message.normalized && !!message.normalized.data,
+              dataLength: message.normalized?.data
+                ? message.normalized.data.length
+                : 0,
               width: message.normalized?.width,
               height: message.normalized?.height,
             });
@@ -100,15 +144,15 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
           );
           setLastMessage(message);
 
-          // Also call the callback immediately to avoid React batching issues
-          if (onMessage) {
+          // Use the ref to call the callback to avoid reconnection issues
+          if (onMessageRef.current) {
             console.log(
               "📨 CALLING onMessage CALLBACK:",
               message.role,
               "at",
               Date.now()
             );
-            onMessage(message);
+            onMessageRef.current(message);
           }
         } catch (err) {
           console.error("Failed to parse WebSocket message:", err);
@@ -118,7 +162,7 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
       };
 
       ws.current.onclose = (event) => {
-        console.log("WebSocket disconnected:", event.code, event.reason);
+        console.log("❌ WebSocket disconnected:", event.code, event.reason);
         setIsConnected(false);
 
         // Attempt to reconnect if not a normal closure
@@ -128,7 +172,7 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
         ) {
           reconnectCount.current += 1;
           console.log(
-            `Attempting to reconnect... (${reconnectCount.current}/${maxReconnectAttempts})`
+            `🔄 Attempting to reconnect... (${reconnectCount.current}/${maxReconnectAttempts})`
           );
 
           reconnectTimeoutId.current = setTimeout(() => {
@@ -140,19 +184,23 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
       };
 
       ws.current.onerror = (event) => {
-        console.error("WebSocket error:", event);
+        console.error("⚠️ WebSocket error:", event);
         setError("WebSocket connection error");
       };
     } catch (err) {
-      console.error("Failed to create WebSocket connection:", err);
+      console.error("❌ Failed to create WebSocket connection:", err);
       setError("Failed to create WebSocket connection");
     }
-  }, [url, reconnectInterval, maxReconnectAttempts, onMessage]);
+  }, [url, reconnectInterval, maxReconnectAttempts]);
 
   useEffect(() => {
+    console.log(
+      "🎬 useWebSocket useEffect triggered - initializing connection"
+    );
     connect();
 
     return () => {
+      console.log("🧹 useWebSocket cleanup - closing connection");
       if (reconnectTimeoutId.current) {
         clearTimeout(reconnectTimeoutId.current);
       }
@@ -160,7 +208,8 @@ export const useWebSocket = ({ url, reconnectInterval = 3000, maxReconnectAttemp
         ws.current.close(1000, "Component unmounting");
       }
     };
-  }, [url, connect]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [url]); // Only reconnect when URL changes, not when connect function changes
 
   return {
     isConnected,

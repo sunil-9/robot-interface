@@ -1,4 +1,5 @@
 import { useBridgeData } from "@/hooks/useBridgeData";
+import { useRobotConfig } from "@/hooks/useRobotConfig";
 import { useEffect, useState } from "react";
 import { LineChart } from "./LineChart";
 
@@ -10,11 +11,19 @@ interface JointManagerProps {
 export const JointManager = ({ title, type }: JointManagerProps) => {
   const [availableJoints, setAvailableJoints] = useState<string[]>([]);
   const bridgeData = useBridgeData();
+  const { positionJoints, velocityJoints } = useRobotConfig();
 
-  // Extract available joints from bridge data
+  // Extract available joints from bridge data and configuration
   useEffect(() => {
     const data = type === "state" ? bridgeData.state : bridgeData.command;
 
+    // First try to use the joint names from the robot config
+    if (positionJoints.length > 0) {
+      setAvailableJoints(positionJoints);
+      return;
+    }
+
+    // Otherwise fall back to data from the bridge
     if (data) {
       let joints: string[] = [];
 
@@ -36,7 +45,7 @@ export const JointManager = ({ title, type }: JointManagerProps) => {
         setAvailableJoints(joints);
       }
     }
-  }, [bridgeData, type]);
+  }, [bridgeData, type, positionJoints, velocityJoints]);
 
   return <LineChart title={title} />;
 };

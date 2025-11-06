@@ -1,13 +1,10 @@
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
 interface HeaderProps {
   onToggleSidebar: () => void;
 }
 
 export const Header = ({ onToggleSidebar }: HeaderProps) => {
   return (
-    <header className="h-16 bg-card border-b border-border flex items-center px-4 sticky top-0 z-50">
+    <header className="h-12 bg-card border-b border-border flex items-center px-4 sticky top-0 z-20">
       {/* todo: add sidebar toggle icon  */}
       {/* <Button
         variant="ghost"
@@ -23,7 +20,6 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
           Imitation Machine
         </h1>
       </div>
-      
       <div className="w-10" /> {/* Spacer for balance */}
     </header>
   );

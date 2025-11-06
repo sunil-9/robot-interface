@@ -2,3 +2,11 @@
 cd ~/opt/web-project/frontend/src/pages/api && python3 bridge-ultra-simple.py
 python3 ~/Downloads/dummy_publisher.py
 cd frontend && python3 ~/Downloads/dummy_publisher.py
+
+so now can you implement same in the /train slug or "./pages/Train" path?
+basically do the following:
+ get device name and controler type from slug for example request:
+ http://localhost:8081/train?robot=jackal_kinova&controller=input-keyboard
+
+get robot and controller in the request as earliear, previously we just send robot now we send robot and controller.
+get the dynamic camera 

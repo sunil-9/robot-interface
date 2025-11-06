@@ -1,8 +1,0 @@
-rclpy
-sensor-msgs
-std-msgs
-trajectory-msgs
-cv-bridge
-opencv-python
-websockets
-numpy

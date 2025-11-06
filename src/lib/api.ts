@@ -44,24 +44,27 @@ export const fetchRobots = async (): Promise<RobotPresenceSummary[]> => {
   return payload.robots ?? [];
 };
 
-export const fetchSignalingConfig = async (): Promise<DiscoveredSignalingConfig | null> => {
-  try {
-    const response = await fetch(buildApiUrl("/config/signaling"));
-    if (!response.ok) {
+export const fetchSignalingConfig =
+  async (): Promise<DiscoveredSignalingConfig | null> => {
+    try {
+      const response = await fetch(buildApiUrl("/config/signaling"));
+      if (!response.ok) {
+        return null;
+      }
+      const payload = (await response.json()) as SignalingConfigResponse;
+      return {
+        baseUrl: payload.signaling_base_url ?? undefined,
+        wsUrl: payload.signaling_ws_url ?? undefined,
+      };
+    } catch (error) {
+      console.warn("Unable to fetch signaling config:", error);
       return null;
     }
-    const payload = (await response.json()) as SignalingConfigResponse;
-    return {
-      baseUrl: payload.signaling_base_url ?? undefined,
-      wsUrl: payload.signaling_ws_url ?? undefined,
-    };
-  } catch (error) {
-    console.warn("Unable to fetch signaling config:", error);
-    return null;
-  }
-};
+  };
 
-export const fetchRobotCameras = async (robotId: string): Promise<RobotCameraConfig[]> => {
+export const fetchRobotCameras = async (
+  robotId: string
+): Promise<RobotCameraConfig[]> => {
   if (!robotId) {
     return [];
   }
@@ -78,9 +81,48 @@ export const fetchRobotCameras = async (robotId: string): Promise<RobotCameraCon
       return [];
     }
 
-    return payload.filter((item): item is RobotCameraConfig => !!item && typeof item === "object");
+    return payload.filter(
+      (item): item is RobotCameraConfig => !!item && typeof item === "object"
+    );
   } catch (error) {
     console.warn(`Failed to load camera config for robot '${robotId}':`, error);
     return [];
+  }
+};
+
+export interface DatasetsListResponse {
+  datasets: string[];
+}
+
+export const fetchDatasets = async (): Promise<string[]> => {
+  try {
+    const response = await fetch(buildApiUrl("/datasets/"));
+    if (!response.ok) {
+      throw new Error(`Failed to fetch datasets (${response.status})`);
+    }
+    const payload = (await response.json()) as DatasetsListResponse;
+    return payload.datasets ?? [];
+  } catch (error) {
+    console.error("Failed to fetch datasets:", error);
+    throw error;
+  }
+};
+
+export const createDataset = async (datasetId: string): Promise<void> => {
+  try {
+    const formData = new FormData();
+    formData.append("dataset_id", datasetId);
+
+    const response = await fetch(buildApiUrl("/datasets/upload"), {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to create dataset (${response.status})`);
+    }
+  } catch (error) {
+    console.error("Failed to create dataset:", error);
+    throw error;
   }
 };

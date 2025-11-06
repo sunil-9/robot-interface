@@ -1,10 +1,16 @@
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
-import { fetchRobotCameras, type RobotCameraConfig } from "@/lib/api";
+import {
+  createDataset,
+  fetchDatasets,
+  fetchRobotCameras,
+  type RobotCameraConfig,
+} from "@/lib/api";
 import {
   Calendar,
   Clock,
   Eye,
+  FolderPlus,
   PanelRight,
   Play,
   RotateCcw,
@@ -12,12 +18,29 @@ import {
   Square,
   Trash2,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CameraView } from "./CameraView";
 import { MockActionVarianceChart } from "./MockActionVarianceChart";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "./ui/use-toast";
 
@@ -58,6 +81,14 @@ export const TrainingInterface = ({
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const bridgeData = useBridgeData();
+
+  // Dataset management state
+  const [datasets, setDatasets] = useState<string[]>([]);
+  const [selectedDataset, setSelectedDataset] = useState<string>("");
+  const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newDatasetName, setNewDatasetName] = useState("");
+  const [isCreatingDataset, setIsCreatingDataset] = useState(false);
 
   const API_BASE = "http://localhost:8080/api/episodes";
 
@@ -287,12 +318,68 @@ export const TrainingInterface = ({
     );
   };
 
+  // Load datasets
+  const loadDatasets = useCallback(async () => {
+    setIsLoadingDatasets(true);
+    try {
+      const datasetList = await fetchDatasets();
+      setDatasets(datasetList);
+      // Set first dataset as default if none selected
+      if (datasetList.length > 0 && !selectedDataset) {
+        setSelectedDataset(datasetList[0]);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load datasets",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDatasets(false);
+    }
+  }, [selectedDataset]);
+
   // Fetch episodes when sidebar opens
   useEffect(() => {
     if (isSidebarOpen) {
       fetchEpisodes();
+      loadDatasets();
     }
-  }, [isSidebarOpen]);
+  }, [isSidebarOpen, loadDatasets]);
+
+  // Create new dataset
+  const handleCreateDataset = async () => {
+    if (!newDatasetName.trim()) {
+      toast({
+        title: "Error",
+        description: "Dataset name cannot be empty",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsCreatingDataset(true);
+    try {
+      await createDataset(newDatasetName.trim());
+      toast({
+        title: "Success",
+        description: `Dataset "${newDatasetName}" created successfully`,
+      });
+      setNewDatasetName("");
+      setIsCreateDialogOpen(false);
+      // Reload datasets and select the new one
+      await loadDatasets();
+      setSelectedDataset(newDatasetName.trim());
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create dataset",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingDataset(false);
+    }
+  };
 
   // Fetch episodes
   const fetchEpisodes = async () => {
@@ -448,7 +535,6 @@ export const TrainingInterface = ({
             position={mainSlot?.position ?? "main"}
             isConnected={Boolean(mainSlot?.stream)}
             className="h-full rounded-none border border-purple-900/40 bg-black"
-            
           />
 
           <div className="absolute top-10 left-4 z-10 w-[260px] opacity-90 transition-opacity hover:opacity-100">
@@ -520,6 +606,70 @@ export const TrainingInterface = ({
                     Episode Management
                   </h2>
                 </div>
+
+                {/* Dataset Selection */}
+                <div className="border-b border-gray-800 p-4">
+                  <Label
+                    htmlFor="dataset-select"
+                    className="mb-2 block text-sm font-medium text-gray-300"
+                  >
+                    Dataset
+                  </Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={selectedDataset}
+                      onValueChange={(value) => {
+                        if (value === "__create_new__") {
+                          setIsCreateDialogOpen(true);
+                        } else {
+                          setSelectedDataset(value);
+                        }
+                      }}
+                      disabled={isLoadingDatasets}
+                    >
+                      <SelectTrigger
+                        id="dataset-select"
+                        className="flex-1 bg-gray-800 border-gray-700 text-white"
+                      >
+                        <SelectValue
+                          placeholder={
+                            isLoadingDatasets
+                              ? "Loading datasets..."
+                              : "Select a dataset"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-gray-800 border-gray-700">
+                        {datasets.map((dataset) => (
+                          <SelectItem
+                            key={dataset}
+                            value={dataset}
+                            className="text-white focus:bg-gray-700"
+                          >
+                            {dataset}
+                          </SelectItem>
+                        ))}
+                        <SelectItem
+                          value="__create_new__"
+                          className="text-green-400 focus:bg-gray-700"
+                        >
+                          <div className="flex items-center gap-2">
+                            <FolderPlus className="h-4 w-4" />
+                            <span>Create New Dataset</span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {selectedDataset && (
+                    <p className="mt-2 text-xs text-gray-400">
+                      Episodes will be saved to:{" "}
+                      <span className="text-purple-300">{selectedDataset}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Episodes List */}
                 <div className="flex-1 space-y-4 overflow-y-auto p-4">
                   {episodes.length === 0 ? (
                     <div className="flex h-full items-center justify-center">
@@ -637,6 +787,59 @@ export const TrainingInterface = ({
           </div>
         </div>
       </main>
+
+      {/* Create Dataset Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="bg-gray-900 border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Create New Dataset</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Enter a name for your new dataset. This will be used to organize
+              your training episodes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="dataset-name" className="text-gray-300">
+                Dataset Name
+              </Label>
+              <Input
+                id="dataset-name"
+                placeholder="my_dataset"
+                value={newDatasetName}
+                onChange={(e) => setNewDatasetName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !isCreatingDataset) {
+                    handleCreateDataset();
+                  }
+                }}
+                className="bg-gray-800 border-gray-700 text-white placeholder:text-gray-500"
+                disabled={isCreatingDataset}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsCreateDialogOpen(false);
+                setNewDatasetName("");
+              }}
+              disabled={isCreatingDataset}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateDataset}
+              disabled={isCreatingDataset || !newDatasetName.trim()}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {isCreatingDataset ? "Creating..." : "Create Dataset"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

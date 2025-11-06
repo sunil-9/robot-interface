@@ -7,11 +7,12 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import {
+  ArrowLeft,
+  ArrowRight,
   Calendar,
   Clock,
   Eye,
   FolderPlus,
-  PanelRight,
   Play,
   RotateCcw,
   RotateCw,
@@ -43,6 +44,7 @@ import {
 } from "./ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "./ui/use-toast";
+import { cn } from "@/lib/utils";
 
 interface Episode {
   id: string;
@@ -588,166 +590,178 @@ export const TrainingInterface = ({
               </span>
             )}
           </div>
-
-          <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-1/2 right-0 z-20 h-10 w-10 -translate-y-1/2 translate-x-1/2 rounded-full border-purple-900/60 bg-gray-900/80 text-white shadow-lg transition hover:bg-gray-900"
-              >
-                <PanelRight className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="h-full w-[400px] bg-gray-900 p-0 sm:w-[540px]">
-              <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between border-b border-gray-800 p-4">
-                  <h2 className="text-xl font-bold text-white">
-                    Episode Management
-                  </h2>
-                </div>
-
-                {/* Dataset Selection */}
-                <div className="border-b border-gray-800 p-4">
-                  <Label
-                    htmlFor="dataset-select"
-                    className="mb-2 block text-sm font-medium text-gray-300"
-                  >
-                    Dataset
-                  </Label>
-                  <div className="flex gap-2">
-                    <Select
-                      value={selectedDataset}
-                      onValueChange={(value) => {
-                        if (value === "__create_new__") {
-                          setIsCreateDialogOpen(true);
-                        } else {
-                          setSelectedDataset(value);
-                        }
-                      }}
-                      disabled={isLoadingDatasets}
-                    >
-                      <SelectTrigger
-                        id="dataset-select"
-                        className="flex-1 bg-gray-800 border-gray-700 text-white"
-                      >
-                        <SelectValue
-                          placeholder={
-                            isLoadingDatasets
-                              ? "Loading datasets..."
-                              : "Select a dataset"
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent className="bg-gray-800 border-gray-700">
-                        {datasets.map((dataset) => (
-                          <SelectItem
-                            key={dataset}
-                            value={dataset}
-                            className="text-white focus:bg-gray-700"
-                          >
-                            {dataset}
-                          </SelectItem>
-                        ))}
-                        <SelectItem
-                          value="__create_new__"
-                          className="text-green-400 focus:bg-gray-700"
-                        >
-                          <div className="flex items-center gap-2">
-                            <FolderPlus className="h-4 w-4" />
-                            <span>Create New Dataset</span>
-                          </div>
-                        </SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {selectedDataset && (
-                    <p className="mt-2 text-xs text-gray-400">
-                      Episodes will be saved to:{" "}
-                      <span className="text-purple-300">{selectedDataset}</span>
-                    </p>
+          <div className="fixed inset-y-0 right-0 flex items-center z-30">
+            <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={cn(
+                    "h-16 w-6 rounded-full border border-purple-600/70 bg-gray-950/80 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)] transition-all duration-300 flex items-center justify-center",
+                    "hover:bg-purple-900/40 hover:scale-110 hover:shadow-[0_0_20px_rgba(168,85,247,0.6)]"
                   )}
-                </div>
-
-                {/* Episodes List */}
-                <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                  {episodes.length === 0 ? (
-                    <div className="flex h-full items-center justify-center">
-                      <p className="text-gray-400">No episodes found</p>
-                    </div>
+                >
+                  {isSidebarOpen ? (
+                    <ArrowRight className="h-16 w-16 stroke-[2.5]" />
                   ) : (
-                    episodes.map((episode) => (
-                      <Card
-                        key={episode.id}
-                        className="bg-gray-800 border-gray-700 p-4"
-                      >
-                        <div className="mb-2 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium text-white">
-                              {episode.name}
-                            </h3>
-                            <Badge className={getStatusColor(episode.status)}>
-                              {episode.status}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="mb-3 grid grid-cols-2 gap-2 text-sm text-gray-400">
-                          <div className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(episode.created_at).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDuration(episode.duration)}
-                          </div>
-                          <div>Data Points: {episode.data_count}</div>
-                          <div className="text-gray-500">
-                            ID: {episode.id.substring(0, 8)}...
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => replayEpisode(episode.id)}
-                            disabled={
-                              episode.status !== "completed" || isLoading
-                            }
-                            className="flex-1"
-                          >
-                            <Eye className="mr-1 h-3 w-3" />
-                            View
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => replayEpisode(episode.id)}
-                            disabled={
-                              episode.status !== "completed" || isLoading
-                            }
-                            className="flex-1"
-                          >
-                            <RotateCw className="mr-1 h-3 w-3" />
-                            Replay
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => deleteEpisode(episode.id)}
-                            disabled={isLoading}
-                            className="flex-1"
-                          >
-                            <Trash2 className="mr-1 h-3 w-3" />
-                            Delete
-                          </Button>
-                        </div>
-                      </Card>
-                    ))
+                    <ArrowLeft className="h-16 w-16 stroke-[2.5]" />
                   )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="h-full w-[400px] bg-gray-900 p-0 sm:w-[540px]">
+                <div className="flex h-full flex-col">
+                  <div className="flex items-center justify-between border-b border-gray-800 p-4">
+                    <h2 className="text-xl font-bold text-white">
+                      Episode Management
+                    </h2>
+                  </div>
+
+                  {/* Dataset Selection */}
+                  <div className="border-b border-gray-800 p-4">
+                    <Label
+                      htmlFor="dataset-select"
+                      className="mb-2 block text-sm font-medium text-gray-300"
+                    >
+                      Dataset
+                    </Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value={selectedDataset}
+                        onValueChange={(value) => {
+                          if (value === "__create_new__") {
+                            setIsCreateDialogOpen(true);
+                          } else {
+                            setSelectedDataset(value);
+                          }
+                        }}
+                        disabled={isLoadingDatasets}
+                      >
+                        <SelectTrigger
+                          id="dataset-select"
+                          className="flex-1 bg-gray-800 border-gray-700 text-white"
+                        >
+                          <SelectValue
+                            placeholder={
+                              isLoadingDatasets
+                                ? "Loading datasets..."
+                                : "Select a dataset"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="bg-gray-800 border-gray-700">
+                          {datasets.map((dataset) => (
+                            <SelectItem
+                              key={dataset}
+                              value={dataset}
+                              className="text-white focus:bg-gray-700"
+                            >
+                              {dataset}
+                            </SelectItem>
+                          ))}
+                          <SelectItem
+                            value="__create_new__"
+                            className="text-green-400 focus:bg-gray-700"
+                          >
+                            <div className="flex items-center gap-2">
+                              <FolderPlus className="h-4 w-4" />
+                              <span>Create New Dataset</span>
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {selectedDataset && (
+                      <p className="mt-2 text-xs text-gray-400">
+                        Episodes will be saved to:{" "}
+                        <span className="text-purple-300">
+                          {selectedDataset}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Episodes List */}
+                  <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                    {episodes.length === 0 ? (
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-gray-400">No episodes found</p>
+                      </div>
+                    ) : (
+                      episodes.map((episode) => (
+                        <Card
+                          key={episode.id}
+                          className="bg-gray-800 border-gray-700 p-4"
+                        >
+                          <div className="mb-2 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-medium text-white">
+                                {episode.name}
+                              </h3>
+                              <Badge className={getStatusColor(episode.status)}>
+                                {episode.status}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="mb-3 grid grid-cols-2 gap-2 text-sm text-gray-400">
+                            <div className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(
+                                episode.created_at
+                              ).toLocaleDateString()}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatDuration(episode.duration)}
+                            </div>
+                            <div>Data Points: {episode.data_count}</div>
+                            <div className="text-gray-500">
+                              ID: {episode.id.substring(0, 8)}...
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => replayEpisode(episode.id)}
+                              disabled={
+                                episode.status !== "completed" || isLoading
+                              }
+                              className="flex-1"
+                            >
+                              <Eye className="mr-1 h-3 w-3" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => replayEpisode(episode.id)}
+                              disabled={
+                                episode.status !== "completed" || isLoading
+                              }
+                              className="flex-1"
+                            >
+                              <RotateCw className="mr-1 h-3 w-3" />
+                              Replay
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => deleteEpisode(episode.id)}
+                              disabled={isLoading}
+                              className="flex-1"
+                            >
+                              <Trash2 className="mr-1 h-3 w-3" />
+                              Delete
+                            </Button>
+                          </div>
+                        </Card>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
-            </SheetContent>
-          </Sheet>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
 
         <div className="grid h-full grid-cols-7 gap-2 border-t border-purple-900/40 bg-gray-950/40 p-2">

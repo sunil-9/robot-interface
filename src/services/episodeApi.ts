@@ -123,7 +123,9 @@ export async function getEpisode(
   datasetId: string,
   episodeId: string
 ): Promise<Episode> {
-  const response = await fetch(`${EPISODES_BASE_URL}/${datasetId}/${episodeId}`);
+  const response = await fetch(
+    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`
+  );
 
   if (!response.ok) {
     const error = await response.json();
@@ -141,13 +143,16 @@ export async function updateEpisode(
   episodeId: string,
   updateData: EpisodeUpdate
 ): Promise<Episode> {
-  const response = await fetch(`${EPISODES_BASE_URL}/${datasetId}/${episodeId}`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(updateData),
-  });
+  const response = await fetch(
+    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updateData),
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();
@@ -164,9 +169,12 @@ export async function deleteEpisode(
   datasetId: string,
   episodeId: string
 ): Promise<void> {
-  const response = await fetch(`${EPISODES_BASE_URL}/${datasetId}/${episodeId}`, {
-    method: "DELETE",
-  });
+  const response = await fetch(
+    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`,
+    {
+      method: "DELETE",
+    }
+  );
 
   if (!response.ok) {
     const error = await response.json();

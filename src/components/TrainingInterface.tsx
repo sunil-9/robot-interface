@@ -1,3 +1,4 @@
+import { API_CONFIG } from "@/config/api";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
@@ -7,7 +8,6 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { API_CONFIG } from "@/config/api";
 import * as episodeApi from "@/services/episodeApi";
 import {
   ArrowLeft,
@@ -24,6 +24,16 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CameraView } from "./CameraView";
 import { MockActionVarianceChart } from "./MockActionVarianceChart";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -36,16 +46,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "./ui/alert-dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -115,6 +115,12 @@ export const TrainingInterface = ({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
   const [isCreatingDataset, setIsCreatingDataset] = useState(false);
+  const [deleteDatasetConfirmOpen, setDeleteDatasetConfirmOpen] =
+    useState(false);
+  const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null);
+  const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
+    episodeApi.Episode[]
+  >([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -522,8 +528,10 @@ export const TrainingInterface = ({
 
     const { datasetId, episodeId } = episodeToDelete;
     setIsDeleting(true);
+
     try {
       await episodeApi.deleteEpisode(datasetId, episodeId);
+
       toast({
         title: "Success",
         description: "Episode deleted successfully",
@@ -560,6 +568,7 @@ export const TrainingInterface = ({
     if (!selectedDataset || selectedEpisodes.size === 0) return;
 
     setIsDeleting(true);
+
     try {
       const response = await episodeApi.bulkDeleteEpisodes({
         dataset_id: selectedDataset,
@@ -579,6 +588,68 @@ export const TrainingInterface = ({
         title: "Error",
         description:
           error instanceof Error ? error.message : "Failed to delete episodes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const promptDeleteDataset = async (datasetId: string) => {
+    try {
+      // Fetch episodes for this dataset to show in confirmation
+      const response = await episodeApi.listEpisodes(datasetId);
+      setDatasetEpisodesToShow(response.episodes);
+      setDatasetToDelete(datasetId);
+      setDeleteDatasetConfirmOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load episodes for dataset",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const confirmDeleteDataset = async () => {
+    if (!datasetToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      // Delete the dataset using the API
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}/${datasetToDelete}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete dataset");
+      }
+
+      toast({
+        title: "Success",
+        description: `Dataset "${datasetToDelete}" deleted successfully`,
+      });
+
+      // Reload datasets
+      await loadDatasets();
+
+      // Clear selection if the deleted dataset was selected
+      if (selectedDataset === datasetToDelete) {
+        setSelectedDataset("");
+        setEpisodes([]);
+      }
+
+      setDeleteDatasetConfirmOpen(false);
+      setDatasetToDelete(null);
+      setDatasetEpisodesToShow([]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete dataset",
         variant: "destructive",
       });
     } finally {
@@ -753,13 +824,28 @@ export const TrainingInterface = ({
                         </SelectTrigger>
                         <SelectContent className="bg-gray-800 border-gray-700">
                           {datasets.map((dataset) => (
-                            <SelectItem
+                            <div
                               key={dataset}
-                              value={dataset}
-                              className="text-white focus:bg-gray-700"
+                              className="flex items-center justify-between hover:bg-gray-700 group"
                             >
-                              {dataset}
-                            </SelectItem>
+                              <SelectItem
+                                value={dataset}
+                                className="flex-1 text-white focus:bg-gray-700"
+                              >
+                                {dataset}
+                              </SelectItem>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  promptDeleteDataset(dataset);
+                                }}
+                                className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           ))}
                           <SelectItem
                             value="__create_new__"
@@ -1035,16 +1121,19 @@ export const TrainingInterface = ({
 
       {/* Delete Single Episode Confirmation Dialog */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent className="bg-gray-900 border-gray-700">
+        <AlertDialogContent className="bg-gray-900 border-gray-700 z-[9999]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Episode?</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">
+              Delete Episode?
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              Are you sure you want to delete episode {episodeToDelete?.episodeId}?
-              This action cannot be undone and will permanently remove all episode data.
+              Are you sure you want to delete episode{" "}
+              {episodeToDelete?.episodeId}? This action cannot be undone and
+              will permanently remove all episode data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={isDeleting}
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
@@ -1062,17 +1151,23 @@ export const TrainingInterface = ({
       </AlertDialog>
 
       {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
-        <AlertDialogContent className="bg-gray-900 border-gray-700">
+      <AlertDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={setBulkDeleteConfirmOpen}
+      >
+        <AlertDialogContent className="bg-gray-900 border-gray-700 z-[9999]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-white">Delete Multiple Episodes?</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">
+              Delete Multiple Episodes?
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-400">
-              Are you sure you want to delete {selectedEpisodes.size} episode(s)?
-              This action cannot be undone and will permanently remove all selected episode data.
+              Are you sure you want to delete {selectedEpisodes.size}{" "}
+              episode(s)? This action cannot be undone and will permanently
+              remove all selected episode data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel 
+            <AlertDialogCancel
               disabled={isDeleting}
               className="border-gray-700 text-gray-300 hover:bg-gray-800"
             >
@@ -1083,7 +1178,71 @@ export const TrainingInterface = ({
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? "Deleting..." : `Delete ${selectedEpisodes.size} Episode(s)`}
+              {isDeleting
+                ? "Deleting..."
+                : `Delete ${selectedEpisodes.size} Episode(s)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Dataset Confirmation Dialog */}
+      <AlertDialog
+        open={deleteDatasetConfirmOpen}
+        onOpenChange={setDeleteDatasetConfirmOpen}
+      >
+        <AlertDialogContent className="bg-gray-900 border-gray-700 z-[9999] max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">
+              Delete Dataset "{datasetToDelete}"?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              {datasetEpisodesToShow.length > 0 ? (
+                <>
+                  <p className="mb-3">
+                    This dataset contains {datasetEpisodesToShow.length}{" "}
+                    episode(s):
+                  </p>
+                  <ul className="space-y-1 mb-3 max-h-32 overflow-y-auto bg-gray-800/50 p-2 rounded text-sm">
+                    {datasetEpisodesToShow.slice(0, 5).map((episode) => (
+                      <li key={episode.episode_id} className="text-gray-300">
+                        • Episode {episode.episode_id} (
+                        {episode.metadata.frame_count} frames)
+                      </li>
+                    ))}
+                    {datasetEpisodesToShow.length > 5 && (
+                      <li className="text-gray-400 italic">
+                        ... and {datasetEpisodesToShow.length - 5} more
+                        episode(s)
+                      </li>
+                    )}
+                  </ul>
+                  <p className="text-red-400 font-medium">
+                    Are you sure? This action cannot be undone and will
+                    permanently delete the dataset and all its episodes.
+                  </p>
+                </>
+              ) : (
+                <p className="text-red-400 font-medium">
+                  Are you sure you want to delete this dataset? This action
+                  cannot be undone.
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteDataset}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Delete Dataset"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

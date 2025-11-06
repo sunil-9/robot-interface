@@ -1,3 +1,4 @@
+import { API_CONFIG } from "@/config/api";
 import {
   Calendar,
   Clock,
@@ -9,21 +10,7 @@ import {
   Trash2,
 } from "lucide-react";
 import React, { useState } from "react";
-import { API_CONFIG } from "@/config/api";
 import * as episodeApi from "../services/episodeApi";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Checkbox } from "./ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "./ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,6 +21,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Checkbox } from "./ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import { toast } from "./ui/use-toast";
 
 interface Episode {
@@ -195,6 +193,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
 
   const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
     setEpisodeToDelete({ datasetId, episodeId });
+    setShowManageDialog(false);
     setDeleteConfirmOpen(true);
   };
 
@@ -202,7 +201,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
     if (!episodeToDelete) return;
 
     const { datasetId, episodeId } = episodeToDelete;
-    
+
     if (!datasetId) {
       toast({
         title: "Error",
@@ -213,8 +212,10 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
     }
 
     setIsDeleting(true);
+
     try {
       await episodeApi.deleteEpisode(datasetId, episodeId);
+
       toast({
         title: "Success",
         description: "Episode deleted successfully",
@@ -223,6 +224,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
       setSelectedEpisodes(new Set());
       setDeleteConfirmOpen(false);
       setEpisodeToDelete(null);
+      setShowManageDialog(true);
     } catch (error) {
       toast({
         title: "Error",
@@ -230,6 +232,8 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
           error instanceof Error ? error.message : "Failed to delete episode",
         variant: "destructive",
       });
+      setDeleteConfirmOpen(false);
+      setShowManageDialog(true);
     } finally {
       setIsDeleting(false);
     }
@@ -262,6 +266,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
       });
       return;
     }
+    setShowManageDialog(false);
     setBulkDeleteConfirmOpen(true);
   };
 
@@ -269,6 +274,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
     if (!selectedDataset || selectedEpisodes.size === 0) return;
 
     setIsDeleting(true);
+
     try {
       const response = await episodeApi.bulkDeleteEpisodes({
         dataset_id: selectedDataset,
@@ -283,6 +289,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
       fetchEpisodes();
       setSelectedEpisodes(new Set());
       setBulkDeleteConfirmOpen(false);
+      setShowManageDialog(true);
     } catch (error) {
       toast({
         title: "Error",
@@ -290,6 +297,8 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
           error instanceof Error ? error.message : "Failed to delete episodes",
         variant: "destructive",
       });
+      setBulkDeleteConfirmOpen(false);
+      setShowManageDialog(true);
     } finally {
       setIsDeleting(false);
     }
@@ -392,6 +401,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
             </Button>
 
             <Dialog open={showManageDialog} onOpenChange={setShowManageDialog}>
+              
               <DialogTrigger asChild>
                 <Button
                   onClick={openManageDialog}
@@ -562,13 +572,22 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
       </Card>
 
       {/* Delete Single Episode Confirmation Dialog */}
-      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          setDeleteConfirmOpen(open);
+          if (!open && !isDeleting) {
+            setShowManageDialog(true);
+          }
+        }}
+      >
+        <AlertDialogContent className="z-[9999] bg-white dark:bg-gray-900 border-2 border-red-500">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Episode?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete episode {episodeToDelete?.episodeId}?
-              This action cannot be undone and will permanently remove all episode data.
+              Are you sure you want to delete episode{" "}
+              {episodeToDelete?.episodeId}? This action cannot be undone and
+              will permanently remove all episode data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -585,13 +604,22 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
       </AlertDialog>
 
       {/* Bulk Delete Confirmation Dialog */}
-      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
-        <AlertDialogContent>
+      <AlertDialog
+        open={bulkDeleteConfirmOpen}
+        onOpenChange={(open) => {
+          setBulkDeleteConfirmOpen(open);
+          if (!open && !isDeleting) {
+            setShowManageDialog(true);
+          }
+        }}
+      >
+        <AlertDialogContent className="z-[9999] bg-white dark:bg-gray-900 border-2 border-red-500">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Multiple Episodes?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete {selectedEpisodes.size} episode(s)?
-              This action cannot be undone and will permanently remove all selected episode data.
+              Are you sure you want to delete {selectedEpisodes.size}{" "}
+              episode(s)? This action cannot be undone and will permanently
+              remove all selected episode data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -601,7 +629,9 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? "Deleting..." : `Delete ${selectedEpisodes.size} Episode(s)`}
+              {isDeleting
+                ? "Deleting..."
+                : `Delete ${selectedEpisodes.size} Episode(s)`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -17,6 +17,8 @@ export const API_CONFIG = {
     WEBRTC_OFFER: "/api/webrtc/offer",
     WEBRTC_ICE: "/api/webrtc/ice",
     WEBRTC_HEALTH: "/api/webrtc/health",
+    EPISODES: "/episodes",
+    DATASETS: "/datasets",
   },
 
   // Timeout configurations (in milliseconds)

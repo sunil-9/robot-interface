@@ -1,7 +1,6 @@
 import {
   Calendar,
   Clock,
-  Eye,
   List,
   Play,
   RotateCcw,
@@ -10,16 +9,31 @@ import {
   Trash2,
 } from "lucide-react";
 import React, { useState } from "react";
+import { API_CONFIG } from "@/config/api";
+import * as episodeApi from "../services/episodeApi";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Checkbox } from "./ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { toast } from "./ui/use-toast";
 
 interface Episode {
@@ -47,13 +61,29 @@ interface EpisodeResponse {
   timestamp: string;
 }
 
-export const EpisodeControls: React.FC = () => {
+interface EpisodeControlsProps {
+  selectedDataset?: string;
+}
+
+export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
+  selectedDataset,
+}) => {
   const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showManageDialog, setShowManageDialog] = useState(false);
+  const [selectedEpisodes, setSelectedEpisodes] = useState<Set<string>>(
+    new Set()
+  );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [episodeToDelete, setEpisodeToDelete] = useState<{
+    datasetId: string;
+    episodeId: string;
+  } | null>(null);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const API_BASE = "http://localhost:8080/api/episodes";
+  const EPISODES_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
 
   const handleApiCall = async (
     endpoint: string,
@@ -62,7 +92,7 @@ export const EpisodeControls: React.FC = () => {
   ) => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}${endpoint}`, {
+      const response = await fetch(`${EPISODES_API_URL}${endpoint}`, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -105,14 +135,23 @@ export const EpisodeControls: React.FC = () => {
   };
 
   const fetchEpisodes = async () => {
+    if (!selectedDataset) {
+      toast({
+        title: "No Dataset Selected",
+        description: "Please select a dataset first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const response = await fetch(API_BASE);
-      const data: Episode[] = await response.json();
-      setEpisodes(data);
+      const response = await episodeApi.listEpisodes(selectedDataset);
+      setEpisodes(response.episodes);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to fetch episodes",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch episodes",
         variant: "destructive",
       });
     }
@@ -120,7 +159,7 @@ export const EpisodeControls: React.FC = () => {
 
   const fetchCurrentEpisode = async () => {
     try {
-      const response = await fetch(`${API_BASE}/current`);
+      const response = await fetch(`${EPISODES_API_URL}/current`);
       const data: EpisodeResponse = await response.json();
       if (data.episode) {
         setCurrentEpisode(data.episode);
@@ -154,25 +193,123 @@ export const EpisodeControls: React.FC = () => {
     }
   };
 
-  const deleteEpisode = async (episodeId: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/${episodeId}`, {
-        method: "DELETE",
-      });
+  const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
+    setEpisodeToDelete({ datasetId, episodeId });
+    setDeleteConfirmOpen(true);
+  };
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Episode deleted successfully",
-        });
-        fetchEpisodes();
-      }
+  const confirmDeleteEpisode = async () => {
+    if (!episodeToDelete) return;
+
+    const { datasetId, episodeId } = episodeToDelete;
+    
+    if (!datasetId) {
+      toast({
+        title: "Error",
+        description: "Dataset ID is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await episodeApi.deleteEpisode(datasetId, episodeId);
+      toast({
+        title: "Success",
+        description: "Episode deleted successfully",
+      });
+      fetchEpisodes();
+      setSelectedEpisodes(new Set());
+      setDeleteConfirmOpen(false);
+      setEpisodeToDelete(null);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete episode",
+        description:
+          error instanceof Error ? error.message : "Failed to delete episode",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleReplayEpisode = async (datasetId: string, episodeId: string) => {
+    try {
+      const response = await episodeApi.replayEpisode(datasetId, episodeId);
+      toast({
+        title: "Success",
+        description: response.message,
+      });
+      fetchEpisodes();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to replay episode",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const promptBulkDelete = () => {
+    if (!selectedDataset || selectedEpisodes.size === 0) {
+      toast({
+        title: "Error",
+        description: "No episodes selected",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBulkDeleteConfirmOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!selectedDataset || selectedEpisodes.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await episodeApi.bulkDeleteEpisodes({
+        dataset_id: selectedDataset,
+        episode_ids: Array.from(selectedEpisodes),
+      });
+
+      toast({
+        title: "Success",
+        description: response.message,
+      });
+
+      fetchEpisodes();
+      setSelectedEpisodes(new Set());
+      setBulkDeleteConfirmOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete episodes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleEpisodeSelection = (episodeId: string) => {
+    const newSelection = new Set(selectedEpisodes);
+    if (newSelection.has(episodeId)) {
+      newSelection.delete(episodeId);
+    } else {
+      newSelection.add(episodeId);
+    }
+    setSelectedEpisodes(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEpisodes.size === episodes.length) {
+      setSelectedEpisodes(new Set());
+    } else {
+      setSelectedEpisodes(new Set(episodes.map((ep) => ep.episode_id)));
     }
   };
 
@@ -182,19 +319,11 @@ export const EpisodeControls: React.FC = () => {
     fetchCurrentEpisode();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "recording":
-        return "bg-red-500";
-      case "completed":
-        return "bg-green-500";
-      case "replaying":
-        return "bg-blue-500";
-      case "rewinding":
-        return "bg-yellow-500";
-      default:
-        return "bg-gray-500";
-    }
+  const getReplayBadgeColor = (replayCount: number) => {
+    // Use replay count to show episode usage
+    if (replayCount === 0) return "bg-gray-500";
+    if (replayCount < 5) return "bg-blue-500";
+    return "bg-green-500";
   };
 
   const formatDuration = (seconds?: number) => {
@@ -211,9 +340,9 @@ export const EpisodeControls: React.FC = () => {
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Play className="h-5 w-5" />
             Episode Controls
-            {currentEpisode && (
-              <Badge className={getStatusColor(currentEpisode.status)}>
-                {currentEpisode.status}
+            {selectedDataset && (
+              <Badge className="bg-purple-500">
+                Dataset: {selectedDataset}
               </Badge>
             )}
           </CardTitle>
@@ -275,81 +404,208 @@ export const EpisodeControls: React.FC = () => {
               </DialogTrigger>
               <DialogContent className="max-w-4xl max-h-[80vh] overflow-auto">
                 <DialogHeader>
-                  <DialogTitle>Episode 123 Management</DialogTitle>
+                  <DialogTitle className="flex items-center justify-between">
+                    <span>Episode Management</span>
+                    {selectedDataset && (
+                      <span className="text-sm font-normal text-muted-foreground">
+                        Dataset: {selectedDataset}
+                      </span>
+                    )}
+                  </DialogTitle>
                 </DialogHeader>
-                <div className="space-y-4">
-                  {episodes.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">
-                      No episodes found
-                    </p>
-                  ) : (
-                    <div className="grid gap-4">
-                      {episodes.map((episode) => (
-                        <Card key={episode.id} className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-medium">{episode.name}</h3>
-                                <Badge
-                                  className={getStatusColor(episode.status)}
+
+                {!selectedDataset ? (
+                  <div className="text-center text-muted-foreground py-8">
+                    Please select a dataset first
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Bulk actions toolbar */}
+                    {episodes.length > 0 && (
+                      <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-800 rounded">
+                        <Checkbox
+                          checked={
+                            selectedEpisodes.size === episodes.length &&
+                            episodes.length > 0
+                          }
+                          onCheckedChange={toggleSelectAll}
+                        />
+                        <span className="text-sm flex-1">
+                          {selectedEpisodes.size > 0
+                            ? `${selectedEpisodes.size} episode(s) selected`
+                            : "Select all"}
+                        </span>
+                        {selectedEpisodes.size > 0 && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={promptBulkDelete}
+                            disabled={isDeleting}
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />
+                            Delete Selected
+                          </Button>
+                        )}
+                      </div>
+                    )}
+
+                    {episodes.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">
+                        No episodes found in this dataset
+                      </p>
+                    ) : (
+                      <div className="grid gap-4">
+                        {episodes.map((episode) => (
+                          <Card key={episode.episode_id} className="p-4">
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={selectedEpisodes.has(
+                                  episode.episode_id
+                                )}
+                                onCheckedChange={() =>
+                                  toggleEpisodeSelection(episode.episode_id)
+                                }
+                              />
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <h3 className="font-medium">
+                                    Episode {episode.episode_id}
+                                  </h3>
+                                  <Badge
+                                    className={getReplayBadgeColor(
+                                      episode.metadata.replay_count
+                                    )}
+                                  >
+                                    {episode.metadata.replay_count} replays
+                                  </Badge>
+                                  {episode.metadata.quality_score && (
+                                    <Badge variant="outline">
+                                      Quality:{" "}
+                                      {episode.metadata.quality_score.toFixed(
+                                        1
+                                      )}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {episode.metadata.description && (
+                                  <p className="text-sm text-muted-foreground mb-2">
+                                    {episode.metadata.description}
+                                  </p>
+                                )}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(
+                                      episode.metadata.created_at
+                                    ).toLocaleDateString()}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {formatDuration(
+                                      episode.metadata.total_length
+                                    )}
+                                  </div>
+                                  <div>
+                                    Frames: {episode.metadata.frame_count}
+                                  </div>
+                                  <div>
+                                    {episode.metadata.tags.length > 0 && (
+                                      <span>
+                                        Tags: {episode.metadata.tags.join(", ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex gap-2 ml-4">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleReplayEpisode(
+                                      episode.dataset_id,
+                                      episode.episode_id
+                                    )
+                                  }
+                                  title="Replay episode"
                                 >
-                                  {episode.status}
-                                </Badge>
-                              </div>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
-                                  {new Date(
-                                    episode.created_at
-                                  ).toLocaleDateString()}
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {formatDuration(episode.duration)}
-                                </div>
-                                <div>Data Points: {episode.data_count}</div>
-                                <div>ID: {episode.id.substring(0, 8)}...</div>
+                                  <RotateCw className="h-3 w-3 mr-1" />
+                                  Replay
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() =>
+                                    promptDeleteEpisode(
+                                      episode.dataset_id,
+                                      episode.episode_id
+                                    )
+                                  }
+                                  title="Delete episode"
+                                  disabled={isDeleting}
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Delete
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex gap-2 ml-4">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => replayEpisode(episode.id)}
-                                disabled={episode.status !== "completed"}
-                              >
-                                <Eye className="h-3 w-3 mr-1" />
-                                View
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => replayEpisode(episode.id)}
-                                disabled={episode.status !== "completed"}
-                              >
-                                <RotateCw className="h-3 w-3 mr-1" />
-                                Replay
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => deleteEpisode(episode.id)}
-                              >
-                                <Trash2 className="h-3 w-3 mr-1" />
-                                Delete
-                              </Button>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </DialogContent>
             </Dialog>
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Single Episode Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Episode?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete episode {episodeToDelete?.episodeId}?
+              This action cannot be undone and will permanently remove all episode data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteEpisode}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Episodes?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {selectedEpisodes.size} episode(s)?
+              This action cannot be undone and will permanently remove all selected episode data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : `Delete ${selectedEpisodes.size} Episode(s)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

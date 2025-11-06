@@ -6,12 +6,14 @@ import {
   fetchRobotCameras,
   type RobotCameraConfig,
 } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { API_CONFIG } from "@/config/api";
+import * as episodeApi from "@/services/episodeApi";
 import {
   ArrowLeft,
   ArrowRight,
   Calendar,
   Clock,
-  Eye,
   FolderPlus,
   Play,
   RotateCcw,
@@ -25,6 +27,7 @@ import { MockActionVarianceChart } from "./MockActionVarianceChart";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
+import { Checkbox } from "./ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -33,6 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import {
@@ -44,9 +57,10 @@ import {
 } from "./ui/select";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { toast } from "./ui/use-toast";
-import { cn } from "@/lib/utils";
 
-interface Episode {
+// Old Episode interface kept for mock episode controls (start/end/rewind)
+// These are separate from the persisted episodes managed by the API
+interface MockEpisode {
   id: string;
   name: string;
   status:
@@ -77,12 +91,22 @@ export const TrainingInterface = ({
   const [isRecording, setIsRecording] = useState(false);
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [episodes, setEpisodes] = useState<Episode[]>([]);
+  const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [cameraConfigs, setCameraConfigs] = useState<RobotCameraConfig[]>([]);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const bridgeData = useBridgeData();
+  const [selectedEpisodes, setSelectedEpisodes] = useState<Set<string>>(
+    new Set()
+  );
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [episodeToDelete, setEpisodeToDelete] = useState<{
+    datasetId: string;
+    episodeId: string;
+  } | null>(null);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
@@ -91,8 +115,6 @@ export const TrainingInterface = ({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
   const [isCreatingDataset, setIsCreatingDataset] = useState(false);
-
-  const API_BASE = "http://localhost:8080/api/episodes";
 
   useEffect(() => {
     let cancelled = false;
@@ -341,13 +363,16 @@ export const TrainingInterface = ({
     }
   }, [selectedDataset]);
 
-  // Fetch episodes when sidebar opens
+  // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    if (isSidebarOpen) {
+    if (isSidebarOpen && selectedDataset) {
       fetchEpisodes();
+    }
+    if (isSidebarOpen) {
       loadDatasets();
     }
-  }, [isSidebarOpen, loadDatasets]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSidebarOpen, selectedDataset]);
 
   // Create new dataset
   const handleCreateDataset = async () => {
@@ -385,25 +410,32 @@ export const TrainingInterface = ({
 
   // Fetch episodes
   const fetchEpisodes = async () => {
+    if (!selectedDataset) {
+      return;
+    }
+
     try {
-      const response = await fetch(API_BASE);
-      const data: Episode[] = await response.json();
-      setEpisodes(data);
+      const response = await episodeApi.listEpisodes(selectedDataset);
+      setEpisodes(response.episodes);
     } catch (error) {
       console.error("Failed to fetch episodes:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch episodes",
+        description:
+          error instanceof Error ? error.message : "Failed to fetch episodes",
         variant: "destructive",
       });
     }
   };
 
+  // Episode recording session controls API
+  const EPISODES_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
+
   // Simplified API calls for episode control
   const startEpisode = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE}/start`, {
+      const response = await fetch(`${EPISODES_API_URL}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -429,7 +461,7 @@ export const TrainingInterface = ({
   const endEpisode = async () => {
     setIsLoading(true);
     try {
-      await fetch(`${API_BASE}/end`, { method: "POST" });
+      await fetch(`${EPISODES_API_URL}/end`, { method: "POST" });
       setIsRecording(false);
       setCurrentEpisodeId(null);
       // Update episodes list if sidebar is open
@@ -446,7 +478,7 @@ export const TrainingInterface = ({
   const rewindEpisode = async () => {
     setIsLoading(true);
     try {
-      await fetch(`${API_BASE}/rewind`, { method: "POST" });
+      await fetch(`${EPISODES_API_URL}/rewind`, { method: "POST" });
       // Update episodes list if sidebar is open
       if (isSidebarOpen) {
         fetchEpisodes();
@@ -459,45 +491,116 @@ export const TrainingInterface = ({
   };
 
   // Additional episode management functions
-  const replayEpisode = async (episodeId: string) => {
+  const replayEpisode = async (datasetId: string, episodeId: string) => {
     setIsLoading(true);
     try {
-      await fetch(`${API_BASE}/replay`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          episode_id: episodeId,
-          speed: 1.0,
-        }),
+      const response = await episodeApi.replayEpisode(datasetId, episodeId);
+      toast({
+        title: "Success",
+        description: response.message,
       });
-      // Update episodes list
       fetchEpisodes();
     } catch (error) {
-      console.error("Failed to replay episode:", error);
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to replay episode",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const deleteEpisode = async (episodeId: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/${episodeId}`, {
-        method: "DELETE",
-      });
+  const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
+    setEpisodeToDelete({ datasetId, episodeId });
+    setDeleteConfirmOpen(true);
+  };
 
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Episode deleted successfully",
-        });
-        fetchEpisodes();
-      }
+  const confirmDeleteEpisode = async () => {
+    if (!episodeToDelete) return;
+
+    const { datasetId, episodeId } = episodeToDelete;
+    setIsDeleting(true);
+    try {
+      await episodeApi.deleteEpisode(datasetId, episodeId);
+      toast({
+        title: "Success",
+        description: "Episode deleted successfully",
+      });
+      fetchEpisodes();
+      setSelectedEpisodes(new Set());
+      setDeleteConfirmOpen(false);
+      setEpisodeToDelete(null);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete episode",
+        description:
+          error instanceof Error ? error.message : "Failed to delete episode",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const promptBulkDelete = () => {
+    if (!selectedDataset || selectedEpisodes.size === 0) {
+      toast({
+        title: "Error",
+        description: "No episodes selected",
+        variant: "destructive",
+      });
+      return;
+    }
+    setBulkDeleteConfirmOpen(true);
+  };
+
+  const confirmBulkDelete = async () => {
+    if (!selectedDataset || selectedEpisodes.size === 0) return;
+
+    setIsDeleting(true);
+    try {
+      const response = await episodeApi.bulkDeleteEpisodes({
+        dataset_id: selectedDataset,
+        episode_ids: Array.from(selectedEpisodes),
+      });
+
+      toast({
+        title: "Success",
+        description: response.message,
+      });
+
+      fetchEpisodes();
+      setSelectedEpisodes(new Set());
+      setBulkDeleteConfirmOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to delete episodes",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const toggleEpisodeSelection = (episodeId: string) => {
+    const newSelection = new Set(selectedEpisodes);
+    if (newSelection.has(episodeId)) {
+      newSelection.delete(episodeId);
+    } else {
+      newSelection.add(episodeId);
+    }
+    setSelectedEpisodes(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEpisodes.size === episodes.length) {
+      setSelectedEpisodes(new Set());
+    } else {
+      setSelectedEpisodes(new Set(episodes.map((ep) => ep.episode_id)));
     }
   };
 
@@ -682,80 +785,155 @@ export const TrainingInterface = ({
 
                   {/* Episodes List */}
                   <div className="flex-1 space-y-4 overflow-y-auto p-4">
-                    {episodes.length === 0 ? (
+                    {!selectedDataset ? (
                       <div className="flex h-full items-center justify-center">
-                        <p className="text-gray-400">No episodes found</p>
+                        <p className="text-gray-400">
+                          Please select a dataset first
+                        </p>
+                      </div>
+                    ) : episodes.length === 0 ? (
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-gray-400">
+                          No episodes found in this dataset
+                        </p>
                       </div>
                     ) : (
-                      episodes.map((episode) => (
-                        <Card
-                          key={episode.id}
-                          className="bg-gray-800 border-gray-700 p-4"
-                        >
-                          <div className="mb-2 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-medium text-white">
-                                {episode.name}
-                              </h3>
-                              <Badge className={getStatusColor(episode.status)}>
-                                {episode.status}
-                              </Badge>
-                            </div>
-                          </div>
-                          <div className="mb-3 grid grid-cols-2 gap-2 text-sm text-gray-400">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(
-                                episode.created_at
-                              ).toLocaleDateString()}
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {formatDuration(episode.duration)}
-                            </div>
-                            <div>Data Points: {episode.data_count}</div>
-                            <div className="text-gray-500">
-                              ID: {episode.id.substring(0, 8)}...
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => replayEpisode(episode.id)}
-                              disabled={
-                                episode.status !== "completed" || isLoading
-                              }
-                              className="flex-1"
-                            >
-                              <Eye className="mr-1 h-3 w-3" />
-                              View
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => replayEpisode(episode.id)}
-                              disabled={
-                                episode.status !== "completed" || isLoading
-                              }
-                              className="flex-1"
-                            >
-                              <RotateCw className="mr-1 h-3 w-3" />
-                              Replay
-                            </Button>
+                      <>
+                        {/* Bulk actions toolbar */}
+                        <div className="flex items-center gap-2 p-3 bg-gray-800 rounded border border-gray-700">
+                          <Checkbox
+                            checked={
+                              selectedEpisodes.size === episodes.length &&
+                              episodes.length > 0
+                            }
+                            onCheckedChange={toggleSelectAll}
+                          />
+                          <span className="text-sm flex-1 text-gray-300">
+                            {selectedEpisodes.size > 0
+                              ? `${selectedEpisodes.size} episode(s) selected`
+                              : "Select all"}
+                          </span>
+                          {selectedEpisodes.size > 0 && (
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => deleteEpisode(episode.id)}
-                              disabled={isLoading}
-                              className="flex-1"
+                              onClick={promptBulkDelete}
+                              disabled={isDeleting}
                             >
-                              <Trash2 className="mr-1 h-3 w-3" />
-                              Delete
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete Selected
                             </Button>
-                          </div>
-                        </Card>
-                      ))
+                          )}
+                        </div>
+
+                        {episodes.map((episode) => (
+                          <Card
+                            key={episode.episode_id}
+                            className="bg-gray-800 border-gray-700 p-4"
+                          >
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={selectedEpisodes.has(
+                                  episode.episode_id
+                                )}
+                                onCheckedChange={() =>
+                                  toggleEpisodeSelection(episode.episode_id)
+                                }
+                              />
+                              <div className="flex-1">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <h3 className="font-medium text-white">
+                                    Episode {episode.episode_id}
+                                  </h3>
+                                  <Badge
+                                    className={
+                                      episode.metadata.replay_count === 0
+                                        ? "bg-gray-500"
+                                        : episode.metadata.replay_count < 5
+                                        ? "bg-blue-500"
+                                        : "bg-green-500"
+                                    }
+                                  >
+                                    {episode.metadata.replay_count} replays
+                                  </Badge>
+                                  {episode.metadata.quality_score && (
+                                    <Badge
+                                      variant="outline"
+                                      className="text-white border-gray-600"
+                                    >
+                                      Quality:{" "}
+                                      {episode.metadata.quality_score.toFixed(
+                                        1
+                                      )}
+                                    </Badge>
+                                  )}
+                                </div>
+                                {episode.metadata.description && (
+                                  <p className="text-sm text-gray-400 mb-2">
+                                    {episode.metadata.description}
+                                  </p>
+                                )}
+                                <div className="mb-3 grid grid-cols-2 gap-2 text-sm text-gray-400">
+                                  <div className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {new Date(
+                                      episode.metadata.created_at
+                                    ).toLocaleDateString()}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    {formatDuration(
+                                      episode.metadata.total_length
+                                    )}
+                                  </div>
+                                  <div>
+                                    Frames: {episode.metadata.frame_count}
+                                  </div>
+                                  <div>
+                                    {episode.metadata.tags.length > 0 && (
+                                      <span>
+                                        Tags: {episode.metadata.tags.join(", ")}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      replayEpisode(
+                                        episode.dataset_id,
+                                        episode.episode_id
+                                      )
+                                    }
+                                    disabled={isLoading}
+                                    className="flex-1 border-gray-600 text-white hover:bg-gray-700"
+                                  >
+                                    <RotateCw className="mr-1 h-3 w-3" />
+                                    Replay
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() =>
+                                      promptDeleteEpisode(
+                                        episode.dataset_id,
+                                        episode.episode_id
+                                      )
+                                    }
+                                    disabled={isDeleting}
+                                    className="flex-1"
+                                  >
+                                    <Trash2 className="mr-1 h-3 w-3" />
+                                    Delete
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </>
                     )}
                   </div>
                 </div>
@@ -854,6 +1032,62 @@ export const TrainingInterface = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Single Episode Confirmation Dialog */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete Episode?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              Are you sure you want to delete episode {episodeToDelete?.episodeId}?
+              This action cannot be undone and will permanently remove all episode data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteEpisode}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <AlertDialog open={bulkDeleteConfirmOpen} onOpenChange={setBulkDeleteConfirmOpen}>
+        <AlertDialogContent className="bg-gray-900 border-gray-700">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Delete Multiple Episodes?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-400">
+              Are you sure you want to delete {selectedEpisodes.size} episode(s)?
+              This action cannot be undone and will permanently remove all selected episode data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              disabled={isDeleting}
+              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBulkDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Deleting..." : `Delete ${selectedEpisodes.size} Episode(s)`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -2,6 +2,7 @@ import { InputTracker } from "@/components/InputTracker";
 import { TrainingInterface } from "@/components/TrainingInterface";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import { useModeContext } from "@/hooks/useModeContext";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 import { fetchSignalingConfig } from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
@@ -12,6 +13,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 export default function TrainPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { getModeLabel } = useModeContext();
   const params = useMemo(
     () => new URLSearchParams(location.search),
     [location.search]
@@ -63,7 +65,9 @@ export default function TrainPage() {
       try {
         return new URL(cloudConfig.apiBaseUrl);
       } catch {
-        return new URL("http://127.0.0.1:8100");
+        const apiUrl = import.meta.env.VITE_CLOUD_API_BASE_URL;
+
+        return apiUrl ? new URL(apiUrl) : new URL("http://127.0.0.1:8100");
       }
     })();
 
@@ -253,7 +257,7 @@ export default function TrainPage() {
               </Button>
 
               <h1 className="text-lg font-semibold text-purple-300 mr-2">
-                Training Mode
+                {getModeLabel()}
               </h1>
               <p className="text-xs text-gray-300">
                 {selectedRobot ? `${selectedRobot}` : ""}

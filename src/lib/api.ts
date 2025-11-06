@@ -110,12 +110,8 @@ export const fetchDatasets = async (): Promise<string[]> => {
 
 export const createDataset = async (datasetId: string): Promise<void> => {
   try {
-    const formData = new FormData();
-    formData.append("dataset_id", datasetId);
-
-    const response = await fetch(buildApiUrl("/datasets/upload"), {
+    const response = await fetch(buildApiUrl(`/datasets/create/${datasetId}`), {
       method: "POST",
-      body: formData,
     });
 
     if (!response.ok) {

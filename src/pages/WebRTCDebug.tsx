@@ -117,7 +117,9 @@ const WebRTCDebugPage = () => {
   } = useRobots();
   const robots = robotPresenceList ?? EMPTY_ROBOT_LIST;
   const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
-  const [commandPayload, setCommandPayload] = useState<string>("{}");
+  const [commandPayload, setCommandPayload] = useState<string>(
+    '{"type":"command","data":{}}'
+  );
   const [telemetryLog, setTelemetryLog] = useState<
     Array<{ stamp: Date; data: unknown }>
   >([]);
@@ -359,7 +361,16 @@ const WebRTCDebugPage = () => {
   const handleSendCommand = () => {
     try {
       const parsed = JSON.parse(commandPayload || "{}");
-      session.sendControl({ type: "command", data: parsed });
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        console.warn("Control payload must be an object with a `type` property.");
+        return;
+      }
+      const record = parsed as Record<string, unknown>;
+      if (typeof record.type !== "string" || record.type.length === 0) {
+        console.warn("Control payload must include a non-empty `type` string.");
+        return;
+      }
+      session.sendControl(record);
     } catch (err) {
       console.warn("Invalid command payload:", err);
     }
@@ -721,7 +732,7 @@ const WebRTCDebugPage = () => {
                   htmlFor="commandPayload"
                   className="text-sm text-gray-300"
                 >
-                  Command payload (JSON)
+                  Control payload (JSON with type/data)
                 </label>
                 <Input
                   id="commandPayload"

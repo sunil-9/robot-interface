@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const FRAME_INTERVAL_MS = 20;
 const AXIS_DEADZONE = 0.1;
+const BUTTON_REPEAT_INTERVAL_MS = 500;
+const BUTTON_ACTIVE_THRESHOLD = 0.1;
 
 type GamepadState = {
   lastSent: number;
@@ -205,28 +207,42 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
           Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01
         );
 
+        const axesActive = normalizedAxes.some((value) => value !== 0);
+        const buttonsActive = gamepad.buttons.some(
+          (button) => button.pressed || button.value > BUTTON_ACTIVE_THRESHOLD
+        );
+        const shouldRepeat =
+          !axesChanged &&
+          !buttonsChanged &&
+          (axesActive || buttonsActive) &&
+          now - state.lastSent >= BUTTON_REPEAT_INTERVAL_MS;
+
         // Only send if something changed
-        if (!axesChanged && !buttonsChanged) {
+        if (!axesChanged && !buttonsChanged && !shouldRepeat) {
           return;
         }
 
         // Update state
+        if (axesChanged) {
+          state.axes = [...normalizedAxes];
+        }
+        if (buttonsChanged) {
+          state.buttons = gamepad.buttons.map((button) => ({
+            pressed: button.pressed,
+            value: button.value,
+          }));
+        }
         state.lastSent = now;
-        state.axes = [...normalizedAxes];
-        state.buttons = gamepad.buttons.map((button) => ({
-          pressed: button.pressed,
-          value: button.value,
-        }));
 
         // Build axes object
         const axesRecord: Record<string, number> = {};
-        normalizedAxes.forEach((value, idx) => {
+        state.axes.forEach((value, idx) => {
           axesRecord[idx.toString()] = value;
         });
 
         // Build buttons object
         const buttonsRecord: Record<string, number> = {};
-        gamepad.buttons.forEach((button, idx) => {
+        state.buttons.forEach((button, idx) => {
           buttonsRecord[idx.toString()] = button.value;
         });
 

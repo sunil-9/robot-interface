@@ -211,8 +211,6 @@ npm run lint         # Run ESLint
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## 🙏 Acknowledgments
 
 - ROS2 community for the robotics framework

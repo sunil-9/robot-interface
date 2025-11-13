@@ -1,4 +1,5 @@
 import { API_CONFIG } from "@/config/api";
+import { parseCloudApiResponse } from "@/utils/apiResponse";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
@@ -448,7 +449,10 @@ export const TrainingInterface = ({
           name: `Episode ${new Date().toLocaleTimeString()}`,
         }),
       });
-      const data = await response.json();
+      const data = await parseCloudApiResponse<{
+        success?: boolean;
+        episode?: { id: string };
+      }>(response);
       if (data.success && data.episode) {
         setCurrentEpisodeId(data.episode.id);
         setIsRecording(true);

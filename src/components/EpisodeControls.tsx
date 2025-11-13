@@ -1,4 +1,5 @@
 import { API_CONFIG } from "@/config/api";
+import { parseCloudApiResponse } from "@/utils/apiResponse";
 import {
   Calendar,
   Clock,
@@ -98,7 +99,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
         body: body ? JSON.stringify(body) : undefined,
       });
 
-      const data: EpisodeResponse = await response.json();
+      const data = await parseCloudApiResponse<EpisodeResponse>(response);
 
       if (data.success) {
         toast({
@@ -158,7 +159,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
   const fetchCurrentEpisode = async () => {
     try {
       const response = await fetch(`${EPISODES_API_URL}/current`);
-      const data: EpisodeResponse = await response.json();
+      const data = await parseCloudApiResponse<EpisodeResponse>(response);
       if (data.episode) {
         setCurrentEpisode(data.episode);
       }

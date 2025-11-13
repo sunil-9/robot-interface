@@ -4,6 +4,10 @@
  */
 
 import { API_CONFIG } from "@/config/api";
+import {
+  formatApiError,
+  parseCloudApiResponse,
+} from "@/utils/apiResponse";
 
 const EPISODES_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
 
@@ -88,12 +92,13 @@ export async function createEpisode(
     body: JSON.stringify(episodeData),
   });
 
+  const data = await parseCloudApiResponse<Episode>(response);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to create episode");
+    throw new Error(formatApiError(data, "Failed to create episode"));
   }
 
-  return response.json();
+  return data;
 }
 
 /**
@@ -109,11 +114,13 @@ export async function listEpisodes(
 
   const response = await fetch(url.toString());
 
+  const data = await parseCloudApiResponse<EpisodeListResponse>(response);
+
   if (!response.ok) {
-    throw new Error("Failed to fetch episodes");
+    throw new Error(formatApiError(data, "Failed to fetch episodes"));
   }
 
-  return response.json();
+  return data;
 }
 
 /**
@@ -127,12 +134,13 @@ export async function getEpisode(
     `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`
   );
 
+  const data = await parseCloudApiResponse<Episode>(response);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to fetch episode");
+    throw new Error(formatApiError(data, "Failed to fetch episode"));
   }
 
-  return response.json();
+  return data;
 }
 
 /**
@@ -154,12 +162,13 @@ export async function updateEpisode(
     }
   );
 
+  const data = await parseCloudApiResponse<Episode>(response);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to update episode");
+    throw new Error(formatApiError(data, "Failed to update episode"));
   }
 
-  return response.json();
+  return data;
 }
 
 /**
@@ -177,8 +186,8 @@ export async function deleteEpisode(
   );
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to delete episode");
+    const detail = await parseCloudApiResponse<unknown>(response);
+    throw new Error(formatApiError(detail, "Failed to delete episode"));
   }
 }
 
@@ -196,12 +205,13 @@ export async function replayEpisode(
     }
   );
 
+  const data = await parseCloudApiResponse<EpisodeReplayResponse>(response);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to replay episode");
+    throw new Error(formatApiError(data, "Failed to replay episode"));
   }
 
-  return response.json();
+  return data;
 }
 
 /**
@@ -218,12 +228,15 @@ export async function bulkDeleteEpisodes(
     body: JSON.stringify(deleteRequest),
   });
 
+  const data = await parseCloudApiResponse<BulkDeleteResponse>(response);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to bulk delete episodes");
+    throw new Error(
+      formatApiError(data, "Failed to bulk delete episodes")
+    );
   }
 
-  return response.json();
+  return data;
 }
 
 /**
@@ -246,10 +259,20 @@ export async function getEpisodeStats(
     `${EPISODES_BASE_URL}/${datasetId}/${episodeId}/stats`
   );
 
+  const data = await parseCloudApiResponse<{
+    episode_id: string;
+    dataset_id: string;
+    total_length: number;
+    frame_count: number;
+    replay_count: number;
+    created_at: string;
+    updated_at: string;
+    quality_score?: number;
+  }>(response);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || "Failed to fetch episode stats");
+    throw new Error(formatApiError(data, "Failed to fetch episode stats"));
   }
 
-  return response.json();
+  return data;
 }

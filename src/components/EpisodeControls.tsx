@@ -82,7 +82,7 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const EPISODES_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
+  const EPISODES_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}`;
 
   const handleApiCall = async (
     endpoint: string,
@@ -506,9 +506,11 @@ export const EpisodeControls: React.FC<EpisodeControlsProps> = ({
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm text-muted-foreground">
                                   <div className="flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
-                                    {new Date(
-                                      episode.metadata.created_at
-                                    ).toLocaleDateString()}
+                                    {episode.metadata.created_at
+                                      ? new Date(
+                                          episode.metadata.created_at
+                                        ).toLocaleDateString()
+                                      : "Unknown date"}
                                   </div>
                                   <div className="flex items-center gap-1">
                                     <Clock className="h-3 w-3" />

@@ -37,11 +37,12 @@ export const EpisodeList = ({
     <div className="space-y-2">
       {episodes.map((episode, index) => (
         <EpisodeCard
-          key={episode.episode_id}
+          key={episode.episode_index}
           episode={episode}
           index={index}
           isDeleting={isDeleting}
           formatDuration={formatDuration}
+          selectedDataset={selectedDataset}
           onDelete={onPromptDeleteEpisode}
         />
       ))}

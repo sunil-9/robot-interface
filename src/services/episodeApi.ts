@@ -4,20 +4,18 @@
  */
 
 import { API_CONFIG } from "@/config/api";
-import {
-  formatApiError,
-  parseCloudApiResponse,
-} from "@/utils/apiResponse";
+import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
 const EPISODES_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
+const DATASETS_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}`;
 
 // Type definitions matching backend schemas
 export interface EpisodeMetadata {
   replay_count: number;
   total_length: number;
   frame_count: number;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
   tags: string[];
   description?: string;
   quality_score?: number;
@@ -25,16 +23,28 @@ export interface EpisodeMetadata {
 }
 
 export interface Episode {
-  episode_id: string;
-  dataset_id: string;
-  metadata: EpisodeMetadata;
-  data_path?: string;
+  episode_index: string;
+  duration?: number;
+  created_at?: string;
 }
 
 export interface EpisodeListResponse {
   episodes: Episode[];
   total_count: number;
   dataset_id?: string;
+}
+
+interface DatasetEpisodeSummary {
+  episode_index: number;
+  duration: number;
+  created_at: string;
+}
+
+interface DatasetDetailResponse {
+  dataset_id: string;
+  total_episodes: number;
+  total_frames: number;
+  episodes: DatasetEpisodeSummary[];
 }
 
 export interface EpisodeCreate {
@@ -104,23 +114,44 @@ export async function createEpisode(
 /**
  * List all episodes, optionally filtered by dataset
  */
+type EpisodesApiResponse =
+  | EpisodeListResponse
+  | { detail?: DatasetDetailResponse | null };
+
 export async function listEpisodes(
   datasetId?: string
 ): Promise<EpisodeListResponse> {
-  const url = new URL(EPISODES_BASE_URL);
-  if (datasetId) {
-    url.searchParams.append("dataset_id", datasetId);
-  }
+  const endpoint = datasetId
+    ? `${DATASETS_BASE_URL}/${datasetId}`
+    : EPISODES_BASE_URL;
+  const response = await fetch(endpoint);
 
-  const response = await fetch(url.toString());
-
-  const data = await parseCloudApiResponse<EpisodeListResponse>(response);
+  const data = await parseCloudApiResponse<EpisodesApiResponse>(response);
 
   if (!response.ok) {
     throw new Error(formatApiError(data, "Failed to fetch episodes"));
   }
 
-  return data;
+  if ("detail" in data && data.detail) {
+    const detail  = data.detail;
+    console.log("this is epsode details",detail)
+    const normalizedEpisodes: Episode[] = detail.episodes.map((episode) => { 
+      const createdAt = episode.created_at;
+      const duration = Number.isFinite(episode.duration) ? episode.duration : 0;
+      return {
+        episode_id: episode.episode_index.toString(),
+        dataset_id: detail.dataset_id,
+       episode_index: episode.episode_index.toString(),
+      };
+    });
+    return {
+      episodes: normalizedEpisodes,
+      total_count: detail.total_episodes as number,
+      dataset_id: detail.dataset_id,
+    };
+  }
+
+  return data as EpisodeListResponse;
 }
 
 /**
@@ -231,9 +262,7 @@ export async function bulkDeleteEpisodes(
   const data = await parseCloudApiResponse<BulkDeleteResponse>(response);
 
   if (!response.ok) {
-    throw new Error(
-      formatApiError(data, "Failed to bulk delete episodes")
-    );
+    throw new Error(formatApiError(data, "Failed to bulk delete episodes"));
   }
 
   return data;

@@ -74,8 +74,11 @@ export const DatasetSelector = ({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={(event) => {
+                  onPointerDown={(event) => {
+                    // Prevent the select from closing before we handle delete.
+                    event.preventDefault();
                     event.stopPropagation();
+                    
                     onRequestDelete(dataset);
                   }}
                   className="h-8 w-8 p-0 text-red-400 opacity-0 transition-opacity hover:bg-red-900/20 hover:text-red-300 group-hover:opacity-100"

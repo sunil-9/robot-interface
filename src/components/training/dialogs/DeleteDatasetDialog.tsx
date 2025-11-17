@@ -43,9 +43,10 @@ export const DeleteDatasetDialog = ({
               </p>
               <ul className="mb-3 max-h-32 space-y-1 overflow-y-auto rounded bg-gray-800/50 p-2 text-sm">
                 {episodesPreview.slice(0, 5).map((episode) => (
-                  <li key={episode.episode_id} className="text-gray-300">
-                    • Episode {episode.episode_id} ({episode.metadata.frame_count}{" "}
-                    frames)
+                  <li key={episode.episode_index} className="text-gray-300">
+                    • Episode {episode.episode_index} (
+                    {episode.duration.toString()} seconds) created at{" "}
+                    {new Date(episode.created_at).toLocaleString()}
                   </li>
                 ))}
                 {episodesPreview.length > 5 && (

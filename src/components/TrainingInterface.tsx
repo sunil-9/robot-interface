@@ -1,5 +1,4 @@
 import { API_CONFIG } from "@/config/api";
-import { parseCloudApiResponse } from "@/utils/apiResponse";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
@@ -9,40 +8,17 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
-import {
-  Play,
-  RotateCcw,
-  Square,
-} from "lucide-react";
+import { parseCloudApiResponse } from "@/utils/apiResponse";
+import { Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CameraView } from "./CameraView";
 import { MockActionVarianceChart } from "./MockActionVarianceChart";
-import { Button } from "./ui/button";
-import { toast } from "./ui/use-toast";
 import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
-
-// Old Episode interface kept for mock episode controls (start/end/rewind)
-// These are separate from the persisted episodes managed by the API
-interface MockEpisode {
-  id: string;
-  name: string;
-  status:
-    | "idle"
-    | "recording"
-    | "paused"
-    | "completed"
-    | "replaying"
-    | "rewinding";
-  start_time?: string;
-  end_time?: string;
-  duration?: number;
-  data_count: number;
-  created_at: string;
-  updated_at: string;
-}
+import { Button } from "./ui/button";
+import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
   robotId: string | null;
@@ -396,18 +372,24 @@ export const TrainingInterface = ({
     }
   };
 
-  // Episode recording session controls API
-  const EPISODES_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
-
-  // Simplified API calls for episode control
   const startEpisode = async () => {
+    if (!selectedDataset) {
+      toast({
+        title: "Error",
+        description: "Select a dataset before starting an episode",
+        variant: "destructive",
+      });
+      return;
+    }
+    const TRAINING_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRAINING}/${selectedDataset}/start`;
     setIsLoading(true);
     try {
-      const response = await fetch(`${EPISODES_API_URL}/start`, {
+      const response = await fetch(`${TRAINING_API_URL}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: `Episode ${new Date().toLocaleTimeString()}`,
+          training_steps: 1,
+          checkpoint_interval: 2000,
         }),
       });
       const data = await parseCloudApiResponse<{
@@ -430,9 +412,18 @@ export const TrainingInterface = ({
   };
 
   const endEpisode = async () => {
+    if (!selectedDataset) {
+      toast({
+        title: "Error",
+        description: "Select a dataset before starting an episode",
+        variant: "destructive",
+      });
+      return;
+    }
+    const TRAINING_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRAINING}/${selectedDataset}/stop`;
     setIsLoading(true);
     try {
-      await fetch(`${EPISODES_API_URL}/end`, { method: "POST" });
+      await fetch(`${TRAINING_API_URL}/end`, { method: "POST" });
       setIsRecording(false);
       setCurrentEpisodeId(null);
       // Update episodes list if sidebar is open
@@ -449,11 +440,12 @@ export const TrainingInterface = ({
   const rewindEpisode = async () => {
     setIsLoading(true);
     try {
-      await fetch(`${EPISODES_API_URL}/rewind`, { method: "POST" });
-      // Update episodes list if sidebar is open
-      if (isSidebarOpen) {
-        fetchEpisodes();
-      }
+      console.log("This function will be implemented later");
+      // await fetch(`${EPISODES_API_URL}/rewind`, { method: "POST" });
+      // // Update episodes list if sidebar is open
+      // if (isSidebarOpen) {
+      //   fetchEpisodes();
+      // }
     } catch (error) {
       console.error("Failed to rewind episode:", error);
     } finally {

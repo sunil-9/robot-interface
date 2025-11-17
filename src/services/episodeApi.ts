@@ -1,26 +1,7 @@
-/**
- * Centralized API service for episode management
- * Maps to backend endpoints at /episodes
- */
-
 import { API_CONFIG } from "@/config/api";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
-const EPISODES_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.EPISODES}`;
 const DATASETS_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}`;
-
-// Type definitions matching backend schemas
-export interface EpisodeMetadata {
-  replay_count: number;
-  total_length: number;
-  frame_count: number;
-  created_at: string | null;
-  updated_at: string | null;
-  tags: string[];
-  description?: string;
-  quality_score?: number;
-  custom_metadata: Record<string, unknown>;
-}
 
 export interface Episode {
   episode_index: string;
@@ -47,16 +28,6 @@ interface DatasetDetailResponse {
   episodes: DatasetEpisodeSummary[];
 }
 
-export interface EpisodeCreate {
-  episode_id?: string;
-  dataset_id: string;
-  total_length: number;
-  frame_count?: number;
-  tags?: string[];
-  description?: string;
-  quality_score?: number;
-  custom_metadata?: Record<string, unknown>;
-}
 
 export interface EpisodeUpdate {
   total_length?: number;
@@ -74,43 +45,6 @@ export interface EpisodeReplayResponse {
   message: string;
 }
 
-export interface BulkDeleteRequest {
-  dataset_id: string;
-  episode_ids: string[];
-}
-
-export interface BulkDeleteResponse {
-  dataset_id: string;
-  deleted_count: number;
-  failed_count: number;
-  deleted_episodes: string[];
-  failed_episodes: string[];
-  message: string;
-}
-
-/**
- * Create a new episode
- */
-export async function createEpisode(
-  episodeData: EpisodeCreate
-): Promise<Episode> {
-  const response = await fetch(EPISODES_BASE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(episodeData),
-  });
-
-  const data = await parseCloudApiResponse<Episode>(response);
-
-  if (!response.ok) {
-    throw new Error(formatApiError(data, "Failed to create episode"));
-  }
-
-  return data;
-}
-
 /**
  * List all episodes, optionally filtered by dataset
  */
@@ -121,9 +55,7 @@ type EpisodesApiResponse =
 export async function listEpisodes(
   datasetId?: string
 ): Promise<EpisodeListResponse> {
-  const endpoint = datasetId
-    ? `${DATASETS_BASE_URL}/${datasetId}`
-    : EPISODES_BASE_URL;
+  const endpoint = `${DATASETS_BASE_URL}/${datasetId}`;
   const response = await fetch(endpoint);
 
   const data = await parseCloudApiResponse<EpisodesApiResponse>(response);
@@ -133,15 +65,14 @@ export async function listEpisodes(
   }
 
   if ("detail" in data && data.detail) {
-    const detail  = data.detail;
-    console.log("this is epsode details",detail)
-    const normalizedEpisodes: Episode[] = detail.episodes.map((episode) => { 
+    const detail = data.detail;
+    const normalizedEpisodes: Episode[] = detail.episodes.map((episode) => {
       const createdAt = episode.created_at;
       const duration = Number.isFinite(episode.duration) ? episode.duration : 0;
       return {
         episode_id: episode.episode_index.toString(),
         dataset_id: detail.dataset_id,
-       episode_index: episode.episode_index.toString(),
+        episode_index: episode.episode_index.toString(),
       };
     });
     return {
@@ -155,64 +86,24 @@ export async function listEpisodes(
 }
 
 /**
- * Get a specific episode by dataset_id and episode_id
- */
-export async function getEpisode(
-  datasetId: string,
-  episodeId: string
-): Promise<Episode> {
-  const response = await fetch(
-    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`
-  );
-
-  const data = await parseCloudApiResponse<Episode>(response);
-
-  if (!response.ok) {
-    throw new Error(formatApiError(data, "Failed to fetch episode"));
-  }
-
-  return data;
-}
-
-/**
- * Update an episode's metadata
- */
-export async function updateEpisode(
-  datasetId: string,
-  episodeId: string,
-  updateData: EpisodeUpdate
-): Promise<Episode> {
-  const response = await fetch(
-    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`,
-    {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(updateData),
-    }
-  );
-
-  const data = await parseCloudApiResponse<Episode>(response);
-
-  if (!response.ok) {
-    throw new Error(formatApiError(data, "Failed to update episode"));
-  }
-
-  return data;
-}
-
-/**
  * Delete a single episode
  */
 export async function deleteEpisode(
   datasetId: string,
   episodeId: string
 ): Promise<void> {
+  console.log(
+    "deleting episode",
+    `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`
+  );
   const response = await fetch(
-    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}`,
+    `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`,
     {
-      method: "DELETE",
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ episode_indices: [episodeId] }),
     }
   );
 
@@ -223,81 +114,34 @@ export async function deleteEpisode(
 }
 
 /**
- * Replay an episode (increments replay count)
- */
-export async function replayEpisode(
-  datasetId: string,
-  episodeId: string
-): Promise<EpisodeReplayResponse> {
-  const response = await fetch(
-    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}/replay`,
-    {
-      method: "POST",
-    }
-  );
-
-  const data = await parseCloudApiResponse<EpisodeReplayResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(formatApiError(data, "Failed to replay episode"));
-  }
-
-  return data;
-}
-
-/**
- * Bulk delete multiple episodes
- */
-export async function bulkDeleteEpisodes(
-  deleteRequest: BulkDeleteRequest
-): Promise<BulkDeleteResponse> {
-  const response = await fetch(`${EPISODES_BASE_URL}/bulk-delete`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(deleteRequest),
-  });
-
-  const data = await parseCloudApiResponse<BulkDeleteResponse>(response);
-
-  if (!response.ok) {
-    throw new Error(formatApiError(data, "Failed to bulk delete episodes"));
-  }
-
-  return data;
-}
-
-/**
  * Get episode statistics
  */
+/**
+ * 
+ * @param datasetId 
+ * @param episodeId 
+ * @returns 
+ * 	
+ */
+export interface EpisodeStatsResponse {
+  dataset_id: string;
+  episode_index: number;
+  from_timestamp: number;
+  to_timestamp: number;
+  duration: number;
+  created_at: string | null;
+  frame_count: number;
+}
+
 export async function getEpisodeStats(
   datasetId: string,
   episodeId: string
-): Promise<{
-  episode_id: string;
-  dataset_id: string;
-  total_length: number;
-  frame_count: number;
-  replay_count: number;
-  created_at: string;
-  updated_at: string;
-  quality_score?: number;
-}> {
+): Promise<EpisodeStatsResponse> {
   const response = await fetch(
-    `${EPISODES_BASE_URL}/${datasetId}/${episodeId}/stats`
+    `${DATASETS_BASE_URL}/${datasetId}/episodes/${episodeId}/stats`
   );
 
-  const data = await parseCloudApiResponse<{
-    episode_id: string;
-    dataset_id: string;
-    total_length: number;
-    frame_count: number;
-    replay_count: number;
-    created_at: string;
-    updated_at: string;
-    quality_score?: number;
-  }>(response);
+  const data = await parseCloudApiResponse<EpisodeStatsResponse>(response);
 
   if (!response.ok) {
     throw new Error(formatApiError(data, "Failed to fetch episode stats"));

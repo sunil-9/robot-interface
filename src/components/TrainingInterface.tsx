@@ -8,7 +8,6 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
-import { parseCloudApiResponse } from "@/utils/apiResponse";
 import { Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CameraView } from "./CameraView";
@@ -381,28 +380,30 @@ export const TrainingInterface = ({
       });
       return;
     }
-    const TRAINING_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRAINING}/${selectedDataset}/start`;
     setIsLoading(true);
     try {
-      const response = await fetch(`${TRAINING_API_URL}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          training_steps: 1,
-          checkpoint_interval: 2000,
-        }),
+      const sent = session.sendControl({
+        type: "dataset",
+        payload: {
+          action: "start",
+          datasetId: selectedDataset,
+        },
       });
-      const data = await parseCloudApiResponse<{
-        success?: boolean;
-        episode?: { id: string };
-      }>(response);
-      if (data.success && data.episode) {
-        setCurrentEpisodeId(data.episode.id);
-        setIsRecording(true);
-        // Update episodes list if sidebar is open
-        if (isSidebarOpen) {
-          fetchEpisodes();
-        }
+
+      if (!sent) {
+        toast({
+          title: "Error",
+          description: "Failed to send start request to robot",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCurrentEpisodeId((prev) => prev ?? "pending");
+      setIsRecording(true);
+      // Update episodes list if sidebar is open
+      if (isSidebarOpen) {
+        fetchEpisodes();
       }
     } catch (error) {
       console.error("Failed to start episode:", error);
@@ -420,10 +421,25 @@ export const TrainingInterface = ({
       });
       return;
     }
-    const TRAINING_API_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRAINING}/${selectedDataset}/stop`;
     setIsLoading(true);
     try {
-      await fetch(`${TRAINING_API_URL}/end`, { method: "POST" });
+      const sent = session.sendControl({
+        type: "dataset",
+        payload: {
+          action: "stop",
+          datasetId: selectedDataset,
+        },
+      });
+
+      if (!sent) {
+        toast({
+          title: "Error",
+          description: "Failed to send stop request to robot",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setIsRecording(false);
       setCurrentEpisodeId(null);
       // Update episodes list if sidebar is open

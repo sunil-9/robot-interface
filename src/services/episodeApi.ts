@@ -28,7 +28,6 @@ interface DatasetDetailResponse {
   episodes: DatasetEpisodeSummary[];
 }
 
-
 export interface EpisodeUpdate {
   total_length?: number;
   frame_count?: number;
@@ -99,7 +98,7 @@ export async function deleteEpisode(
   const response = await fetch(
     `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`,
     {
-      method: "POST",
+      method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
@@ -117,11 +116,11 @@ export async function deleteEpisode(
  * Get episode statistics
  */
 /**
- * 
- * @param datasetId 
- * @param episodeId 
- * @returns 
- * 	
+ *
+ * @param datasetId
+ * @param episodeId
+ * @returns
+ *
  */
 export interface EpisodeStatsResponse {
   dataset_id: string;

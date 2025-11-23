@@ -1,13 +1,17 @@
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Brain, Layers, Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import * as episodeApi from "@/services/episodeApi";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Slider } from "@/components/ui/slider";
 
 import { DatasetSelector } from "./DatasetSelector";
 import { EpisodeList } from "./EpisodeList";
+import { useState } from "react";
 
 interface EpisodeManagementSidebarProps {
   isOpen: boolean;
@@ -37,7 +41,9 @@ export const EpisodeManagementSidebar = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-}: EpisodeManagementSidebarProps) => (
+}: EpisodeManagementSidebarProps) => {
+  const [interval, setInterval] = useState([25])
+  return (
   <div className="fixed inset-y-0 right-0 z-30 flex items-center">
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetTrigger asChild>
@@ -80,8 +86,58 @@ export const EpisodeManagementSidebar = ({
               onPromptDeleteEpisode={onPromptDeleteEpisode}
             />
           </div>
+
+          <div className="flex h-[25%] min-h-[280px] flex-col justify-between border-t border-gray-800 bg-gray-950 p-5 shadow-[0_-5px_20px_rgba(0,0,0,0.3)]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-500" />
+                <h3 className="font-semibold text-white">Model Training</h3>
+              </div>
+              <Badge variant="outline" className="border-gray-700 bg-gray-900 text-gray-400">
+                Not Started
+              </Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1 rounded-lg border border-gray-800 bg-gray-900/50 p-2.5">
+                <span className="text-xs font-medium text-gray-500">Episodes Trained</span>
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-blue-500" />
+                  <span className="text-lg font-bold text-white">0</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 rounded-lg border border-gray-800 bg-gray-900/50 p-2.5">
+                <span className="text-xs font-medium text-gray-500">Total Steps</span>
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-green-500" />
+                  <span className="text-lg font-bold text-white">0</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-medium text-gray-400">Checkpoint Interval</Label>
+                <span className="text-xs font-mono text-purple-400">{interval} steps</span>
+              </div>
+              <Slider
+                defaultValue={interval}
+                onValueChange={(value) => setInterval(value)}
+                aria-label="Checkpoint Interval"
+                max={200}
+                min={10}
+                step={10}
+                className="py-1"
+              />
+            </div>
+
+            <Button className="w-full bg-purple-600 font-semibold text-white hover:bg-purple-700">
+              <Zap className="mr-2 h-4 w-4 fill-current" />
+              Train More
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
   </div>
-);
+)};

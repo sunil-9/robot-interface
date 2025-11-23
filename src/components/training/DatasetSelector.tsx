@@ -56,7 +56,9 @@ export const DatasetSelector = ({
             className="flex-1 border-gray-700 bg-gray-800 text-white"
           >
             <SelectValue
-              placeholder={isLoading ? "Loading datasets..." : "Select a dataset"}
+              placeholder={
+                isLoading ? "Loading datasets..." : "Select a dataset"
+              }
             />
           </SelectTrigger>
           <SelectContent className="border-gray-700 bg-gray-800">
@@ -78,7 +80,7 @@ export const DatasetSelector = ({
                     // Prevent the select from closing before we handle delete.
                     event.preventDefault();
                     event.stopPropagation();
-                    
+
                     onRequestDelete(dataset);
                   }}
                   className="h-8 w-8 p-0 text-red-400 opacity-0 transition-opacity hover:bg-red-900/20 hover:text-red-300 group-hover:opacity-100"
@@ -100,10 +102,17 @@ export const DatasetSelector = ({
         </Select>
       </div>
       {selectedDataset && (
-        <p className="mt-2 text-xs text-gray-400">
-          Episodes will be saved to:{" "}
-          <span className="text-purple-300">{selectedDataset}</span>
-        </p>
+        <>
+          <p className="mt-2 text-xs text-gray-400">
+            Episodes will be saved to:{" "}
+            <span className="text-purple-300">{selectedDataset}</span>
+          </p>
+          <p className="mt-2 text-xs text-gray-400">
+            Minimum of{" "}
+            <span className="text-purple-300">10 episodes</span>{" "}
+             required to start training.
+          </p>{" "}
+        </>
       )}
     </div>
   );

@@ -112,30 +112,28 @@ export async function deleteEpisode(
 /**
  * Get episode statistics
  */
-/**
- *
- * @param datasetId
+// export interface EpisodeStatsResponse {
 
-  from_timestamp: number;
-  to_timestamp: number;
-  duration: number;
-  created_at: string | null;
-  frame_count: number;
-}
+//   from_timestamp: number;
+//   to_timestamp: number;
+//   duration: number;
+//   created_at: string | null;
+//   frame_count: number;
+// }
 
-export async function getEpisodeStats(
-  datasetId: string,
-  episodeId: string
-): Promise<EpisodeStatsResponse> {
-  const response = await fetch(
-    `${DATASETS_BASE_URL}/${datasetId}/episodes/${episodeId}/stats`
-  );
+// export async function getEpisodeStats(
+//   datasetId: string,
+//   episodeId: string
+// ): Promise<EpisodeStatsResponse> {
+//   const response = await fetch(
+//     `${DATASETS_BASE_URL}/${datasetId}/episodes/${episodeId}/stats`
+//   );
 
-  const data = await parseCloudApiResponse<EpisodeStatsResponse>(response);
+//   const data = await parseCloudApiResponse<EpisodeStatsResponse>(response);
 
-  if (!response.ok) {
-    throw new Error(formatApiError(data, "Failed to fetch episode stats"));
-  }
+//   if (!response.ok) {
+//     throw new Error(formatApiError(data, "Failed to fetch episode stats"));
+//   }
 
-  return data;
-}
+//   return data;
+// }

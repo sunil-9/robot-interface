@@ -28,9 +28,11 @@ export const EpisodeCard = ({
   selectedDataset,
   onDelete,
 }: EpisodeCardProps) => {
-  const episodeIndex =episode.episode_index;
+  const episodeIndex = episode.episode_index;
   const displayIndex =
-    episodeIndex !== undefined ? episodeIndex + 1 : index + 1;
+    episodeIndex !== undefined && !isNaN(Number(episodeIndex))
+      ? Number(episodeIndex) + 1
+      : index + 1;
 
   const formattedTimestamp = episode.created_at
     ? shortDateFormatter.format(new Date(episode.created_at))
@@ -62,7 +64,7 @@ export const EpisodeCard = ({
           variant="ghost"
           onClick={() => onDelete(selectedDataset, episode.episode_index)}
           disabled={isDeleting}
-          className="text-gray-500 hover:text-red-600 text-red-400 h-2 w-2"
+          className="text-gray-500 hover:text-red-600 h-2 w-2"
           aria-label="Delete episode"
         >
           <Trash2 className="h-2 w-2" />

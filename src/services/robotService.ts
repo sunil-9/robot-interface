@@ -34,14 +34,15 @@ export const robotService = {
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
         }
       );
+      if (!response.ok) {
+        throw new Error(
+          formatApiError("api failed to respond", `Failed to fetch robots: ${response.status}`)
+        );
+      }
 
       const data = await parseCloudApiResponse<RobotsResponse>(response);
 
-      if (!response.ok) {
-        throw new Error(
-          formatApiError(data, `Failed to fetch robots: ${response.status}`)
-        );
-      }
+
       const rawRobots = Array.isArray(data.robots) ? data.robots : [];
 
       // Map API robots to application robots format

@@ -91,10 +91,7 @@ export async function deleteEpisode(
   datasetId: string,
   episodeId: string
 ): Promise<void> {
-  console.log(
-    "deleting episode",
-    `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`
-  );
+
   const response = await fetch(
     `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`,
     {
@@ -118,13 +115,7 @@ export async function deleteEpisode(
 /**
  *
  * @param datasetId
- * @param episodeId
- * @returns
- *
- */
-export interface EpisodeStatsResponse {
-  dataset_id: string;
-  episode_index: number;
+
   from_timestamp: number;
   to_timestamp: number;
   duration: number;

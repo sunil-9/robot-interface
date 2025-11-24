@@ -7,6 +7,10 @@ import {
   Robot,
   RobotsResponse,
 } from "@/types/robot";
+import {
+  formatApiError,
+  parseCloudApiResponse,
+} from "@/utils/apiResponse";
 
 export interface RobotFetchResult {
   appRobots: AppRobot[];
@@ -31,11 +35,13 @@ export const robotService = {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch robots: ${response.status}`);
-      }
+      const data = await parseCloudApiResponse<RobotsResponse>(response);
 
-      const data: RobotsResponse = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          formatApiError(data, `Failed to fetch robots: ${response.status}`)
+        );
+      }
       const rawRobots = Array.isArray(data.robots) ? data.robots : [];
 
       // Map API robots to application robots format
@@ -70,11 +76,18 @@ export const robotService = {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch operator devices: ${response.status}`);
-      }
+      const data = await parseCloudApiResponse<OperatorDevicesResponse>(
+        response
+      );
 
-      const data: OperatorDevicesResponse = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          formatApiError(
+            data,
+            `Failed to fetch operator devices: ${response.status}`
+          )
+        );
+      }
 
       // Map API devices to application control devices format
       return data.devices.map(mapApiDeviceToControlDevice);

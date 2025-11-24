@@ -1,4 +1,8 @@
 import { buildApiUrl } from "./config";
+import {
+  formatApiError,
+  parseCloudApiResponse,
+} from "@/utils/apiResponse";
 
 export interface RobotPresenceSummary {
   robot_id: string;
@@ -37,10 +41,14 @@ export interface RobotCameraConfig {
 
 export const fetchRobots = async (): Promise<RobotPresenceSummary[]> => {
   const response = await fetch(buildApiUrl("/robots"));
+  const payload = await parseCloudApiResponse<RobotPresenceListResponse>(
+    response
+  );
   if (!response.ok) {
-    throw new Error(`Failed to load robots (${response.status})`);
+    throw new Error(
+      formatApiError(payload, `Failed to load robots (${response.status})`)
+    );
   }
-  const payload = (await response.json()) as RobotPresenceListResponse;
   return payload.robots ?? [];
 };
 
@@ -51,7 +59,9 @@ export const fetchSignalingConfig =
       if (!response.ok) {
         return null;
       }
-      const payload = (await response.json()) as SignalingConfigResponse;
+      const payload = await parseCloudApiResponse<SignalingConfigResponse>(
+        response
+      );
       return {
         baseUrl: payload.signaling_base_url ?? undefined,
         wsUrl: payload.signaling_ws_url ?? undefined,
@@ -76,7 +86,7 @@ export const fetchRobotCameras = async (
     if (!response.ok) {
       return [];
     }
-    const payload = (await response.json()) as unknown;
+    const payload = await parseCloudApiResponse<unknown>(response);
     if (!Array.isArray(payload)) {
       return [];
     }
@@ -97,10 +107,14 @@ export interface DatasetsListResponse {
 export const fetchDatasets = async (): Promise<string[]> => {
   try {
     const response = await fetch(buildApiUrl("/datasets/"));
+    const payload = await parseCloudApiResponse<DatasetsListResponse>(
+      response
+    );
     if (!response.ok) {
-      throw new Error(`Failed to fetch datasets (${response.status})`);
+      throw new Error(
+        formatApiError(payload, `Failed to fetch datasets (${response.status})`)
+      );
     }
-    const payload = (await response.json()) as DatasetsListResponse;
     return payload.datasets ?? [];
   } catch (error) {
     console.error("Failed to fetch datasets:", error);
@@ -115,7 +129,10 @@ export const createDataset = async (datasetId: string): Promise<void> => {
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to create dataset (${response.status})`);
+      const detail = await parseCloudApiResponse<unknown>(response);
+      throw new Error(
+        formatApiError(detail, `Failed to create dataset (${response.status})`)
+      );
     }
   } catch (error) {
     console.error("Failed to create dataset:", error);

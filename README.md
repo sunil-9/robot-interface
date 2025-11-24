@@ -4,6 +4,7 @@ A comprehensive web-based interface for robot teaching and control, featuring re
 
 ## 📝 Recent Updates
 
+- **Model Training UI**: Added comprehensive model training interface with status tracking and controls
 - **Dynamic Robot Configuration**: Added JSON-based robot configuration system
 - **New Utility Functions**: Added `websocketConfig.ts` with configuration access methods
 - **Robot Config Hook**: Created `useRobotConfig` hook for accessing robot specifications
@@ -13,6 +14,7 @@ A comprehensive web-based interface for robot teaching and control, featuring re
 ## 🚀 Features
 
 - **Real-time Robot Control**: Interactive interface for joint manipulation and control
+- **Model Training Interface**: Integrated UI for managing training sessions, checkpoints, and monitoring progress
 - **Camera Integration**: Live camera feeds for visual feedback during robot teaching
 - **Data Visualization**: Line charts and real-time plotting of sensor data
 - **Training Interface**: Comprehensive training module for robot learning
@@ -22,23 +24,92 @@ A comprehensive web-based interface for robot teaching and control, featuring re
 ## 📁 Project Structure
 
 ```text
-├── backend/                 # Python backend with ROS2 bridge
-│   ├── backend.py          # Main WebSocket server
-│   ├── dummy_publisher.py  # ROS2 topic publisher for testing
-│   ├── config.json         # Configuration file
-│   └── requirements.txt    # Python dependencies
-├── src/
-│   ├── components/         # React components
-│   │   ├── CameraView.tsx  # Camera feed component
-│   │   ├── JointManager.tsx # Joint control interface
-│   │   ├── LineChart.tsx   # Data visualization
-│   │   └── TrainingInterface.tsx # Training module
-│   ├── hooks/             # Custom React hooks
-│   └── pages/             # Application pages
-└── images/                # Screenshots and demos
-    ├── image.png          # Project screenshot
-    └── ui.gif             # UI demonstration
+├── im-cloud-backend/        # Cloud backend for datasets and training
+├── im-robot-backend/        # Robot-side backend with ROS2 bridge
+├── frontend/                # React frontend application
+│   ├── src/
+│   │   ├── components/      # React components
+│   │   │   ├── training/    # Training & Episode management
+│   │   │   ├── CameraView.tsx
+│   │   │   └── ...
+│   │   ├── hooks/           # Custom React hooks
+│   │   └── pages/           # Application pages
+└── so-100-control/          # Robot control software
 ```
+
+## 🤖 Dynamic Robot System
+
+The interface discovers available robots and configures itself based on their specific capabilities (joints, cameras, ROS topics).
+
+### File Structure
+
+- `src/config/api.ts`: Central API configuration
+- `src/data/websocket-config.json`: Default robot configuration
+- `src/hooks/useRobots.ts`: Hook for fetching robot list
+- `src/hooks/useRobotConfig.ts`: Hook for accessing robot capabilities
+- `src/services/robotService.ts`: API service layer
+
+### Module Details
+
+1. **Robot Discovery (Home Page)**: Fetches active robots from the cloud backend.
+2. **Robot Configuration (Control Interface)**: Adapts UI to the specific robot (joints, cameras).
+
+### Data Flow
+
+1. **Discovery**: User visits Home -> `useRobots` calls `robotService` -> Fetches active robots.
+2. **Selection**: User selects a robot -> App loads Control Page.
+3. **Configuration**: Control Page uses `useRobotConfig` -> Reads config -> Renders UI.
+
+## 🔌 WebSocket Configuration System
+
+Manages WebSocket connections and topics dynamically via `src/data/websocket-config.json`.
+
+### Key Components
+
+- **Configuration File**: `src/data/websocket-config.json`
+- **Utility Functions**: `src/utils/websocketConfig.ts`
+- **Context API**: `BridgeContext` for app-wide access
+
+### Camera System
+
+Supports dynamic camera views (Head, Left Hand, Right Hand) identified by roles in the configuration.
+
+## 🎮 Gamepad Control
+
+The frontend sends complete gamepad state snapshots (~50Hz) via WebRTC.
+
+### Format
+
+```json
+{
+  "type": "control",
+  "timestamp": 1761528520153,
+  "device": { "gamepad": { "id": "...", "index": 0 } },
+  "axes": { "0": 0.25, "1": -0.02, ... },
+  "buttons": { "0": 0, "1": 1, ... }
+}
+```
+
+### Implementation
+
+- **Polling**: `src/components/InputTracker.tsx` polls state using `requestAnimationFrame`.
+- **Deadzone**: Automatically applied to axes.
+- **Optimization**: Signals only sent on state change.
+
+## 🔄 Mode State Management
+
+Global mode state management using React Context API.
+
+### Available Modes
+
+- `AppMode.TRAINING`
+- `AppMode.RECORDING`
+- `AppMode.REPLAY`
+- `AppMode.POLICY_RUNNING`
+
+### Usage
+
+Use `useModeContext()` hook to access `mode` and `setMode`.
 
 ## 🛠️ Technologies Used
 
@@ -51,22 +122,13 @@ A comprehensive web-based interface for robot teaching and control, featuring re
 - **Tailwind CSS** - Utility-first CSS framework
 - **WebSocket** - Real-time communication
 
-### Backend
 
-- **Python 3** - Backend server
-- **ROS2** - Robot Operating System
-- **WebSockets** - Real-time communication
-- **OpenCV** - Computer vision
-- **NumPy** - Numerical computations
 
 ## 📋 Prerequisites
 
 Before running the project, ensure you have:
 
 - **Node.js** (v16 or higher) and npm
-- **Python 3.8+**
-- **ROS2** (Humble or newer)
-- **Conda** (recommended for Python environment management)
 
 ## 🚀 Getting Started
 
@@ -79,22 +141,23 @@ cd web-interface
 
 ### 2. Setup Backend Environment
 
+The project uses `uv` for Python dependency management.
+
 ```bash
-# Navigate to backend directory
-cd backend
+# Setup Robot Backend
+cd ../im-robot-backend
+uv sync
 
-# Activate your conda environment (replace 'lerobot' with your environment name)
-conda activate lerobot
-
-# Install Python dependencies
-pip install -r requirements.txt
+# Setup Cloud Backend
+cd ../im-cloud-backend
+uv sync
 ```
 
 ### 3. Setup Frontend
 
 ```bash
-# Navigate back to project root
-cd ..
+# Navigate to frontend directory
+cd ../frontend
 
 # Install Node.js dependencies
 npm install
@@ -102,42 +165,35 @@ npm install
 
 ## 🎯 Running the Project
 
-The project requires three components to run simultaneously:
+The project requires the backends and frontend to run simultaneously:
 
-### 1. Start ROS2 Topic Publisher (Terminal 1)
-
-```bash
-cd backend
-python3 dummy_publisher.py
-```
-
-This publishes dummy data to ROS2 topics for testing the interface.
-
-### 2. Start Backend WebSocket Server (Terminal 2)
-
-`Note: Run this before frontend because it uses port 8080 by default and you may face port issue if you run frontend first`
+### 1. Start Robot Backend (Terminal 1)
 
 ```bash
-cd ./backend/mybridge/ && conda activate lerobot &&  uv run uvicorn mybridge.main:app --host 0.0.0.0 --port 8080 --reload
+cd ../im-robot-backend
+# Ensure ROS2 environment is sourced if needed
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
-This starts the WebSocket bridge that connects ROS2 topics to the web interface.
+This starts the robot-side service that bridges ROS2 topics.
+
+### 2. Start Cloud Backend (Terminal 2)
+
+```bash
+cd ../im-cloud-backend
+uv run uvicorn app.main:app --reload --port 8100
+```
+
+This starts the cloud service for dataset management and training.
 
 ### 3. Start Frontend Development Server (Terminal 3)
 
 ```bash
+cd ../frontend
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:5173`
-
-## 🖼️ Screenshots
-
-![Project Interface](images/image.png)
-_Main interface showing robot control and camera feed_
-
-![UI Demo](images/ui.gif)
-_Interactive demonstration of the user interface_
+The frontend will be available at `http://localhost:8081`.
 
 ## ⚙️ Configuration
 
@@ -199,23 +255,6 @@ npm run lint         # Run ESLint
 3. **Frontend Build Issues**
    - Clear node_modules and reinstall: `rm -rf node_modules && npm install`
    - Check Node.js version compatibility
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and test thoroughly
-4. Commit your changes: `git commit -m 'Add feature'`
-5. Push to the branch: `git push origin feature-name`
-6. Submit a pull request
-
-## 📝 License
-
-## 🙏 Acknowledgments
-
-- ROS2 community for the robotics framework
-- shadcn/ui for the beautiful component library
-- React and Vite teams for the excellent development tools
 
 ---
 

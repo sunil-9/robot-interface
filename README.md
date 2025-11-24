@@ -122,22 +122,13 @@ Use `useModeContext()` hook to access `mode` and `setMode`.
 - **Tailwind CSS** - Utility-first CSS framework
 - **WebSocket** - Real-time communication
 
-### Backend
 
-- **Python 3** - Backend server
-- **ROS2** - Robot Operating System
-- **WebSockets** - Real-time communication
-- **OpenCV** - Computer vision
-- **NumPy** - Numerical computations
 
 ## 📋 Prerequisites
 
 Before running the project, ensure you have:
 
 - **Node.js** (v16 or higher) and npm
-- **Python 3.8+**
-- **ROS2** (Humble or newer)
-- **Conda** (recommended for Python environment management)
 
 ## 🚀 Getting Started
 
@@ -203,14 +194,6 @@ npm run dev
 ```
 
 The frontend will be available at `http://localhost:8081`.
-
-## 🖼️ Screenshots
-
-![Project Interface](images/image.png)
-_Main interface showing robot control and camera feed_
-
-![UI Demo](images/ui.gif)
-_Interactive demonstration of the user interface_
 
 ## ⚙️ Configuration
 

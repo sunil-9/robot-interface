@@ -108,9 +108,8 @@ export const DatasetSelector = ({
             <span className="text-purple-300">{selectedDataset}</span>
           </p>
           <p className="mt-2 text-xs text-gray-400">
-            Minimum of{" "}
-            <span className="text-purple-300">10 episodes</span>{" "}
-             required to start training.
+            Minimum of <span className="text-purple-300">10 episodes</span>{" "}
+            required to start training.
           </p>{" "}
         </>
       )}

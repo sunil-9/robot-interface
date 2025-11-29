@@ -91,16 +91,12 @@ export const CameraView = ({
           {hasVideo ? (
             <video
               ref={videoRef}
-              className="h-full w-full object-cover"
+              className="h-full w-full "
               muted
               playsInline
             />
           ) : hasFallback ? (
-            <img
-              src={fallbackImage ?? undefined}
-              alt={title}
-              className="h-full w-full object-contain"
-            />
+            <img src={fallbackImage} alt={title} className="h-full w-full " />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
               <Camera className="h-8 w-8" />

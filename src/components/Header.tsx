@@ -17,7 +17,7 @@ export const Header = ({ onToggleSidebar }: HeaderProps) => {
        */}
       <div className="flex-1 flex justify-center">
         <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-          Imitation Machine
+          Imitation Machines
         </h1>
       </div>
       <div className="w-10" /> {/* Spacer for balance */}

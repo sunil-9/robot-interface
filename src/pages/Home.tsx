@@ -28,6 +28,7 @@ import {
 } from "@/components/RobotSkeleton";
 import { useRobots } from "@/hooks/useRobots";
 import { AppRobot } from "@/types/robot";
+import { Header } from "@/components/Header";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -91,16 +92,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col">
       {/* Header */}
-      <header className="border-b border-gray-800 p-4 bg-black">
-        <div className="container mx-auto">
-          <h1 className="text-2xl font-bold text-purple-400">
-            Robot Teaching Interface
-          </h1>
-          <p className="text-gray-400 text-sm">
-            Select a robot and control device to begin
-          </p>
-        </div>
-      </header>
+      <Header page={"main"}/>
 
       {/* Main content */}
       <main className="flex-grow container mx-auto p-4 md:p-8">

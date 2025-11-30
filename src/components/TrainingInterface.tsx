@@ -11,7 +11,7 @@ import * as episodeApi from "@/services/episodeApi";
 import { Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CameraView } from "./CameraView";
-import { MockActionVarianceChart } from "./MockActionVarianceChart";
+import { ActionVarianceChart } from "./ActionVarianceChart";
 import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
@@ -589,7 +589,7 @@ export const TrainingInterface = ({
           />
 
           <div className="absolute top-10 left-4 z-10 w-[260px] opacity-90 transition-opacity hover:opacity-100">
-            <MockActionVarianceChart
+            <ActionVarianceChart
               title="2 sec future"
               overlay
               compact

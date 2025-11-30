@@ -27,19 +27,19 @@ ChartJS.register(
   annotationPlugin
 );
 
-interface MockActionVarianceChartProps {
+interface ActionVarianceChartProps {
   title: string;
   overlay?: boolean;
   compact?: boolean;
   showTitle?: boolean;
 }
 
-export const MockActionVarianceChart = ({
+export const ActionVarianceChart = ({
   title,
   overlay = false,
   compact = false,
   showTitle = true,
-}: MockActionVarianceChartProps) => {
+}: ActionVarianceChartProps) => {
   const [data, setData] = useState<number[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -146,6 +146,7 @@ export const MockActionVarianceChart = ({
                       data.length > 0
                         ? [...data]
                             .sort((a, b) => a - b)
+                            // eslint-disable-next-line no-unexpected-multiline
                             [Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,

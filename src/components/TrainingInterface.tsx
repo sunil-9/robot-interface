@@ -241,6 +241,7 @@ export const TrainingInterface = ({
     (slot) => slot.key !== mainSlot?.key
   );
   const rightColumnSlots = [...rightSlots, ...extrasForRight];
+  const secondarySlots = [...leftSlots, ...rightColumnSlots];
 
   const fallbackImageForPosition = (
     position: "main" | "left" | "right" | "extra"
@@ -257,20 +258,20 @@ export const TrainingInterface = ({
     }
   };
 
-  const renderColumn = (
+  const renderSecondaryStack = (
     slots: CameraSlot[],
     fallbackPosition: "left" | "right"
   ) => {
     if (slots.length === 0) {
       return (
-        <div className="flex h-full items-center justify-center rounded border border-dashed border-purple-900/40 bg-black/40 text-xs text-gray-500">
+        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white/70 text-xs font-semibold uppercase tracking-wide text-gray-400 shadow-sm">
           No {fallbackPosition} cameras
         </div>
       );
     }
 
     return (
-      <div className="grid h-full auto-rows-fr gap-2">
+      <div className="space-y-3">
         {slots.map((slot) => (
           <CameraView
             key={slot.key}
@@ -281,7 +282,7 @@ export const TrainingInterface = ({
             )}
             position={slot.position}
             isConnected={Boolean(slot.stream)}
-            className="rounded-lg border border-purple-900/40 bg-gray-950/40"
+            className="h-[170px] rounded-2xl border border-gray-200 bg-white/80 shadow-sm"
           />
         ))}
       </div>
@@ -589,129 +590,148 @@ export const TrainingInterface = ({
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black text-white">
-      <main className="grid h-full grid-rows-[60%_40%]">
-        <div className="relative h-full">
-          <CameraView
-            key={mainSlot?.key ?? "main"}
-            title={mainSlot?.title ?? "Main Camera"}
-            stream={mainSlot?.stream ?? null}
-            fallbackImage={fallbackImageForPosition(
-              mainSlot?.position ?? "main"
-            )}
-            position={mainSlot?.position ?? "main"}
-            isConnected={Boolean(mainSlot?.stream)}
-            className="h-full rounded-none border border-purple-900/40 bg-black"
-          />
+    <div className="relative min-h-screen w-full overflow-hidden bg-[#eef1f6] text-gray-900">
+      <main className="relative mx-auto flex h-screen max-h-screen flex-col px-6 pb-28 pt-20">
+        <div className="flex h-full min-h-0 gap-5 pr-4">
+          <div className="relative flex-1 overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-[0_25px_70px_rgba(15,23,42,0.08)]">
+            <div className="absolute left-5 top-5 z-20 rounded-lg border border-gray-200 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600 shadow-sm">
+              Primary View
+            </div>
 
-          <div className="absolute top-10 left-4 z-10 w-[260px] opacity-90 transition-opacity hover:opacity-100">
-            <ActionVarianceChart
-              title="2 sec future"
-              overlay
-              compact
+            <div className="absolute left-5 top-16 z-20 w-[260px] opacity-95 transition-opacity hover:opacity-100">
+              <div className="rounded-2xl border border-gray-200 bg-white/85 p-2 shadow-lg backdrop-blur">
+                <ActionVarianceChart
+                  title="2 sec future"
+                  overlay
+                  compact
+                  showTitle={false}
+                />
+              </div>
+            </div>
+
+            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 text-xs">
+              <div className="rounded-xl border border-gray-200 bg-white/85 px-3 py-2 text-gray-600 shadow-lg backdrop-blur">
+                <div>
+                  <span className="text-gray-500">Signaling:</span>{" "}
+                  <span
+                    className={
+                      session.signalingConnected
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }
+                  >
+                    {session.signalingConnected ? "connected" : "connecting"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Peer:</span>{" "}
+                  <span className="text-purple-700">
+                    {session.connectionState}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Telemetry:</span>{" "}
+                  <span
+                    className={
+                      session.telemetryOpen
+                        ? "text-green-600"
+                        : "text-amber-600"
+                    }
+                  >
+                    {session.telemetryOpen ? "open" : "pending"}
+                  </span>
+                </div>
+              </div>
+              {cameraLoading && (
+                <span className="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] text-purple-700 shadow">
+                  Loading camera config…
+                </span>
+              )}
+              {cameraError && (
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] text-amber-700 shadow">
+                  {cameraError}
+                </span>
+              )}
+            </div>
+
+            <CameraView
+              key={mainSlot?.key ?? "main"}
+              title={mainSlot?.title ?? "Main Camera"}
+              stream={mainSlot?.stream ?? null}
+              fallbackImage={fallbackImageForPosition(
+                mainSlot?.position ?? "main"
+              )}
+              position={mainSlot?.position ?? "main"}
+              isConnected={Boolean(mainSlot?.stream)}
               showTitle={false}
+              className="h-full rounded-[32px] border-none bg-transparent"
+            />
+
+            <EpisodeManagementSidebar
+              isOpen={isSidebarOpen}
+              onOpenChange={setIsSidebarOpen}
+              datasets={datasets}
+              selectedDataset={selectedDataset}
+              isLoadingDatasets={isLoadingDatasets}
+              episodes={episodes}
+              isDeleting={isDeleting}
+              formatDuration={formatDuration}
+              onSelectDataset={setSelectedDataset}
+              onRequestCreateDataset={() => setIsCreateDialogOpen(true)}
+              onRequestDeleteDataset={promptDeleteDataset}
+              onPromptDeleteEpisode={promptDeleteEpisode}
             />
           </div>
 
-          <div className="absolute top-8 right-4 z-10 flex flex-col items-end gap-2 text-xs">
-            <div className="rounded-lg border border-purple-900/40 bg-black/70 px-3 py-2 shadow-lg">
-              <div>
-                <span className="text-gray-400">Signaling:</span>{" "}
-                <span
-                  className={
-                    session.signalingConnected
-                      ? "text-green-300"
-                      : "text-yellow-200"
-                  }
-                >
-                  {session.signalingConnected ? "connected" : "connecting"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Peer:</span>{" "}
-                <span className="text-purple-200">
-                  {session.connectionState}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Telemetry:</span>{" "}
-                <span
-                  className={
-                    session.telemetryOpen ? "text-green-300" : "text-yellow-200"
-                  }
-                >
-                  {session.telemetryOpen ? "open" : "pending"}
-                </span>
-              </div>
+          <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-gray-200 bg-white/80 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Secondary Cameras
             </div>
-            {cameraLoading && (
-              <span className="rounded bg-purple-900/60 px-2 py-1 text-[11px] text-purple-100 shadow">
-                Loading camera config…
-              </span>
-            )}
-            {cameraError && (
-              <span className="rounded bg-yellow-900/60 px-2 py-1 text-[11px] text-yellow-200 shadow">
-                {cameraError}
-              </span>
-            )}
-          </div>
-          <EpisodeManagementSidebar
-            isOpen={isSidebarOpen}
-            onOpenChange={setIsSidebarOpen}
-            datasets={datasets}
-            selectedDataset={selectedDataset}
-            isLoadingDatasets={isLoadingDatasets}
-            episodes={episodes}
-            isDeleting={isDeleting}
-            formatDuration={formatDuration}
-            onSelectDataset={setSelectedDataset}
-            onRequestCreateDataset={() => setIsCreateDialogOpen(true)}
-            onRequestDeleteDataset={promptDeleteDataset}
-            onPromptDeleteEpisode={promptDeleteEpisode}
-          />
-        </div>
-
-        <div className="grid h-full grid-cols-7 gap-2 border-t border-purple-900/40 bg-gray-950/40 p-2">
-          <div className="col-span-3">{renderColumn(leftSlots, "left")}</div>
-
-          <div className="col-span-1 flex flex-col items-center justify-center gap-2">
-            <Button
-              onClick={isRecording ? endEpisode : startEpisode}
-              disabled={isLoading}
-              className={`w-full ${
-                isRecording
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-green-600 hover:bg-green-700"
-              } text-white`}
-            >
-              {isRecording ? (
-                <Square className="mr-1 h-4 w-4" />
-              ) : (
-                <Play className="mr-1 h-4 w-4" />
-              )}
-              {isRecording ? "End" : "Start"}
-            </Button>
-
-            <Button
-              onClick={rewindEpisode}
-              disabled={isLoading || !currentEpisodeId}
-              variant="outline"
-              className="w-full"
-            >
-              <RotateCcw className="mr-1 h-4 w-4" />
-              Rewind
-            </Button>
-            <Button onClick={handleDeploy} variant="outline" className="w-full">
-              <DatabaseBackup className="mr-1 h-4 w-4" />
-              Deploy
-            </Button>
-          </div>
-
-          <div className="col-span-3">
-            {renderColumn(rightColumnSlots, "right")}
+            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+              {renderSecondaryStack(secondarySlots, "right")}
+            </div>
           </div>
         </div>
       </main>
+
+      <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)]">
+          <Button
+            onClick={isRecording ? endEpisode : startEpisode}
+            disabled={isLoading}
+            className={`rounded-full px-5 ${
+              isRecording
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-emerald-500 hover:bg-emerald-600"
+            } text-white shadow-sm`}
+          >
+            {isRecording ? (
+              <Square className="mr-2 h-4 w-4" />
+            ) : (
+              <Play className="mr-2 h-4 w-4" />
+            )}
+            {isRecording ? "End" : "Start"}
+          </Button>
+
+          <Button
+            onClick={rewindEpisode}
+            disabled={isLoading || !currentEpisodeId}
+            variant="outline"
+            className="rounded-full border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200"
+          >
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Rewind
+          </Button>
+          <Button
+            onClick={handleDeploy}
+            variant="outline"
+            className="rounded-full border-purple-200 bg-purple-500 text-white hover:bg-purple-600"
+          >
+            <DatabaseBackup className="mr-2 h-4 w-4" />
+            Deploy
+          </Button>
+        </div>
+      </div>
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

@@ -360,11 +360,11 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   };
 
   return (
-    <Card className="fixed bottom-4 left-4 z-50 bg-black/30 backdrop-blur-sm border-gray-800 shadow-lg p-3 max-w-xs">
-      <div className="flex justify-between items-center">
+    <Card className="fixed bottom-4 left-4 z-50 max-w-xs border border-gray-200 bg-white/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.2)] backdrop-blur">
+      <div className="flex items-center justify-between">
         <Badge
           variant="outline"
-          className="bg-purple-900/30 border-purple-800 px-2 py-0.5 mb-2"
+          className="mb-2 border-purple-200 bg-purple-50 px-2 py-0.5 text-purple-700"
         >
           {controlType
             ? controlType.charAt(0).toUpperCase() + controlType.slice(1)
@@ -372,7 +372,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
           Input Tracker
         </Badge>
         <button
-          className="text-gray-500 hover:text-gray-300"
+          className="text-gray-500 transition hover:text-gray-800"
           onClick={() => setIsVisible(false)}
           aria-label="Close"
         >
@@ -380,18 +380,18 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         </button>
       </div>
 
-      <div className="flex items-center mt-1">
-        <div className="bg-gray-800 rounded-full p-1.5 mr-3">
+      <div className="mt-1 flex items-center">
+        <div className="mr-3 rounded-full bg-gray-100 p-1.5 text-gray-700">
           {getInputIcon()}
         </div>
-        <div className="text-xs text-gray-300">{getInputDescription()}</div>
+        <div className="text-xs text-gray-700">{getInputDescription()}</div>
       </div>
 
       {gamepads.length > 0 && (
-        <div className="mt-2 border-t border-gray-800 pt-2">
-          <div className="text-xs text-gray-500 mb-1">Connected gamepads:</div>
+        <div className="mt-2 border-t border-gray-200 pt-2">
+          <div className="mb-1 text-xs text-gray-500">Connected gamepads:</div>
           {gamepads.map((gamepad, index) => (
-            <div key={gamepad.id} className="text-xs text-gray-400 truncate">
+            <div key={gamepad.id} className="truncate text-xs text-gray-600">
               {index + 1}: {gamepad.id}
             </div>
           ))}

@@ -62,7 +62,7 @@ export const CameraView = ({
   const hasFallback = Boolean(fallbackImage);
 
   const alignmentClasses = clsx(
-    "relative flex h-full w-full bg-black",
+    "relative flex h-full w-full bg-gradient-to-br from-[#f4f6fb] to-[#e7ebf5]",
     position === "main"
       ? "items-center justify-center"
       : position === "right"
@@ -73,16 +73,16 @@ export const CameraView = ({
   );
 
   const frameClasses = clsx(
-    "relative overflow-hidden bg-black",
+    "relative overflow-hidden bg-white",
     position === "main"
       ? "h-full w-full"
-      : "h-[370px] w-[640px] rounded-lg border border-purple-900/40"
+      : "h-[170px] w-full rounded-2xl border border-gray-200 shadow-sm"
   );
 
   return (
     <Card
       className={clsx(
-        "relative h-full w-full overflow-hidden bg-black",
+        "relative h-full w-full overflow-hidden border-none bg-transparent shadow-none",
         className
       )}
     >
@@ -91,31 +91,46 @@ export const CameraView = ({
           {hasVideo ? (
             <video
               ref={videoRef}
-              className="h-full w-full "
+              className="h-full w-full object-cover"
               muted
               playsInline
             />
           ) : hasFallback ? (
-            <img src={fallbackImage} alt={title} className="h-full w-full " />
+            <img
+              src={fallbackImage}
+              alt={title}
+              className="h-full w-full object-cover"
+            />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
-              <Camera className="h-8 w-8" />
-              <span className="text-xs uppercase tracking-wide">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500">
+              <Camera className="h-8 w-8 text-gray-400" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {title}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide">
                 Waiting for stream
               </span>
             </div>
           )}
 
           {showTitle && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white">
-              <span className="font-medium tracking-wide">{title}</span>
-              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
+            <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-gray-200 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600 shadow-sm backdrop-blur">
+              <span className="font-semibold tracking-wide text-gray-700">
+                {title}
+              </span>
+              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
                 {isConnected ? (
-                  <Wifi className="h-3 w-3 text-green-400" />
+                  <Wifi className="h-3 w-3 text-green-500" />
                 ) : (
-                  <WifiOff className="h-3 w-3 text-yellow-400" />
+                  <WifiOff className="h-3 w-3 text-amber-500" />
                 )}
-                {isConnected ? "Connected" : "Waiting"}
+                <span
+                  className={clsx(
+                    isConnected ? "text-green-700" : "text-amber-700"
+                  )}
+                >
+                  {isConnected ? "Live" : "Waiting"}
+                </span>
               </span>
             </div>
           )}

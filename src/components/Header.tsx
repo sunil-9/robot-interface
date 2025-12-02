@@ -30,21 +30,21 @@ export const Header = ({
     </header>
   ) : page == "train" ? (
     <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="container mx-auto py-3 px-4">
+      <div className="mx-auto max-w-screen-2xl px-6 pt-4">
         <div className="flex items-center justify-center">
-          <div className="bg-black/30 backdrop-blur-sm py-1.5 px-4 rounded-full flex items-center">
+          <div className="flex items-center rounded-full border border-gray-200 bg-white/80 px-4 py-1.5 shadow-md backdrop-blur">
             <Button
               variant="ghost"
               size="icon"
-              className="text-gray-400 hover:text-white mr-2 h-7 w-7"
+              className="mr-2 h-7 w-7 text-gray-500 hover:text-gray-800"
               onClick={() => navigate("/")}
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
 
             <h1
-              className={`text-lg font-semibold mr-2 flex items-center gap-2 ${
-                mode === AppMode.RECORDING ? "text-red-400" : "text-purple-300"
+              className={`mr-2 flex items-center gap-2 text-lg font-semibold ${
+                mode === AppMode.RECORDING ? "text-red-500" : "text-purple-700"
               }`}
             >
               {mode === AppMode.RECORDING && (
@@ -52,7 +52,7 @@ export const Header = ({
               )}
               {getModeLabel()}
             </h1>
-            <p className="text-xs text-gray-300">
+            <p className="text-xs text-gray-500">
               {selectedRobot ? `${selectedRobot}` : ""}
               {selectedControl ? ` · ${selectedControl}` : ""}
             </p>

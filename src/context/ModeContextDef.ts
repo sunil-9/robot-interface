@@ -11,7 +11,7 @@ export enum AppMode {
 // Mode display labels
 export const MODE_LABELS: Record<AppMode, string> = {
   [AppMode.RECORDING]: "Recording Mode",
-  [AppMode.TRAINING]: "Training Mode",
+  [AppMode.TRAINING]: "Free exploration Mode",
   [AppMode.REPLAY]: "Replay Mode",
   [AppMode.POLICY_RUNNING]: "Policy Running Mode",
 };

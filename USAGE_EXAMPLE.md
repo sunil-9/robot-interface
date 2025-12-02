@@ -6,32 +6,7 @@ Global mode state management has been successfully implemented using **React Con
 
 ## 🎯 Quick Usage Examples
 
-### Example 1: Add Mode Switcher to Train Page Header
 
-Update `/src/pages/Train.tsx` to include the mode switcher:
-
-```tsx
-import { ModeSwitcher } from "@/components/ModeSwitcher";
-
-// Inside the header section, add:
-<div className="bg-black/30 backdrop-blur-sm py-1.5 px-4 rounded-full flex items-center">
-  <Button
-    variant="ghost"
-    size="icon"
-    className="text-gray-400 hover:text-white mr-2 h-7 w-7"
-    onClick={() => navigate("/")}
-  >
-    <ArrowLeft className="h-4 w-4" />
-  </Button>
-
-  <h1 className="text-lg font-semibold text-purple-300 mr-2">
-    {getModeLabel()}
-  </h1>
-
-  {/* Add the mode switcher here */}
-  <ModeSwitcher />
-</div>;
-```
 
 ### Example 2: Conditional Rendering Based on Mode
 
@@ -110,7 +85,6 @@ See `/docs/mode-state-management.md` for complete API reference and advanced usa
 
 Two pre-built components in `/src/components/ModeSwitcher.tsx`:
 
-1. **`<ModeSwitcher />`** - Dropdown selector
 2. **`<ModeButtonGroup />`** - Button group
 
 Both are fully styled and ready to drop into your UI!

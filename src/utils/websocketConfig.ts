@@ -91,7 +91,27 @@ const inferFromApiBase = (path: string): string => {
     return `${scheme}://${base.host}${normalizedPath}`;
   } catch (error) {
     console.warn("Failed to infer WebSocket URL from apiBaseUrl:", error);
-    return `ws://localhost${normalizedPath}`;
+    const fallbacks = [
+      import.meta.env.VITE_LOCAL_CLOUD_API_BASE_URL as string | undefined,
+      import.meta.env.VITE_CLOUD_API_BASE_URL as string | undefined,
+    ].filter(Boolean) as string[];
+
+    for (const candidate of fallbacks) {
+      try {
+        const base = new URL(candidate);
+        const scheme = resolveProtocol(undefined, base.protocol);
+        return `${scheme}://${base.host}${normalizedPath}`;
+      } catch (innerError) {
+        console.warn("Failed to infer WebSocket URL from env base:", candidate, innerError);
+      }
+    }
+
+    if (typeof window !== "undefined" && window.location?.host) {
+      const scheme = resolveProtocol(undefined, window.location.protocol);
+      return `${scheme}://${window.location.host}${normalizedPath}`;
+    }
+
+    throw error;
   }
 };
 

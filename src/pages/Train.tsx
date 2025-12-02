@@ -62,23 +62,35 @@ export default function TrainPage() {
       }
     };
 
-    const defaultApiUrl = (() => {
-      try {
-        return new URL(cloudConfig.apiBaseUrl);
-      } catch {
-        const apiUrl = import.meta.env.VITE_CLOUD_API_BASE_URL;
+    const resolveApiUrl = (): URL => {
+      const candidates = [
+        cloudConfig.apiBaseUrl,
+        import.meta.env.VITE_CLOUD_API_BASE_URL as string | undefined,
+        import.meta.env.VITE_LOCAL_CLOUD_API_BASE_URL as string | undefined,
+      ];
 
-        return apiUrl ? new URL(apiUrl) : new URL("http://127.0.0.1:8100");
+      for (const candidate of candidates) {
+        if (!candidate) {
+          continue;
+        }
+        try {
+          return new URL(candidate);
+        } catch (error) {
+          console.warn("Invalid API base URL candidate:", candidate, error);
+        }
       }
-    })();
 
-    const defaultHost =
-      defaultApiUrl.hostname === "localhost"
-        ? "127.0.0.1"
-        : defaultApiUrl.hostname;
-    const defaultPort =
-      defaultApiUrl.port ||
-      (defaultApiUrl.protocol === "https:" ? "443" : "8100");
+      if (typeof window !== "undefined" && window.location?.origin) {
+        return new URL(window.location.origin);
+      }
+
+      throw new Error("Failed to resolve API base URL");
+    };
+
+    const defaultApiUrl = resolveApiUrl();
+
+    const defaultHost = defaultApiUrl.hostname;
+    const defaultPort = defaultApiUrl.port || "";
     const buildUrl = (
       protocol: "http" | "https" | "ws" | "wss",
       host: string,
@@ -94,11 +106,7 @@ export default function TrainPage() {
       const parsed = parseUrl(value);
       const protocol =
         parsed && parsed.protocol === "https:" ? "https" : "http";
-      const host = parsed
-        ? parsed.hostname === "localhost"
-          ? "127.0.0.1"
-          : parsed.hostname
-        : defaultHost;
+      const host = parsed ? parsed.hostname : defaultHost;
       const port = parsed && parsed.port ? parsed.port : defaultPort;
       return buildUrl(protocol, host, port, "/signaling");
     };
@@ -109,11 +117,7 @@ export default function TrainPage() {
         ? parsed.protocol === "https:" || parsed.protocol === "wss:"
         : defaultApiUrl.protocol === "https:";
       const protocol = secure ? "wss" : "ws";
-      const host = parsed
-        ? parsed.hostname === "localhost"
-          ? "127.0.0.1"
-          : parsed.hostname
-        : defaultHost;
+      const host = parsed ? parsed.hostname : defaultHost;
       const port = parsed && parsed.port ? parsed.port : defaultPort;
       return buildUrl(protocol, host, port, "/signaling/ws");
     };

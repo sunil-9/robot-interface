@@ -218,16 +218,16 @@ export const EpisodeManagementSidebar = ({
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium text-gray-400">Checkpoint Interval</Label>
+                  <Label className="text-xs font-medium text-gray-400">Training steps</Label>
                   <span className="text-xs font-mono text-purple-400">{interval} steps</span>
                 </div>
                 <Slider
                   value={interval}
                   onValueChange={(value) => setInterval(value)}
-                  aria-label="Checkpoint Interval"
-                  max={200}
-                  min={10}
-                  step={10}
+                  aria-label="Training Steps"
+                  max={20000}
+                  min={5000}
+                  step={5000}
                   className="py-1"
                 />
               </div>

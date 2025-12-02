@@ -1,5 +1,7 @@
 import { API_CONFIG } from "@/config/api";
+import { AppMode } from "@/context/ModeContextDef";
 import { useBridgeData } from "@/hooks/useBridgeData";
+import { useModeContext } from "@/hooks/useModeContext";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
   createDataset,
@@ -8,10 +10,10 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
-import { Play, RotateCcw, Square } from "lucide-react";
+import { DatabaseBackup, Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CameraView } from "./CameraView";
 import { ActionVarianceChart } from "./ActionVarianceChart";
+import { CameraView } from "./CameraView";
 import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
@@ -58,6 +60,7 @@ export const TrainingInterface = ({
   const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
     episodeApi.Episode[]
   >([]);
+  const { setMode } = useModeContext();
 
   useEffect(() => {
     let cancelled = false;
@@ -408,6 +411,7 @@ export const TrainingInterface = ({
     } catch (error) {
       console.error("Failed to start episode:", error);
     } finally {
+      setMode(AppMode.RECORDING);
       setIsLoading(false);
     }
   };
@@ -422,6 +426,7 @@ export const TrainingInterface = ({
       return;
     }
     setIsLoading(true);
+    setMode(AppMode.TRAINING);
     try {
       const sent = session.sendControl({
         type: "dataset",
@@ -462,11 +467,22 @@ export const TrainingInterface = ({
       // if (isSidebarOpen) {
       //   fetchEpisodes();
       // }
+      toast({
+        title: "Info",
+        description: "Rewind functionality is not implemented yet",
+      });
     } catch (error) {
       console.error("Failed to rewind episode:", error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleDeploy = () => {
+    toast({
+      title: "Info",
+      description: "Deploy functionality is not implemented yet",
+    });
   };
 
   // Additional episode management functions
@@ -684,6 +700,10 @@ export const TrainingInterface = ({
             >
               <RotateCcw className="mr-1 h-4 w-4" />
               Rewind
+            </Button>
+            <Button onClick={handleDeploy} variant="outline" className="w-full">
+              <DatabaseBackup className="mr-1 h-4 w-4" />
+              Deploy
             </Button>
           </div>
 

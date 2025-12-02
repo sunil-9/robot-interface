@@ -1,4 +1,5 @@
 import type * as episodeApi from "@/services/episodeApi";
+import { useMemo } from "react";
 
 import { EpisodeCard } from "./EpisodeCard";
 
@@ -17,6 +18,11 @@ export const EpisodeList = ({
   formatDuration,
   onPromptDeleteEpisode,
 }: EpisodeListProps) => {
+  const reversedEpisodes = useMemo(
+    () => [...(episodes || [])].reverse(),
+    [episodes]
+  );
+
   if (!selectedDataset) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -25,7 +31,7 @@ export const EpisodeList = ({
     );
   }
 
-  if (episodes.length === 0) {
+  if (reversedEpisodes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
         <p className="text-gray-400">No episodes found in this dataset</p>
@@ -35,7 +41,7 @@ export const EpisodeList = ({
 
   return (
     <div className="space-y-2">
-      {episodes.map((episode, index) => (
+      {reversedEpisodes.map((episode, index) => (
         <EpisodeCard
           key={episode.episode_index}
           episode={episode}

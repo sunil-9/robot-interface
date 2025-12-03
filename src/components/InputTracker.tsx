@@ -360,11 +360,11 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   };
 
   return (
-    <Card className="fixed bottom-4 left-4 z-50 max-w-xs border border-gray-200 bg-white/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.2)] backdrop-blur">
+    <Card className="fixed bottom-4 left-4 z-50 max-w-xs border border-border bg-card/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
       <div className="flex items-center justify-between">
         <Badge
           variant="outline"
-          className="mb-2 border-purple-200 bg-purple-50 px-2 py-0.5 text-purple-700"
+          className="mb-2 border-primary/30 bg-primary/10 px-2 py-0.5 text-primary"
         >
           {controlType
             ? controlType.charAt(0).toUpperCase() + controlType.slice(1)
@@ -372,7 +372,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
           Input Tracker
         </Badge>
         <button
-          className="text-gray-500 transition hover:text-gray-800"
+          className="text-muted-foreground transition hover:text-foreground"
           onClick={() => setIsVisible(false)}
           aria-label="Close"
         >
@@ -381,17 +381,17 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
       </div>
 
       <div className="mt-1 flex items-center">
-        <div className="mr-3 rounded-full bg-gray-100 p-1.5 text-gray-700">
+        <div className="mr-3 rounded-full bg-muted p-1.5 text-foreground">
           {getInputIcon()}
         </div>
-        <div className="text-xs text-gray-700">{getInputDescription()}</div>
+        <div className="text-xs text-foreground">{getInputDescription()}</div>
       </div>
 
       {gamepads.length > 0 && (
-        <div className="mt-2 border-t border-gray-200 pt-2">
-          <div className="mb-1 text-xs text-gray-500">Connected gamepads:</div>
+        <div className="mt-2 border-t border-border pt-2">
+          <div className="mb-1 text-xs text-muted-foreground">Connected gamepads:</div>
           {gamepads.map((gamepad, index) => (
-            <div key={gamepad.id} className="truncate text-xs text-gray-600">
+            <div key={gamepad.id} className="truncate text-xs text-foreground">
               {index + 1}: {gamepad.id}
             </div>
           ))}

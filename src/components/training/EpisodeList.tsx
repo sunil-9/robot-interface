@@ -40,7 +40,7 @@ export const EpisodeList = ({
   }
 
   return (
-    <div className="space-y-2">
+    <>
       {reversedEpisodes.map((episode, index) => (
         <EpisodeCard
           key={episode.episode_index}
@@ -52,6 +52,6 @@ export const EpisodeList = ({
           onDelete={onPromptDeleteEpisode}
         />
       ))}
-    </div>
+    </>
   );
 };

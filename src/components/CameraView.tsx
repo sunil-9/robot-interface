@@ -73,7 +73,7 @@ export const CameraView = ({
   );
 
   const frameClasses = clsx(
-    "relative overflow-hidden bg-white",
+    "relative flex items-center justify-center overflow-hidden bg-white",
     position === "main"
       ? "h-full w-full"
       : "h-[170px] w-full rounded-2xl border border-gray-200 shadow-sm"
@@ -91,7 +91,7 @@ export const CameraView = ({
           {hasVideo ? (
             <video
               ref={videoRef}
-              className="object-cover h-full justify-center items-center "
+              className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
               muted
               playsInline
             />
@@ -99,7 +99,7 @@ export const CameraView = ({
             <img
               src={fallbackImage}
               alt={title}
-              className="h-full  object-cover"
+              className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500">

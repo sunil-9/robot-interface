@@ -76,7 +76,7 @@ export const Header = ({
       </div>
     </header>
   ) : page == "train" ? (
-    <header className="fixed left-1/2 top-4 z-50 -translate-x-1/2">
+    <header className="fixed left-1/2 top-4 z-50 -translate-x-1/2 opacity-50 transition-opacity hover:opacity-100">
       <div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_10px_40px_rgba(15,23,42,0.15)] backdrop-blur">
         <Button
           variant="ghost"

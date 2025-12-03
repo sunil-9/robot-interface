@@ -165,11 +165,11 @@ export const EpisodeManagementContent = ({
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
-      <div className="flex items-center justify-between border-b border-border p-4">
+      {/* <div className="flex items-center justify-between border-b border-border p-4">
         <h2 className="text-xl font-bold text-foreground">
           Episode Management
         </h2>
-      </div>
+      </div> */}
 
       <DatasetSelector
         datasets={datasets}
@@ -180,7 +180,7 @@ export const EpisodeManagementContent = ({
         onRequestDelete={onRequestDeleteDataset}
       />
 
-      <div className="flex-1 space-y-4 overflow-y-auto bg-muted/40 p-4 dark:bg-muted/30">
+      <div className="flex-1 space-y-1 overflow-y-auto bg-muted/40 p-4 dark:bg-muted/30">
         <EpisodeList
           selectedDataset={selectedDataset}
           episodes={episodes}
@@ -190,7 +190,7 @@ export const EpisodeManagementContent = ({
         />
       </div>
 
-      <div className="flex h-[25%] min-h-[280px] flex-col justify-between border-t border-border bg-card p-5 shadow-[0_-5px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.4)]">
+      <div className="flex h-[25%] min-h-[260px] flex-col justify-between border-t border-border bg-card p-5 shadow-[0_-5px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.4)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Brain className={cn("h-5 w-5", accent.trainingIcon)} />
@@ -242,7 +242,7 @@ export const EpisodeManagementContent = ({
           </div>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-1">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-medium text-muted-foreground">Training steps</Label>
             <span className={cn("text-xs font-mono", accent.trainingStepsText)}>

@@ -10,10 +10,13 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
-import { DatabaseBackup, Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
+import {
+  RecordingControls,
+  RecordingControlStyle,
+} from "./RecordingControls";
 import {
   EpisodeManagementContent,
   EpisodeManagementSidebar,
@@ -623,7 +626,7 @@ export const TrainingInterface = ({
                   <span className="text-muted-foreground/80">Signaling:</span>{" "}
                   <span
                     className={
-                      session.signalingConnected
+                      session.signalingConnected 
                         ? "text-emerald-500"
                         : "text-amber-500"
                     }
@@ -756,44 +759,16 @@ export const TrainingInterface = ({
         </div>
       </section>
 
-      <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]">
-          <Button
-            onClick={isRecording ? endEpisode : startEpisode}
-            disabled={isLoading}
-            className={`rounded-full px-5 ${
-              isRecording
-                ? "bg-destructive hover:bg-destructive/90"
-                : "bg-emerald-500 hover:bg-emerald-600"
-            } text-white shadow-sm`}
-          >
-            {isRecording ? (
-              <Square className="mr-2 h-4 w-4" />
-            ) : (
-              <Play className="mr-2 h-4 w-4" />
-            )}
-            {isRecording ? "End" : "Start"}
-          </Button>
-
-          <Button
-            onClick={rewindEpisode}
-            disabled={isLoading || !currentEpisodeId}
-            variant="outline"
-            className="rounded-full border-border bg-muted text-foreground hover:bg-muted/80"
-          >
-            <RotateCcw className="mr-2 h-4 w-4" />
-            Rewind
-          </Button>
-          <Button
-            onClick={handleDeploy}
-            variant="outline"
-            className="rounded-full border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            <DatabaseBackup className="mr-2 h-4 w-4" />
-            Deploy
-          </Button>
-        </div>
-      </div>
+      <RecordingControls
+        isRecording={isRecording}
+        isLoading={isLoading}
+        currentEpisodeId={currentEpisodeId}
+        onStart={startEpisode}
+        onStop={endEpisode}
+        onRewind={rewindEpisode}
+        onDeploy={handleDeploy}
+        style={RecordingControlStyle.DEFAULT}
+      />
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

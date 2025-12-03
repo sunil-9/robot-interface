@@ -275,7 +275,7 @@ export const ActionVarianceChart = ({
   );
 
   const ChartComponent = (
-    <div className="relative h-full bg-muted text-foreground">
+    <div className="relative h-full text-foreground opacity-60 hover:opacity-100 transition-opacity">
       {data.length === 0 ? (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">

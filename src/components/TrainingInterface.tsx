@@ -598,9 +598,9 @@ export const TrainingInterface = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
-      <main className="relative mx-auto flex h-screen flex-col px-6 pb-28 pt-20">
-        <div className="flex h-full min-h-0 gap-2 pr-4">
+    <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+      <section className="relative  flex  h-screen  flex-1 flex-col p-4 ">
+        <div className="flex flex-1 min-h-0 gap-2 pr-4">
           <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
             <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
               Primary View
@@ -675,7 +675,7 @@ export const TrainingInterface = ({
               className="h-full rounded-[32px] border-none bg-transparent"
             />
 
-            <EpisodeManagementSidebar
+            {/* <EpisodeManagementSidebar
               isOpen={isSidebarOpen}
               onOpenChange={setIsSidebarOpen}
               datasets={datasets}
@@ -689,7 +689,7 @@ export const TrainingInterface = ({
               onRequestDeleteDataset={promptDeleteDataset}
               onPromptDeleteEpisode={promptDeleteEpisode}
               accentColor="emerald"
-            />
+            /> */}
           </div>
 
           <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
@@ -754,7 +754,7 @@ export const TrainingInterface = ({
             </Tabs>
           </div>
         </div>
-      </main>
+      </section>
 
       <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center">
         <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]">

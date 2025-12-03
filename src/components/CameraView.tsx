@@ -82,7 +82,7 @@ export const CameraView = ({
   return (
     <Card
       className={clsx(
-        "relative h-full w-full overflow-hidden border-none bg-transparent shadow-none",
+        "relative h-full w-full overflow-hidden border-none bg-transparent shadow-none ",
         className
       )}
     >
@@ -91,7 +91,7 @@ export const CameraView = ({
           {hasVideo ? (
             <video
               ref={videoRef}
-              className="h-full w-full object-cover"
+              className="object-cover h-full justify-center items-center "
               muted
               playsInline
             />
@@ -99,7 +99,7 @@ export const CameraView = ({
             <img
               src={fallbackImage}
               alt={title}
-              className="h-full w-full object-cover"
+              className="h-full  object-cover"
             />
           ) : (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500">

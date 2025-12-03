@@ -76,37 +76,35 @@ export const Header = ({
       </div>
     </header>
   ) : page == "train" ? (
-    <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="mx-auto max-w-screen-2xl px-6 pt-4">
-        <div className="flex items-center justify-between gap-4 rounded-full border border-border bg-card/90 px-4 py-1.5 shadow-md backdrop-blur">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={() => navigate("/")}
+    <header className="fixed left-1/2 top-4 z-50 -translate-x-1/2">
+      <div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_10px_40px_rgba(15,23,42,0.15)] backdrop-blur">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={() => navigate("/")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+
+        <div className="flex flex-col items-center text-center px-1">
+          <h1
+            className={`flex items-center justify-center gap-2 text-base font-semibold ${
+              mode === AppMode.RECORDING ? "text-red-500" : "text-primary"
+            }`}
           >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-
-          <div className="flex flex-col items-center text-center flex-1">
-            <h1
-              className={`flex items-center justify-center gap-2 text-lg font-semibold ${
-                mode === AppMode.RECORDING ? "text-red-500" : "text-primary"
-              }`}
-            >
-              {mode === AppMode.RECORDING && (
-                <Circle className="h-3 w-3 fill-current animate-pulse" />
-              )}
-              {getModeLabel()}
-            </h1>
-            <p className="text-xs text-muted-foreground">
-              {selectedRobot ? `${selectedRobot}` : ""}
-              {selectedControl ? ` · ${selectedControl}` : ""}
-            </p>
-          </div>
-
-          <ThemeToggle />
+            {mode === AppMode.RECORDING && (
+              <Circle className="h-3 w-3 fill-current animate-pulse" />
+            )}
+            {getModeLabel()}
+          </h1>
+          <p className="text-[11px] text-muted-foreground">
+            {selectedRobot ? `${selectedRobot}` : ""}
+            {selectedControl ? ` · ${selectedControl}` : ""}
+          </p>
         </div>
+
+        <ThemeToggle />
       </div>
     </header>
   ) : (

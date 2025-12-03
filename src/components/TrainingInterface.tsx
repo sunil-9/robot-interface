@@ -14,11 +14,15 @@ import { DatabaseBackup, Play, RotateCcw, Square } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
-import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
+import {
+  EpisodeManagementContent,
+  EpisodeManagementSidebar,
+} from "./training/EpisodeManagementSidebar";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { Button } from "./ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -36,6 +40,9 @@ export const TrainingInterface = ({
   const [isLoading, setIsLoading] = useState(false);
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<"secondary" | "episodes">(
+    "secondary"
+  );
   const [cameraConfigs, setCameraConfigs] = useState<RobotCameraConfig[]>([]);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -61,6 +68,7 @@ export const TrainingInterface = ({
     episodeApi.Episode[]
   >([]);
   const { setMode } = useModeContext();
+  const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
 
   useEffect(() => {
     let cancelled = false;
@@ -312,14 +320,14 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    if (isSidebarOpen && selectedDataset) {
+    if (episodePanelActive && selectedDataset) {
       fetchEpisodes();
     }
-    if (isSidebarOpen) {
+    if (episodePanelActive) {
       loadDatasets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSidebarOpen, selectedDataset]);
+  }, [episodePanelActive, selectedDataset]);
 
   // Create new dataset
   const handleCreateDataset = async () => {
@@ -405,8 +413,8 @@ export const TrainingInterface = ({
 
       setCurrentEpisodeId((prev) => prev ?? "pending");
       setIsRecording(true);
-      // Update episodes list if sidebar is open
-      if (isSidebarOpen) {
+      // Update episodes list if episode management UI is visible
+      if (episodePanelActive) {
         fetchEpisodes();
       }
     } catch (error) {
@@ -448,8 +456,8 @@ export const TrainingInterface = ({
 
       setIsRecording(false);
       setCurrentEpisodeId(null);
-      // Update episodes list if sidebar is open
-      if (isSidebarOpen) {
+      // Update episodes list if episode management UI is visible
+      if (episodePanelActive) {
         fetchEpisodes();
       }
     } catch (error) {
@@ -591,8 +599,8 @@ export const TrainingInterface = ({
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
-      <main className="relative mx-auto flex h-screen max-h-screen flex-col px-6 pb-28 pt-20">
-        <div className="flex h-full min-h-0 gap-5 pr-4">
+      <main className="relative mx-auto flex h-screen flex-col px-6 pb-28 pt-20">
+        <div className="flex h-full min-h-0 gap-2 pr-4">
           <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
             <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
               Primary View
@@ -685,12 +693,65 @@ export const TrainingInterface = ({
           </div>
 
           <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
-            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Secondary Cameras
-            </div>
-            <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-              {renderSecondaryStack(secondarySlots, "right")}
-            </div>
+            <Tabs
+              value={sidebarTab}
+              onValueChange={(value) =>
+                setSidebarTab(value as "secondary" | "episodes")
+              }
+              className="flex h-full flex-col"
+            >
+              <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-muted/60 p-1">
+                <TabsTrigger
+                  value="secondary"
+                  className="rounded-xl text-[11px] font-semibold uppercase tracking-wide"
+                >
+                  Secondary
+                </TabsTrigger>
+                <TabsTrigger
+                  value="episodes"
+                  className="rounded-xl text-[11px] font-semibold uppercase tracking-wide"
+                >
+                  Episodes
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent
+                value="secondary"
+                className="flex-1 focus-visible:outline-none"
+              >
+                <div className="mt-2 flex h-full flex-col gap-3">
+                  <div className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Secondary Cameras
+                  </div>
+                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                    {renderSecondaryStack(secondarySlots, "right")}
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent
+                value="episodes"
+                className="flex-1 focus-visible:outline-none"
+              >
+                <div className="mt-2 h-full overflow-hidden rounded-2xl border border-border bg-muted/50 dark:bg-muted/20">
+                  <EpisodeManagementContent
+                    isActive={sidebarTab === "episodes"}
+                    datasets={datasets}
+                    selectedDataset={selectedDataset}
+                    isLoadingDatasets={isLoadingDatasets}
+                    episodes={episodes}
+                    isDeleting={isDeleting}
+                    formatDuration={formatDuration}
+                    onSelectDataset={setSelectedDataset}
+                    onRequestCreateDataset={() => setIsCreateDialogOpen(true)}
+                    onRequestDeleteDataset={promptDeleteDataset}
+                    onPromptDeleteEpisode={promptDeleteEpisode}
+                    accentColor="emerald"
+                    className="h-full"
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </main>

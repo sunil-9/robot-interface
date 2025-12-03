@@ -1,4 +1,5 @@
-import { Activity, ArrowLeft, ArrowRight, Brain, Layers, Zap, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Activity, ArrowLeft, ArrowRight, Brain, Layers, Loader2, Zap } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import * as episodeApi from "@/services/episodeApi";
@@ -12,7 +13,6 @@ import { Slider } from "@/components/ui/slider";
 
 import { DatasetSelector } from "./DatasetSelector";
 import { EpisodeList } from "./EpisodeList";
-import { useEffect, useState } from "react";
 
 type AccentColor = "purple" | "emerald";
 
@@ -64,9 +64,14 @@ interface EpisodeManagementSidebarProps {
   accentColor?: AccentColor;
 }
 
-export const EpisodeManagementSidebar = ({
-  isOpen,
-  onOpenChange,
+interface EpisodeManagementContentProps
+  extends Omit<EpisodeManagementSidebarProps, "isOpen" | "onOpenChange"> {
+  isActive: boolean;
+  className?: string;
+}
+
+export const EpisodeManagementContent = ({
+  isActive,
   datasets,
   selectedDataset,
   isLoadingDatasets,
@@ -78,7 +83,8 @@ export const EpisodeManagementSidebar = ({
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
   accentColor = "purple",
-}: EpisodeManagementSidebarProps) => {
+  className,
+}: EpisodeManagementContentProps) => {
   const [interval, setInterval] = useState<number[]>([25]);
   const [trainingJob, setTrainingJob] = useState<trainingApi.TrainingJob | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
@@ -87,7 +93,7 @@ export const EpisodeManagementSidebar = ({
   const accent = accentStyles[accentColor];
 
   useEffect(() => {
-    if (!isOpen || !selectedDataset) {
+    if (!isActive || !selectedDataset) {
       setTrainingJob(null);
       setTrainingMessage(null);
       return;
@@ -127,7 +133,7 @@ export const EpisodeManagementSidebar = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen, selectedDataset]);
+  }, [isActive, selectedDataset]);
 
   useEffect(() => {
     if (trainingJob && Number.isFinite(trainingJob.checkpoint_interval)) {
@@ -156,6 +162,130 @@ export const EpisodeManagementSidebar = ({
     trainingJob?.started_at && trainingJob.started_at !== ""
       ? new Date(trainingJob.started_at).toLocaleString()
       : null;
+
+  return (
+    <div className={cn("flex h-full flex-col", className)}>
+      <div className="flex items-center justify-between border-b border-border p-4">
+        <h2 className="text-xl font-bold text-foreground">
+          Episode Management
+        </h2>
+      </div>
+
+      <DatasetSelector
+        datasets={datasets}
+        selectedDataset={selectedDataset}
+        isLoading={isLoadingDatasets}
+        onSelect={onSelectDataset}
+        onRequestCreate={onRequestCreateDataset}
+        onRequestDelete={onRequestDeleteDataset}
+      />
+
+      <div className="flex-1 space-y-4 overflow-y-auto bg-muted/40 p-4 dark:bg-muted/30">
+        <EpisodeList
+          selectedDataset={selectedDataset}
+          episodes={episodes}
+          isDeleting={isDeleting}
+          formatDuration={formatDuration}
+          onPromptDeleteEpisode={onPromptDeleteEpisode}
+        />
+      </div>
+
+      <div className="flex h-[25%] min-h-[280px] flex-col justify-between border-t border-border bg-card p-5 shadow-[0_-5px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.4)]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Brain className={cn("h-5 w-5", accent.trainingIcon)} />
+            <h3 className="font-semibold text-foreground">Model Training</h3>
+          </div>
+          <Badge
+            variant="outline"
+            className={cn(
+              "border-border bg-muted text-muted-foreground",
+              trainingJob &&
+                "border-green-200 bg-green-50 text-green-700 dark:border-green-500/40 dark:bg-green-900/30 dark:text-green-100",
+              trainingError &&
+                "border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-900/40 dark:text-red-100",
+              isTrainingLoading && accent.loadingBadge
+            )}
+          >
+            <span className="flex items-center gap-1">
+              {isTrainingLoading && (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              )}
+              {trainingStatusLabel}
+            </span>
+          </Badge>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {trainingStatusDescription}
+          {startedAtLabel ? ` • Started ${startedAtLabel}` : ""}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/60 p-2.5 dark:bg-secondary">
+            <span className="text-xs font-medium text-muted-foreground">Current Step</span>
+            <div className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-primary" />
+              <span className="text-lg font-bold text-foreground">
+                {trainingJob ? trainingJob.current_step : 0}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/60 p-2.5 dark:bg-secondary">
+            <span className="text-xs font-medium text-muted-foreground">Requested Steps</span>
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-accent" />
+              <span className="text-lg font-bold text-foreground">
+                {trainingJob ? trainingJob.requested_steps : 0}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-medium text-muted-foreground">Training steps</Label>
+            <span className={cn("text-xs font-mono", accent.trainingStepsText)}>
+              {interval} steps
+            </span>
+          </div>
+          <Slider
+            value={interval}
+            onValueChange={(value) => setInterval(value)}
+            aria-label="Training Steps"
+            max={20000}
+            min={5000}
+            step={5000}
+            className="py-1 "
+          />
+        </div>
+
+        <Button className={cn("w-full font-semibold", accent.trainButton)} disabled={isTrainingLoading}>
+          <Zap className="mr-2 h-4 w-4 fill-current" />
+          Train More
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+export const EpisodeManagementSidebar = ({
+  isOpen,
+  onOpenChange,
+  datasets,
+  selectedDataset,
+  isLoadingDatasets,
+  episodes,
+  isDeleting,
+  formatDuration,
+  onSelectDataset,
+  onRequestCreateDataset,
+  onRequestDeleteDataset,
+  onPromptDeleteEpisode,
+  accentColor = "purple",
+}: EpisodeManagementSidebarProps) => {
+  const accent = accentStyles[accentColor];
+
   return (
     <div className="fixed inset-y-0 right-0 z-30 flex items-center">
       <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -176,108 +306,20 @@ export const EpisodeManagementSidebar = ({
           </Button>
         </SheetTrigger>
         <SheetContent className="h-full w-[400px] border-l border-border bg-background p-0 text-foreground shadow-2xl sm:w-[540px]">
-          <div className="flex h-full flex-col">
-            <div className="flex items-center justify-between border-b border-border p-4">
-              <h2 className="text-xl font-bold text-foreground">
-                Episode Management
-              </h2>
-            </div>
-
-            <DatasetSelector
-              datasets={datasets}
-              selectedDataset={selectedDataset}
-              isLoading={isLoadingDatasets}
-              onSelect={onSelectDataset}
-              onRequestCreate={onRequestCreateDataset}
-              onRequestDelete={onRequestDeleteDataset}
-            />
-
-            <div className="flex-1 space-y-4 overflow-y-auto bg-muted/40 p-4 dark:bg-muted/30">
-              <EpisodeList
-                selectedDataset={selectedDataset}
-                episodes={episodes}
-                isDeleting={isDeleting}
-                formatDuration={formatDuration}
-                onPromptDeleteEpisode={onPromptDeleteEpisode}
-              />
-            </div>
-
-            <div className="flex h-[25%] min-h-[280px] flex-col justify-between border-t border-border bg-card p-5 shadow-[0_-5px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.4)]">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Brain className={cn("h-5 w-5", accent.trainingIcon)} />
-                  <h3 className="font-semibold text-foreground">Model Training</h3>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "border-border bg-muted text-muted-foreground",
-                    trainingJob &&
-                      "border-green-200 bg-green-50 text-green-700 dark:border-green-500/40 dark:bg-green-900/30 dark:text-green-100",
-                    trainingError &&
-                      "border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-900/40 dark:text-red-100",
-                    isTrainingLoading && accent.loadingBadge
-                  )}
-                >
-                  <span className="flex items-center gap-1">
-                    {isTrainingLoading && (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    )}
-                    {trainingStatusLabel}
-                  </span>
-                </Badge>
-              </div>
-
-              <p className="text-xs text-muted-foreground">
-                {trainingStatusDescription}
-                {startedAtLabel ? ` • Started ${startedAtLabel}` : ""}
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/60 p-2.5 dark:bg-secondary">
-                  <span className="text-xs font-medium text-muted-foreground">Current Step</span>
-                  <div className="flex items-center gap-2">
-                    <Layers className="h-4 w-4 text-primary" />
-                    <span className="text-lg font-bold text-foreground">
-                      {trainingJob ? trainingJob.current_step : 0}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/60 p-2.5 dark:bg-secondary">
-                  <span className="text-xs font-medium text-muted-foreground">Requested Steps</span>
-                  <div className="flex items-center gap-2">
-                    <Activity className="h-4 w-4 text-accent" />
-                    <span className="text-lg font-bold text-foreground">
-                      {trainingJob ? trainingJob.requested_steps : 0}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-medium text-muted-foreground">Training steps</Label>
-                  <span className={cn("text-xs font-mono", accent.trainingStepsText)}>
-                    {interval} steps
-                  </span>
-                </div>
-                <Slider
-                  value={interval}
-                  onValueChange={(value) => setInterval(value)}
-                  aria-label="Training Steps"
-                  max={20000}
-                  min={5000}
-                  step={5000}
-                  className="py-1 "
-                />
-              </div>
-
-              <Button className={cn("w-full font-semibold", accent.trainButton)} disabled={isTrainingLoading}>
-                <Zap className="mr-2 h-4 w-4 fill-current" />
-                Train More
-              </Button>
-            </div>
-          </div>
+          <EpisodeManagementContent
+            isActive={isOpen}
+            datasets={datasets}
+            selectedDataset={selectedDataset}
+            isLoadingDatasets={isLoadingDatasets}
+            episodes={episodes}
+            isDeleting={isDeleting}
+            formatDuration={formatDuration}
+            onSelectDataset={onSelectDataset}
+            onRequestCreateDataset={onRequestCreateDataset}
+            onRequestDeleteDataset={onRequestDeleteDataset}
+            onPromptDeleteEpisode={onPromptDeleteEpisode}
+            accentColor={accentColor}
+          />
         </SheetContent>
       </Sheet>
     </div>

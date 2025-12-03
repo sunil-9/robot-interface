@@ -246,9 +246,13 @@ export default function TrainPage() {
   }, [selectedRobot, selectedControl, sessionData, navigate]);
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Transparent overlay header */}
-     <Header page={"train"} selectedRobot={selectedRobot} selectedControl={selectedControl} />
+      <Header
+        page={"train"}
+        selectedRobot={selectedRobot}
+        selectedControl={selectedControl}
+      />
 
       {/* Main content takes full height */}
       <main className="h-full">

@@ -38,10 +38,10 @@ export const DatasetSelector = ({
   };
 
   return (
-    <div className="border-b border-gray-800 p-4">
+    <div className="border-b border-border bg-card p-4">
       <Label
         htmlFor="dataset-select"
-        className="mb-2 block text-sm font-medium text-gray-300"
+        className="mb-2 block text-sm font-medium text-foreground"
       >
         Dataset
       </Label>
@@ -53,7 +53,7 @@ export const DatasetSelector = ({
         >
           <SelectTrigger
             id="dataset-select"
-            className="flex-1 border-gray-700 bg-gray-800 text-white"
+            className="flex-1 border-border bg-background text-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/30"
           >
             <SelectValue
               placeholder={
@@ -61,15 +61,15 @@ export const DatasetSelector = ({
               }
             />
           </SelectTrigger>
-          <SelectContent className="border-gray-700 bg-gray-800">
+          <SelectContent className="border-border bg-card shadow-xl">
             {datasets.map((dataset) => (
               <div
                 key={dataset}
-                className="group flex items-center justify-between hover:bg-gray-700"
+                className="group flex items-center justify-between hover:bg-muted/60"
               >
                 <SelectItem
                   value={dataset}
-                  className="flex-1 text-white focus:bg-gray-700"
+                  className="flex-1 text-foreground focus:bg-muted"
                 >
                   {dataset}
                 </SelectItem>
@@ -83,7 +83,7 @@ export const DatasetSelector = ({
 
                     onRequestDelete(dataset);
                   }}
-                  className="h-8 w-8 p-0 text-red-400 opacity-0 transition-opacity hover:bg-red-900/20 hover:text-red-300 group-hover:opacity-100"
+                  className="h-8 w-8 p-0 text-destructive opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -91,7 +91,7 @@ export const DatasetSelector = ({
             ))}
             <SelectItem
               value={CREATE_NEW_VALUE}
-              className="text-green-400 focus:bg-gray-700"
+              className="text-accent focus:bg-accent/10"
             >
               <div className="flex items-center gap-2">
                 <FolderPlus className="h-4 w-4" />
@@ -103,12 +103,12 @@ export const DatasetSelector = ({
       </div>
       {selectedDataset && (
         <>
-          <p className="mt-2 text-xs text-gray-400">
+          <p className="mt-2 text-xs text-muted-foreground">
             Episodes will be saved to:{" "}
-            <span className="text-purple-300">{selectedDataset}</span>
+            <span className="text-primary">{selectedDataset}</span>
           </p>
-          <p className="mt-2 text-xs text-gray-400">
-            Minimum of <span className="text-purple-300">10 episodes</span>{" "}
+          <p className="mt-2 text-xs text-muted-foreground">
+            Minimum of <span className="text-primary">10 episodes</span>{" "}
             required to start training.
           </p>{" "}
         </>

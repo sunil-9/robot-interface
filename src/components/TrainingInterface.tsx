@@ -264,7 +264,7 @@ export const TrainingInterface = ({
   ) => {
     if (slots.length === 0) {
       return (
-        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-300 bg-white/70 text-xs font-semibold uppercase tracking-wide text-gray-400 shadow-sm">
+        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-border bg-card/70 text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-sm">
           No {fallbackPosition} cameras
         </div>
       );
@@ -282,7 +282,7 @@ export const TrainingInterface = ({
             )}
             position={slot.position}
             isConnected={Boolean(slot.stream)}
-            className="h-[170px] rounded-2xl border border-gray-200 bg-white/80 shadow-sm"
+            className="h-[170px] rounded-2xl border border-border bg-card/80 shadow-sm"
           />
         ))}
       </div>
@@ -590,16 +590,16 @@ export const TrainingInterface = ({
   };
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#eef1f6] text-gray-900">
+    <div className="relative min-h-screen w-full overflow-hidden bg-background text-foreground">
       <main className="relative mx-auto flex h-screen max-h-screen flex-col px-6 pb-28 pt-20">
         <div className="flex h-full min-h-0 gap-5 pr-4">
-          <div className="relative flex-1 overflow-hidden rounded-[32px] border border-gray-200 bg-white shadow-[0_25px_70px_rgba(15,23,42,0.08)]">
-            <div className="absolute left-5 top-5 z-20 rounded-lg border border-gray-200 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600 shadow-sm">
+          <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
+            <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
               Primary View
             </div>
 
-            <div className="absolute left-5 top-16 z-20 w-[260px] opacity-95 transition-opacity hover:opacity-100">
-              <div className="rounded-2xl border border-gray-200 bg-white/85 p-2 shadow-lg backdrop-blur">
+            <div className="absolute left-5 top-16 z-20">
+              <div className="shadow-lg backdrop-blur p-0">
                 <ActionVarianceChart
                   title="2 sec future"
                   overlay
@@ -609,33 +609,33 @@ export const TrainingInterface = ({
               </div>
             </div>
 
-            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 text-xs">
-              <div className="rounded-xl border border-gray-200 bg-white/85 px-3 py-2 text-gray-600 shadow-lg backdrop-blur">
+            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
+              <div className="rounded-xl border border-border bg-card/85 px-3 py-2 text-muted-foreground shadow-lg backdrop-blur">
                 <div>
-                  <span className="text-gray-500">Signaling:</span>{" "}
+                  <span className="text-muted-foreground/80">Signaling:</span>{" "}
                   <span
                     className={
                       session.signalingConnected
-                        ? "text-green-600"
-                        : "text-amber-600"
+                        ? "text-emerald-500"
+                        : "text-amber-500"
                     }
                   >
                     {session.signalingConnected ? "connected" : "connecting"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Peer:</span>{" "}
-                  <span className="text-purple-700">
+                  <span className="text-muted-foreground/80">Peer:</span>{" "}
+                  <span className="text-primary">
                     {session.connectionState}
                   </span>
                 </div>
                 <div>
-                  <span className="text-gray-500">Telemetry:</span>{" "}
+                  <span className="text-muted-foreground/80">Telemetry:</span>{" "}
                   <span
                     className={
                       session.telemetryOpen
-                        ? "text-green-600"
-                        : "text-amber-600"
+                        ? "text-emerald-500"
+                        : "text-amber-500"
                     }
                   >
                     {session.telemetryOpen ? "open" : "pending"}
@@ -643,12 +643,12 @@ export const TrainingInterface = ({
                 </div>
               </div>
               {cameraLoading && (
-                <span className="rounded-full border border-purple-200 bg-purple-50 px-3 py-1 text-[11px] text-purple-700 shadow">
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] text-primary shadow">
                   Loading camera config…
                 </span>
               )}
               {cameraError && (
-                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] text-amber-700 shadow">
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] text-amber-700 shadow dark:border-amber-500/50 dark:bg-amber-900/40 dark:text-amber-100">
                   {cameraError}
                 </span>
               )}
@@ -680,11 +680,12 @@ export const TrainingInterface = ({
               onRequestCreateDataset={() => setIsCreateDialogOpen(true)}
               onRequestDeleteDataset={promptDeleteDataset}
               onPromptDeleteEpisode={promptDeleteEpisode}
+              accentColor="emerald"
             />
           </div>
 
-          <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-gray-200 bg-white/80 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur">
-            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+          <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Secondary Cameras
             </div>
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">
@@ -695,13 +696,13 @@ export const TrainingInterface = ({
       </main>
 
       <div className="pointer-events-none fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center">
-        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-gray-200 bg-white px-4 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)]">
+        <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2.5 shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]">
           <Button
             onClick={isRecording ? endEpisode : startEpisode}
             disabled={isLoading}
             className={`rounded-full px-5 ${
               isRecording
-                ? "bg-red-500 hover:bg-red-600"
+                ? "bg-destructive hover:bg-destructive/90"
                 : "bg-emerald-500 hover:bg-emerald-600"
             } text-white shadow-sm`}
           >
@@ -717,7 +718,7 @@ export const TrainingInterface = ({
             onClick={rewindEpisode}
             disabled={isLoading || !currentEpisodeId}
             variant="outline"
-            className="rounded-full border-gray-300 bg-gray-100 text-gray-800 hover:bg-gray-200"
+            className="rounded-full border-border bg-muted text-foreground hover:bg-muted/80"
           >
             <RotateCcw className="mr-2 h-4 w-4" />
             Rewind
@@ -725,7 +726,7 @@ export const TrainingInterface = ({
           <Button
             onClick={handleDeploy}
             variant="outline"
-            className="rounded-full border-purple-200 bg-purple-500 text-white hover:bg-purple-600"
+            className="rounded-full border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <DatabaseBackup className="mr-2 h-4 w-4" />
             Deploy

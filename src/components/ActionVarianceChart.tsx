@@ -145,9 +145,10 @@ export const ActionVarianceChart = ({
                     content: `Median: ${
                       data.length > 0
                         ? [...data]
-                            .sort((a, b) => a - b)
-                            // eslint-disable-next-line no-unexpected-multiline
-                            [Math.floor(data.length / 2)].toFixed(3)
+                            .sort((a, b) => a - b) [
+                              // eslint-disable-next-line no-unexpected-multiline
+                              Math.floor(data.length / 2)
+                            ].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
@@ -274,7 +275,7 @@ export const ActionVarianceChart = ({
   );
 
   const ChartComponent = (
-    <div className="h-full relative">
+    <div className="h-full relative bg-gray-200">
       {data.length === 0 ? (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
@@ -315,16 +316,15 @@ export const ActionVarianceChart = ({
     <>
       <Card
         className={`${
-          overlay ? "bg-black bg-opacity-75" : "bg-gray-900"
-        } border-gray-700 h-full ${
-          compact ? "p-1" : ""
-        } fixed top-8 left-0 z-50`}
+          overlay ? "bg-opacity-75" : "bg-gray-900"
+        }  h-full rounded-lg
+          p-0  fixed top-8 left-0 z-50`}
         style={{
           width: compact ? "300px" : "400px",
           height: compact ? "220px" : "320px",
         }}
       >
-        <div className={`${compact ? "p-1" : "p-4"} h-full flex flex-col`}>
+        <div className={` h-full flex flex-col`}>
           {showTitle && (
             <div className="flex justify-between items-center mb-1">
               <h3

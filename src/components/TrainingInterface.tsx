@@ -602,8 +602,8 @@ export const TrainingInterface = ({
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-background text-foreground">
-      <section className="relative  flex  h-screen  flex-1 flex-col p-4 ">
-        <div className="flex flex-1 min-h-0 gap-2 pr-4">
+      <section className="relative  flex  h-screen  flex-1 flex-col p-1">
+        <div className="flex flex-1 min-h-0 gap-2 ">
           <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
             <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
               Primary View
@@ -696,6 +696,16 @@ export const TrainingInterface = ({
           </div>
 
           <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+                <RecordingControls
+        isRecording={isRecording}
+        isLoading={isLoading}
+        currentEpisodeId={currentEpisodeId}
+        onStart={startEpisode}
+        onStop={endEpisode}
+        onRewind={rewindEpisode}
+        onDeploy={handleDeploy}
+        style={RecordingControlStyle.COMPACT}
+      />
             <Tabs
               value={sidebarTab}
               onValueChange={(value) =>

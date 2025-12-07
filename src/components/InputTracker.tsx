@@ -32,7 +32,10 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
     timestamp: number;
   } | null>(null);
 
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(() => {
+    const saved = localStorage.getItem("input-tracker-visible");
+    return saved !== null ? saved === "true" : true;
+  });
   const [gamepads, setGamepads] = useState<Gamepad[]>([]);
   const gamepadStateRef = useRef<GamepadStateMap>({});
 
@@ -176,7 +179,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
       connected.forEach((gamepad) => {
         const index = gamepad.index;
-        
+
         // Initialize state if needed
         if (!stateMap[index]) {
           stateMap[index] = {
@@ -187,24 +190,25 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         }
 
         const state = stateMap[index];
-        
+
         // Check if enough time has passed since last send
         if (now - state.lastSent < FRAME_INTERVAL_MS) {
           return;
         }
 
         // Apply deadzone to axes
-        const normalizedAxes = gamepad.axes.map((value) => 
+        const normalizedAxes = gamepad.axes.map((value) =>
           Math.abs(value) < AXIS_DEADZONE ? 0 : value
         );
 
         // Check if any axes or buttons have changed
-        const axesChanged = normalizedAxes.some((value, idx) => 
-          Math.abs(value - (state.axes[idx] || 0)) > 0.01
+        const axesChanged = normalizedAxes.some(
+          (value, idx) => Math.abs(value - (state.axes[idx] || 0)) > 0.01
         );
-        const buttonsChanged = gamepad.buttons.some((button, idx) => 
-          button.pressed !== state.buttons[idx]?.pressed || 
-          Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01
+        const buttonsChanged = gamepad.buttons.some(
+          (button, idx) =>
+            button.pressed !== state.buttons[idx]?.pressed ||
+            Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01
         );
 
         const axesActive = normalizedAxes.some((value) => value !== 0);
@@ -373,7 +377,10 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         </Badge>
         <button
           className="text-muted-foreground transition hover:text-foreground"
-          onClick={() => setIsVisible(false)}
+          onClick={() => {
+            setIsVisible(false);
+            localStorage.setItem("input-tracker-visible", "false");
+          }}
           aria-label="Close"
         >
           <X className="h-3 w-3" />
@@ -389,7 +396,9 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
       {gamepads.length > 0 && (
         <div className="mt-2 border-t border-border pt-2">
-          <div className="mb-1 text-xs text-muted-foreground">Connected gamepads:</div>
+          <div className="mb-1 text-xs text-muted-foreground">
+            Connected gamepads:
+          </div>
           {gamepads.map((gamepad, index) => (
             <div key={gamepad.id} className="truncate text-xs text-foreground">
               {index + 1}: {gamepad.id}

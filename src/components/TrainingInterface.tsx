@@ -13,19 +13,11 @@ import * as episodeApi from "@/services/episodeApi";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
-import {
-  RecordingControls,
-  RecordingControlStyle,
-} from "./RecordingControls";
-import {
-  EpisodeManagementContent,
-  EpisodeManagementSidebar,
-} from "./training/EpisodeManagementSidebar";
+import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
+import { SidebarTabs } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
-import { Button } from "./ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -626,7 +618,7 @@ export const TrainingInterface = ({
                   <span className="text-muted-foreground/80">Signaling:</span>{" "}
                   <span
                     className={
-                      session.signalingConnected 
+                      session.signalingConnected
                         ? "text-emerald-500"
                         : "text-amber-500"
                     }
@@ -696,80 +688,39 @@ export const TrainingInterface = ({
           </div>
 
           <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
-                <RecordingControls
-        isRecording={isRecording}
-        isLoading={isLoading}
-        currentEpisodeId={currentEpisodeId}
-        onStart={startEpisode}
-        onStop={endEpisode}
-        onRewind={rewindEpisode}
-        onDeploy={handleDeploy}
-        style={RecordingControlStyle.COMPACT}
-      />
-            <Tabs
-              value={sidebarTab}
-              onValueChange={(value) =>
-                setSidebarTab(value as "secondary" | "episodes")
-              }
-              className="flex h-full flex-col"
-            >
-              <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-muted/60 p-1">
-                <TabsTrigger
-                  value="secondary"
-                  className="rounded-xl text-[11px] font-semibold uppercase tracking-wide"
-                >
-                  Secondary
-                </TabsTrigger>
-                <TabsTrigger
-                  value="episodes"
-                  className="rounded-xl text-[11px] font-semibold uppercase tracking-wide"
-                >
-                  Episodes
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent
-                value="secondary"
-                className="flex-1 focus-visible:outline-none"
-              >
-                <div className="mt-2 flex h-full flex-col gap-3">
-                  <div className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Secondary Cameras
-                  </div>
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-                    {renderSecondaryStack(secondarySlots, "right")}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent
-                value="episodes"
-                className="flex-1 focus-visible:outline-none"
-              >
-                <div className="mt-2 h-full overflow-hidden rounded-2xl border border-border bg-muted/50 dark:bg-muted/20">
-                  <EpisodeManagementContent
-                    isActive={sidebarTab === "episodes"}
-                    datasets={datasets}
-                    selectedDataset={selectedDataset}
-                    isLoadingDatasets={isLoadingDatasets}
-                    episodes={episodes}
-                    isDeleting={isDeleting}
-                    formatDuration={formatDuration}
-                    onSelectDataset={setSelectedDataset}
-                    onRequestCreateDataset={() => setIsCreateDialogOpen(true)}
-                    onRequestDeleteDataset={promptDeleteDataset}
-                    onPromptDeleteEpisode={promptDeleteEpisode}
-                    accentColor="emerald"
-                    className="h-full"
-                  />
-                </div>
-              </TabsContent>
-            </Tabs>
+            <RecordingControls
+              isRecording={isRecording}
+              isLoading={isLoading}
+              currentEpisodeId={currentEpisodeId}
+              onStart={startEpisode}
+              onStop={endEpisode}
+              onRewind={rewindEpisode}
+              onDeploy={handleDeploy}
+              style={RecordingControlStyle.COMPACT}
+            />
+            <SidebarTabs
+              tab={sidebarTab}
+              onTabChange={setSidebarTab}
+              secondaryContent={renderSecondaryStack(secondarySlots, "right")}
+              episodeManagementProps={{
+                datasets,
+                selectedDataset,
+                isLoadingDatasets,
+                episodes,
+                isDeleting,
+                formatDuration,
+                onSelectDataset: setSelectedDataset,
+                onRequestCreateDataset: () => setIsCreateDialogOpen(true),
+                onRequestDeleteDataset: promptDeleteDataset,
+                onPromptDeleteEpisode: promptDeleteEpisode,
+                accentColor: "emerald",
+              }}
+            />
           </div>
         </div>
       </section>
 
-      <RecordingControls
+      {/* <RecordingControls
         isRecording={isRecording}
         isLoading={isLoading}
         currentEpisodeId={currentEpisodeId}
@@ -778,7 +729,7 @@ export const TrainingInterface = ({
         onRewind={rewindEpisode}
         onDeploy={handleDeploy}
         style={RecordingControlStyle.DEFAULT}
-      />
+      /> */}
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

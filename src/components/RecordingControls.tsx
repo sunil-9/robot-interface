@@ -1,4 +1,4 @@
-import { DatabaseBackup, Play, RotateCcw, Square } from "lucide-react";
+import { Database, Play, RotateCcw, Square } from "lucide-react";
 
 import { Button } from "./ui/button";
 
@@ -71,7 +71,7 @@ export const RecordingControls = ({
           variant="outline"
           className={`rounded-full border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90 ${textSize} ${isCompact ? "p-2 gap-0 h-7" : ""}`}
         >
-          <DatabaseBackup className={`mr-2 ${iconSize}`} />
+          <Database className={`mr-2 ${iconSize}`} />
           Deploy
         </Button>
       </div>

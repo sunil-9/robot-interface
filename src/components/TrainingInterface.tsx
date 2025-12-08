@@ -263,7 +263,7 @@ export const TrainingInterface = ({
 
   const renderSecondaryStack = (
     slots: CameraSlot[],
-    fallbackPosition: "left" | "right"
+    fallbackPosition: "left" | "right" | "extra"
   ) => {
     if (slots.length === 0) {
       return (
@@ -701,7 +701,7 @@ export const TrainingInterface = ({
             <SidebarTabs
               tab={sidebarTab}
               onTabChange={setSidebarTab}
-              secondaryContent={renderSecondaryStack(secondarySlots, "right")}
+              secondaryContent={renderSecondaryStack(secondarySlots, "extra")}
               episodeManagementProps={{
                 datasets,
                 selectedDataset,

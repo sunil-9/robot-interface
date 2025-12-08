@@ -19,6 +19,7 @@ import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { toast } from "./ui/use-toast";
+import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
 
 interface TrainingInterfaceProps {
   robotId: string | null;
@@ -224,8 +225,9 @@ export const TrainingInterface = ({
 
     const leftSlots = slots.filter((slot) => slot.position === "left");
     const rightSlots = slots.filter((slot) => slot.position === "right");
-    const extraSlots = slots.filter((slot) => slot.position === "extra");
+    //Todo: change back to "extra" from "main" after testing
 
+    const extraSlots = slots.filter((slot) => slot.position === "main");
     return {
       main: mainSlot,
       left: leftSlots,
@@ -240,11 +242,26 @@ export const TrainingInterface = ({
     right: rightSlots,
     extras: extraSlots,
   } = cameraLayout;
-  const extrasForRight = extraSlots.filter(
-    (slot) => slot.key !== mainSlot?.key
-  );
-  const rightColumnSlots = [...rightSlots, ...extrasForRight];
-  const secondarySlots = [...leftSlots, ...rightColumnSlots];
+
+  // const availableExtras = extraSlots.filter(
+  //   (slot) => slot.key !== mainSlot?.key
+  // );
+  const availableExtras = [...extraSlots, ...extraSlots];
+  // change key to extra in each availableExtras slot
+  availableExtras.forEach((slot) => {
+    slot.position = "extra";
+  });
+  // todo: delete after testing
+  const MockLeftSlot = {
+    key: "mock-left",
+    title: "Left Camera",
+    position: "left" as const,
+    stream: mainSlot?.stream ?? null,
+  };
+  // todo: replace above mock with actual left slot or null after testing
+  const fixedLeftSlot = leftSlots[0] ?? MockLeftSlot;
+  const fixedRightSlot = rightSlots[0] ?? MockLeftSlot;
+  const sidebarSlots = availableExtras;
 
   const fallbackImageForPosition = (
     position: "main" | "left" | "right" | "extra"
@@ -597,19 +614,17 @@ export const TrainingInterface = ({
       <section className="relative  flex  h-screen  flex-1 flex-col p-1">
         <div className="flex flex-1 min-h-0 gap-2 ">
           <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
-            <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
-              Primary View
-            </div>
+            {/* <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px]  uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
+             { mainSlot?.title}
+            </div> */}
 
-            <div className="absolute left-5 top-16 z-20">
-              <div className="shadow-lg backdrop-blur p-0">
+            <div className="absolute left-5 top-26 z-20">
                 <ActionVarianceChart
                   title="2 sec future"
                   overlay
                   compact
                   showTitle={false}
                 />
-              </div>
             </div>
 
             <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
@@ -664,13 +679,48 @@ export const TrainingInterface = ({
               fallbackImage={fallbackImageForPosition(
                 mainSlot?.position ?? "main"
               )}
-              position={mainSlot?.position ?? "main"}
+              position={"main"} //todo: change back to mainSlot.position from "main" after testing
               isConnected={Boolean(mainSlot?.stream)}
-              showTitle={false}
+              showTitle={true}
               className="h-full rounded-[32px] border-none bg-transparent"
             />
 
-            {/* <EpisodeManagementSidebar
+            {fixedLeftSlot && (
+              <div className="absolute bottom-4 left-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
+                {/* Todo: remove hardcoded left slot after testing */}
+                <CameraView
+                  key={"left"}
+                  title={fixedLeftSlot.title ?? "Left Camera"}
+                  stream={fixedLeftSlot.stream ?? mainSlot?.stream ?? null}
+                  fallbackImage={fallbackImageForPosition("left")}
+                  position="left"
+                  isConnected={Boolean(
+                    fixedLeftSlot.stream ?? mainSlot?.stream
+                  )}
+                  className="h-full w-full"
+                />
+              </div>
+            )}
+
+            {fixedRightSlot && (
+              <div className="absolute bottom-4 right-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
+                {/* Todo: remove hardcoded right slot after testing */}
+
+                <CameraView
+                  key={"right"}
+                  title={fixedRightSlot.title}
+                  stream={fixedRightSlot.stream ?? mainSlot?.stream}
+                  fallbackImage={fallbackImageForPosition("right")}
+                  position="right"
+                  isConnected={Boolean(
+                    fixedRightSlot.stream ?? mainSlot?.stream
+                  )}
+                  className="h-full w-full"
+                />
+              </div>
+            )}
+
+            <EpisodeManagementSidebar
               isOpen={isSidebarOpen}
               onOpenChange={setIsSidebarOpen}
               datasets={datasets}
@@ -684,7 +734,7 @@ export const TrainingInterface = ({
               onRequestDeleteDataset={promptDeleteDataset}
               onPromptDeleteEpisode={promptDeleteEpisode}
               accentColor="emerald"
-            /> */}
+            />
           </div>
 
           <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
@@ -701,7 +751,7 @@ export const TrainingInterface = ({
             <SidebarTabs
               tab={sidebarTab}
               onTabChange={setSidebarTab}
-              secondaryContent={renderSecondaryStack(secondarySlots, "extra")}
+              secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
               episodeManagementProps={{
                 datasets,
                 selectedDataset,
@@ -720,7 +770,7 @@ export const TrainingInterface = ({
         </div>
       </section>
 
-      {/* <RecordingControls
+      <RecordingControls
         isRecording={isRecording}
         isLoading={isLoading}
         currentEpisodeId={currentEpisodeId}
@@ -729,7 +779,7 @@ export const TrainingInterface = ({
         onRewind={rewindEpisode}
         onDeploy={handleDeploy}
         style={RecordingControlStyle.DEFAULT}
-      /> */}
+      />
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

@@ -317,7 +317,7 @@ export const ActionVarianceChart = ({
       <Card
         className={`${
           overlay ? "bg-card/80" : "bg-card"
-        } h-full rounded-lg p-0 fixed top-8 left-0 z-50 border-border opacity-30 transition-opacity hover:opacity-90`}
+        } h-full rounded-lg p-0 fixed top-12 left-0 z-50 border-border opacity-40 transition-opacity hover:opacity-90`}
         style={{
           width: compact ? "300px" : "400px",
           height: compact ? "220px" : "320px",

@@ -62,7 +62,7 @@ export const CameraView = ({
   const hasFallback = Boolean(fallbackImage);
 
   const alignmentClasses = clsx(
-    "relative flex h-full w-full bg-gradient-to-br from-[#f4f6fb] to-[#e7ebf5]",
+    "relative flex h-full w-full bg-background",
     position === "main"
       ? "items-center justify-center"
       : position === "right"
@@ -73,16 +73,21 @@ export const CameraView = ({
   );
 
   const frameClasses = clsx(
-    "relative flex items-center justify-center overflow-hidden bg-white",
+    "relative flex items-center justify-center overflow-hidden bg-background",
     position === "main"
       ? "h-full w-full"
-      : "h-[170px] w-full rounded-2xl border border-gray-200 shadow-sm"
+      : " w-full rounded-2xl border border-gray-200 shadow-sm",
+    position === "right" || position === "left" ? "h-[170px]" : "",
+    position === "extra" ? "extra" : "",
+    position === "main" ? "main" : "",
+    position === "right" ? "right" : "",
+    position === "left" ? "left" : ""
   );
 
   return (
     <Card
       className={clsx(
-        "relative h-full w-full overflow-hidden border-none bg-transparent shadow-none ",
+        "relative h-full w-full overflow-hidden border-none bg-transparent shadow-none",
         className
       )}
     >
@@ -102,9 +107,9 @@ export const CameraView = ({
               className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
             />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-gray-100 text-gray-500">
-              <Camera className="h-8 w-8 text-gray-400" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2  bg-background text-muted-foreground">
+              <Camera className="h-8 w-8 text-muted-foreground/50" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {title}
               </span>
               <span className="text-xs font-semibold uppercase tracking-wide">
@@ -114,19 +119,21 @@ export const CameraView = ({
           )}
 
           {showTitle && (
-            <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-gray-200 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gray-600 shadow-sm backdrop-blur">
-              <span className="font-semibold tracking-wide text-gray-700">
+            <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
+              <span className="font-semibold tracking-wide text-foreground">
                 {title}
               </span>
               <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
                 {isConnected ? (
-                  <Wifi className="h-3 w-3 text-green-500" />
+                  <Wifi className="h-3 w-3 text-emerald-500" />
                 ) : (
                   <WifiOff className="h-3 w-3 text-amber-500" />
                 )}
                 <span
                   className={clsx(
-                    isConnected ? "text-green-700" : "text-amber-700"
+                    isConnected
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400"
                   )}
                 >
                   {isConnected ? "Live" : "Waiting"}

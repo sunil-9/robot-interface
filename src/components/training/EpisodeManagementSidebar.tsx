@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowLeft, ArrowRight, Brain, Layers, Loader2, Zap } from "lucide-react";
+import { Activity, ArrowLeft, ArrowRight, Brain, Layers, Loader2, Zap, Play, RotateCcw, Rocket } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import * as episodeApi from "@/services/episodeApi";
@@ -164,7 +164,7 @@ export const EpisodeManagementContent = ({
       : null;
 
   return (
-    <div className={cn("flex h-full flex-col", className)}>
+    <div className={cn("flex flex-col", className)}>
       {/* <div className="flex items-center justify-between border-b border-border p-4">
         <h2 className="text-xl font-bold text-foreground">
           Episode Management
@@ -180,7 +180,7 @@ export const EpisodeManagementContent = ({
         onRequestDelete={onRequestDeleteDataset}
       />
 
-      <div className="flex-1 space-y-1 overflow-y-auto bg-muted/40 p-4 dark:bg-muted/30">
+      <div className="overflow-y-auto max-h-[40%] h-1/2 bg-muted/40 p-2 dark:bg-muted/30">
         <EpisodeList
           selectedDataset={selectedDataset}
           episodes={episodes}
@@ -189,17 +189,16 @@ export const EpisodeManagementContent = ({
           onPromptDeleteEpisode={onPromptDeleteEpisode}
         />
       </div>
-
-      <div className="flex h-[25%] min-h-[260px] flex-col justify-between border-t border-border bg-card p-5 shadow-[0_-5px_20px_rgba(0,0,0,0.08)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.4)]">
-        <div className="flex items-center justify-between">
+         <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
+        <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Brain className={cn("h-5 w-5", accent.trainingIcon)} />
-            <h3 className="font-semibold text-foreground">Model Training</h3>
+            <Brain className={cn("h-4 w-4", accent.trainingIcon)} />
+            <h3 className="font-medium text-sm text-foreground">Model Training</h3>
           </div>
           <Badge
             variant="outline"
             className={cn(
-              "border-border bg-muted text-muted-foreground",
+              "h-5 px-2 text-[10px] border-border bg-muted text-muted-foreground",
               trainingJob &&
                 "border-green-200 bg-green-50 text-green-700 dark:border-green-500/40 dark:bg-green-900/30 dark:text-green-100",
               trainingError &&
@@ -209,61 +208,62 @@ export const EpisodeManagementContent = ({
           >
             <span className="flex items-center gap-1">
               {isTrainingLoading && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" />
               )}
               {trainingStatusLabel}
             </span>
           </Badge>
         </div>
 
-        <p className="text-xs text-muted-foreground">
+        <p className="text-[10px] text-muted-foreground mb-3 truncate" title={trainingStatusDescription}>
           {trainingStatusDescription}
           {startedAtLabel ? ` • Started ${startedAtLabel}` : ""}
         </p>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/60 p-2.5 dark:bg-secondary">
-            <span className="text-xs font-medium text-muted-foreground">Current Step</span>
-            <div className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-primary" />
-              <span className="text-lg font-bold text-foreground">
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
+            <div className="flex items-center ">
+            <span className="text-[10px] font-medium text-muted-foreground">Current Step</span>
+              <Layers className="h-3.5 w-3.5 text-primary" />
+              <span className="text-sm font-bold text-foreground">
                 {trainingJob ? trainingJob.current_step : 0}
               </span>
             </div>
           </div>
-          <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/60 p-2.5 dark:bg-secondary">
-            <span className="text-xs font-medium text-muted-foreground">Requested Steps</span>
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-accent" />
-              <span className="text-lg font-bold text-foreground">
+          <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
+            <div className="flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground">Requested Steps</span>
+              <Activity className="h-3.5 w-3.5 text-accent" />
+              <span className="text-sm font-bold text-foreground">
                 {trainingJob ? trainingJob.requested_steps : 0}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-medium text-muted-foreground">Training steps</Label>
-            <span className={cn("text-xs font-mono", accent.trainingStepsText)}>
+            <Label className="text-[10px] font-medium text-muted-foreground">Training steps</Label>
+            <span className={cn("text-[10px] font-mono", accent.trainingStepsText)}>
               {interval} steps
             </span>
           </div>
-          <Slider
-            value={interval}
-            onValueChange={(value) => setInterval(value)}
-            aria-label="Training Steps"
-            max={20000}
-            min={5000}
-            step={5000}
-            className="py-1 "
-          />
+          <div className="flex items-center gap-3">
+             <Slider
+                value={interval}
+                onValueChange={(value) => setInterval(value)}
+                aria-label="Training Steps"
+                max={20000}
+                min={5000}
+                step={5000}
+                className="flex-1 py-0"
+              />
+             <Button size="sm" className={cn("h-7 px-3 text-xs", accent.trainButton)} disabled={isTrainingLoading}>
+              <Zap className="mr-1.5 h-3 w-3 fill-current" />
+              Train
+            </Button>
+          </div>
         </div>
-
-        <Button className={cn("w-full font-semibold", accent.trainButton)} disabled={isTrainingLoading}>
-          <Zap className="mr-2 h-4 w-4 fill-current" />
-          Train More
-        </Button>
       </div>
     </div>
   );

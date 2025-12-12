@@ -39,7 +39,7 @@ export const EpisodeCard = ({
     : "Unknown timestamp";
 
   return (
-    <Card className="flex items-center justify-between border-border bg-card px-4 py-0 shadow-sm">
+    <Card className="flex items-center justify-between bg-card p-1  shadow-sm hover:shadow-md">
       <div className="flex flex-1 items-center overflow-hidden text-xs text-foreground sm:text-sm">
         <span className="shrink-0 font-semibold text-primary">{`#${displayIndex}`}</span>
         <div className="ml-3 flex flex-wrap items-center gap-2 text-muted-foreground">

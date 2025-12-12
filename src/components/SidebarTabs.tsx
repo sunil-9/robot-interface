@@ -25,7 +25,7 @@ export function SidebarTabs({
       onValueChange={(value) => onTabChange(value as "secondary" | "episodes")}
       className="flex h-full flex-col"
     >
-      <TabsList className="grid w-full grid-cols-2 rounded-2xl bg-muted/60 p-1">
+      <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted/60 p-1">
         <TabsTrigger
           value="secondary"
           className="rounded-xl text-[11px] font-semibold uppercase tracking-wide gap-1"
@@ -58,7 +58,7 @@ export function SidebarTabs({
         value="episodes"
         className="flex-1 focus-visible:outline-none"
       >
-        <div className="mt-2 h-full overflow-hidden rounded-2xl border border-border bg-muted/50 dark:bg-muted/20">
+        <div className="mt-2 h-full overflow-hidden rounded-xl border border-border bg-muted/50 dark:bg-muted/20">
           <EpisodeManagementContent
             {...episodeManagementProps}
             isActive={tab === "episodes"}

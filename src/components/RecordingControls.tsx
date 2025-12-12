@@ -1,4 +1,4 @@
-import { Database, Play, RotateCcw, Square } from "lucide-react";
+import { Database, Play, Rocket, RotateCcw, Square } from "lucide-react";
 
 import { Button } from "./ui/button";
 
@@ -36,7 +36,13 @@ export const RecordingControls = ({
   const textSize = isCompact ? "text-sm" : "text-base";
 
   return (
-    <div className={`pointer-events-none ${isCompact ? "px-3 py-2" : "fixed bottom-6 left-1/2 z-40  -translate-x-1/2"}  `}>
+    <div
+      className={`pointer-events-none ${
+        isCompact
+          ? "px-3 py-2"
+          : "fixed bottom-6 left-1/2 z-40  -translate-x-1/2"
+      }  `}
+    >
       <div
         className={`pointer-events-auto flex items-center ${gap} rounded-full border border-border bg-card ${containerPadding} shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]`}
       >
@@ -47,7 +53,7 @@ export const RecordingControls = ({
             isRecording
               ? "bg-destructive hover:bg-destructive/90"
               : "bg-emerald-500 hover:bg-emerald-600"
-          } text-white shadow-sm ${textSize} ${isCompact ? "p-2 gap-0 h-7" : ""} `}
+          } text-white shadow-sm ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
         >
           {isRecording ? (
             <Square className={`mr-2 ${iconSize}`} />
@@ -61,7 +67,7 @@ export const RecordingControls = ({
           onClick={onRewind}
           disabled={isLoading || !currentEpisodeId}
           variant="outline"
-          className={`rounded-full border-border bg-muted text-foreground hover:bg-muted/80 ${textSize} ${isCompact ? "p-2 gap-0 h-7" : ""}`}
+          className={`rounded-full border-border bg-muted text-foreground hover:bg-muted/80 ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
         >
           <RotateCcw className={`mr-2 ${iconSize}`} />
           Rewind
@@ -69,9 +75,9 @@ export const RecordingControls = ({
         <Button
           onClick={onDeploy}
           variant="outline"
-          className={`rounded-full border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90 ${textSize} ${isCompact ? "p-2 gap-0 h-7" : ""}`}
+          className={`border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90 ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
         >
-          <Database className={`mr-2 ${iconSize}`} />
+          <Rocket className={`mr-2 ${iconSize}`} />
           Deploy
         </Button>
       </div>

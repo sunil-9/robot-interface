@@ -38,14 +38,14 @@ export const DatasetSelector = ({
   };
 
   return (
-    <div className="border-b border-border bg-card p-4">
+    <div className="border-b border-border bg-card p-4 ">
+      <div className="flex gap-2 items-center justify-between ">
       <Label
         htmlFor="dataset-select"
-        className="mb-2 block text-sm font-medium text-foreground"
+        className="mb-2 block text-sm font-medium text-foreground pt-2"
       >
         Dataset
       </Label>
-      <div className="flex gap-2">
         <Select
           value={selectedDataset}
           onValueChange={handleValueChange}

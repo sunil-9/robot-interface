@@ -10,7 +10,7 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
@@ -63,8 +63,21 @@ export const TrainingInterface = ({
   const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
     episodeApi.Episode[]
   >([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployRequestPending, setDeployRequestPending] = useState(false);
+  const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
   const { setMode } = useModeContext();
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
+  const selectedDatasetRef = useRef<string | null>(selectedDataset);
+  const deployDatasetRef = useRef<string | null>(deployDatasetId);
+
+  useEffect(() => {
+    selectedDatasetRef.current = selectedDataset;
+  }, [selectedDataset]);
+
+  useEffect(() => {
+    deployDatasetRef.current = deployDatasetId;
+  }, [deployDatasetId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -500,11 +513,123 @@ export const TrainingInterface = ({
   };
 
   const handleDeploy = () => {
+    if (!selectedDataset) {
+      toast({
+        title: "Error",
+        description: "Select a dataset before deploying",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const action = isDeploying ? "stop" : "start";
+    setDeployRequestPending(true);
+    setDeployDatasetId(selectedDataset);
+
+    const sent = session.sendControl({
+      type: "deploy",
+      payload: {
+        action,
+        datasetId: selectedDataset,
+      },
+    });
+
+    if (!sent) {
+      setDeployRequestPending(false);
+      toast({
+        title: "Error",
+        description: "Failed to send deploy request to robot",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
-      title: "Info",
-      description: "Deploy functionality is not implemented yet",
+      title: "Deployment request sent",
+      description:
+        action === "start"
+          ? `Deploying dataset "${selectedDataset}".`
+          : `Stopping deployment for dataset "${selectedDataset}".`,
     });
   };
+
+  useEffect(() => {
+    const unsubscribe = session.onTelemetry((payload) => {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+
+      const record = payload as Record<string, unknown>;
+      const type = typeof record.type === "string" ? record.type : null;
+      if (type !== "deploy") {
+        return;
+      }
+
+      const rawPayload = record.payload;
+      if (!rawPayload || typeof rawPayload !== "object") {
+        return;
+      }
+      const deployPayload = rawPayload as Record<string, unknown>;
+      const action =
+        typeof deployPayload.action === "string"
+          ? deployPayload.action.toLowerCase()
+          : null;
+      const status =
+        typeof deployPayload.status === "string"
+          ? deployPayload.status.toLowerCase()
+          : null;
+      const message =
+        typeof deployPayload.message === "string"
+          ? deployPayload.message
+          : null;
+      const datasetId =
+        typeof deployPayload.datasetId === "string"
+          ? deployPayload.datasetId
+          : typeof deployPayload.dataset_id === "string"
+          ? deployPayload.dataset_id
+          : null;
+
+      const resolvedDataset =
+        datasetId ??
+        deployDatasetRef.current ??
+        selectedDatasetRef.current ??
+        undefined;
+
+      setDeployRequestPending(false);
+
+      if (action === "deploy_ack") {
+        const active = status === "deploying";
+        setIsDeploying(active);
+        setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
+        toast({
+          title: active ? "Deployment accepted" : "Deployment updated",
+          description:
+            message ??
+            (resolvedDataset
+              ? `Dataset "${resolvedDataset}" status: ${status ?? "updated"}.`
+              : `Deployment status: ${status ?? "updated"}.`),
+        });
+        return;
+      }
+
+      if (action === "deploy_nack" || status === "error") {
+        setIsDeploying(false);
+        setDeployDatasetId(null);
+        toast({
+          title: "Deployment failed",
+          description:
+            message ??
+            "Deployment request was rejected. Check deployment services and try again.",
+          variant: "destructive",
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
@@ -728,6 +853,8 @@ export const TrainingInterface = ({
               isRecording={isRecording}
               isLoading={isLoading}
               currentEpisodeId={currentEpisodeId}
+              isDeploying={isDeploying}
+              isDeployingRequest={deployRequestPending}
               onStart={startEpisode}
               onStop={endEpisode}
               onRewind={rewindEpisode}

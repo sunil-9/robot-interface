@@ -11,6 +11,8 @@ interface RecordingControlsProps {
   isRecording: boolean;
   isLoading: boolean;
   currentEpisodeId: string | null;
+  isDeploying?: boolean;
+  isDeployingRequest?: boolean;
   onStart: () => void;
   onStop: () => void;
   onRewind: () => void;
@@ -22,6 +24,8 @@ export const RecordingControls = ({
   isRecording,
   isLoading,
   currentEpisodeId,
+  isDeploying = false,
+  isDeployingRequest = false,
   onStart,
   onStop,
   onRewind,
@@ -75,10 +79,15 @@ export const RecordingControls = ({
         <Button
           onClick={onDeploy}
           variant="outline"
-          className={`border-primary/40 bg-primary text-primary-foreground hover:bg-primary/90 ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
+          disabled={isLoading || isDeployingRequest}
+          className={`border-primary/40 ${
+            isDeploying
+              ? "bg-amber-500 text-amber-50 hover:bg-amber-500/90"
+              : "bg-primary text-primary-foreground hover:bg-primary/90"
+          } ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
         >
           <Rocket className={`mr-2 ${iconSize}`} />
-          Deploy
+          {isDeploying ? "Stop Deploy" : "Deploy"}
         </Button>
       </div>
     </div>

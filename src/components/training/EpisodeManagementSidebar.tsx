@@ -213,7 +213,7 @@ export const EpisodeManagementContent = ({
           <Badge
             variant="outline"
             className={cn(
-              "h-5 px-2 text-[10px] border-border bg-muted text-muted-foreground",
+              "h-5 px-2 text-sm border-border bg-muted text-muted-foreground",
               trainingJob &&
                 "border-green-200 bg-green-50 text-green-700 dark:border-green-500/40 dark:bg-green-900/30 dark:text-green-100",
               trainingError &&
@@ -231,7 +231,7 @@ export const EpisodeManagementContent = ({
         </div>
 
         <p
-          className="text-[10px] text-muted-foreground mb-3 truncate"
+          className="text-sm text-muted-foreground mb-3 truncate"
           title={trainingStatusDescription}
         >
           {trainingStatusDescription}
@@ -239,9 +239,9 @@ export const EpisodeManagementContent = ({
         </p>
 
         <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
-            <div className="flex items-center ">
-              <span className="text-[10px] font-medium text-muted-foreground">
+          <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary ">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-medium text-muted-foreground">
                 Current Step
               </span>
               <Layers className="h-3.5 w-3.5 text-primary" />
@@ -252,7 +252,7 @@ export const EpisodeManagementContent = ({
           </div>
           <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-medium text-muted-foreground">
+              <span className="text-xs font-medium text-muted-foreground">
                 Requested Steps
               </span>
               <Activity className="h-3.5 w-3.5 text-accent" />
@@ -265,16 +265,14 @@ export const EpisodeManagementContent = ({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-medium text-muted-foreground">
+            <Label className="text-sm font-medium text-muted-foreground">
               Training steps
             </Label>
-            <span
-              className={cn("text-[10px] font-mono", accent.trainingStepsText)}
-            >
+            <span className={cn("text-sm font-mono", accent.trainingStepsText)}>
               {interval} steps
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
             <Slider
               value={interval}
               onValueChange={(value) => setInterval(value)}
@@ -286,11 +284,11 @@ export const EpisodeManagementContent = ({
             />
             <Button
               size="sm"
-              className={cn("h-7 px-3 text-xs", accent.trainButton)}
+              className={cn("h-7 px-2  text-xs", accent.trainButton)}
               disabled={isTrainingLoading}
             >
-              <Zap className="mr-1.5 h-3 w-3 fill-current" />
-              Train
+              <Zap className="h-3 w-3" />
+              Train More
             </Button>
           </div>
         </div>

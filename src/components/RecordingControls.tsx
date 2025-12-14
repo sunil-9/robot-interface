@@ -1,5 +1,6 @@
-import { Database, Play, Rocket, RotateCcw, Square } from "lucide-react";
+import { Play, Rocket, RotateCcw, Square } from "lucide-react";
 
+import { HelpDialog } from "./HelpDialog";
 import { Button } from "./ui/button";
 
 export enum RecordingControlStyle {
@@ -18,6 +19,7 @@ interface RecordingControlsProps {
   onRewind: () => void;
   onDeploy: () => void;
   style?: RecordingControlStyle;
+  children?: React.ReactNode;
 }
 
 export const RecordingControls = ({
@@ -31,13 +33,15 @@ export const RecordingControls = ({
   onRewind,
   onDeploy,
   style = RecordingControlStyle.DEFAULT,
+  children,
 }: RecordingControlsProps) => {
   const isCompact = style === RecordingControlStyle.COMPACT;
-  const containerPadding = isCompact ? "px-3 py-2" : "px-4 py-2.5";
-  const gap = isCompact ? "gap-2.5" : "gap-3";
-  const buttonPadding = isCompact ? "px-4" : "px-5";
-  const iconSize = isCompact ? "h-3.5 w-3.5" : "h-4 w-4";
-  const textSize = isCompact ? "text-sm" : "text-base";
+  const containerPadding = isCompact ? "px-1 py-1" : "px-4 py-2.5";
+  const gap = isCompact ? "gap-1" : "gap-3";
+  const buttonPadding = isCompact ? "px-0.5" : "px-5";
+  const iconSize = isCompact ? "" : "h-4 w-4";
+  const textSize = isCompact ? "text-xs" : "text-base";
+  const iconMargin = isCompact ? "mr-1" : "mr-2";
 
   return (
     <div
@@ -57,12 +61,14 @@ export const RecordingControls = ({
             isRecording
               ? "bg-destructive hover:bg-destructive/90"
               : "bg-emerald-500 hover:bg-emerald-600"
-          } text-white shadow-sm ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
+          } text-white shadow-sm ${textSize} ${
+            isCompact ? "gap-0 h-6 rounded-sm" : "rounded-full"
+          }`}
         >
           {isRecording ? (
-            <Square className={`mr-2 ${iconSize}`} />
+            <Square className={`${iconMargin} ${iconSize}`} />
           ) : (
-            <Play className={`mr-2 ${iconSize}`} />
+            <Play className={`${iconMargin}  ${iconSize}`} />
           )}
           {isRecording ? "End" : "Start"}
         </Button>
@@ -71,9 +77,11 @@ export const RecordingControls = ({
           onClick={onRewind}
           disabled={isLoading || !currentEpisodeId}
           variant="outline"
-          className={`rounded-full border-border bg-muted text-foreground hover:bg-muted/80 ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
+          className={`rounded-full border-border bg-muted text-foreground hover:bg-muted/80 ${textSize} ${
+            isCompact ? "gap-0 h-6 rounded-sm" : "rounded-full"
+          }`}
         >
-          <RotateCcw className={`mr-2 ${iconSize}`} />
+          <RotateCcw className={`${iconMargin} ${iconSize}`} />
           Rewind
         </Button>
         <Button
@@ -83,12 +91,20 @@ export const RecordingControls = ({
           className={`border-primary/40 ${
             isDeploying
               ? "bg-amber-500 text-amber-50 hover:bg-amber-500/90"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          } ${textSize} ${isCompact ? "p-2 gap-0 h-7 rounded-sm" : "rounded-full"  }`}
+              : "bg-primary text-primary-foreground  hover:bg-primary/90"
+          } ${textSize} ${isCompact ? "px-1 gap-0 h-6 rounded-sm" : "rounded-full"}`}
         >
-          <Rocket className={`mr-2 ${iconSize}`} />
+          <Rocket className={`${iconMargin} ${iconSize}`} />
           {isDeploying ? "Stop Deploy" : "Deploy"}
         </Button>
+        <HelpDialog
+          className={`border-primary/40 ${textSize} ${
+            isCompact ? " gap-0 px-1 h-6 rounded-sm" : "rounded-full"
+          }`}
+        >
+          Help
+        </HelpDialog>
+        {children}
       </div>
     </div>
   );

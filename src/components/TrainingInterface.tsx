@@ -19,7 +19,6 @@ import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { toast } from "./ui/use-toast";
-import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
 
 interface TrainingInterfaceProps {
   robotId: string | null;
@@ -628,7 +627,6 @@ export const TrainingInterface = ({
     return () => {
       unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
 
   // Additional episode management functions
@@ -744,12 +742,12 @@ export const TrainingInterface = ({
             </div> */}
 
             <div className="absolute left-5 top-26 z-20">
-                <ActionVarianceChart
-                  title="2 sec future"
-                  overlay
-                  compact
-                  showTitle={false}
-                />
+              <ActionVarianceChart
+                title="2 sec future"
+                overlay
+                compact
+                showTitle={false}
+              />
             </div>
 
             <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
@@ -844,8 +842,6 @@ export const TrainingInterface = ({
                 />
               </div>
             )}
-
-         
           </div>
 
           <div className="flex  w-[360px] h-[calc(100vh_-_10px)] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
@@ -882,8 +878,6 @@ export const TrainingInterface = ({
           </div>
         </div>
       </section>
-
-
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

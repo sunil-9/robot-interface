@@ -45,6 +45,13 @@ export const Header = ({
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
+  const modeColors: Record<AppMode, string> = {
+    [AppMode.RECORDING]: "text-red-500",
+    [AppMode.TRAINING]: "text-emerald-500",
+    [AppMode.REPLAY]: "text-blue-500",
+    [AppMode.POLICY_RUNNING]: "text-purple-500",
+  };
+
   const ThemeToggle = () => (
     <Button
       variant="ghost"
@@ -90,7 +97,7 @@ export const Header = ({
         <div className="flex flex-col items-center text-center px-1">
           <h1
             className={`flex items-center justify-center gap-2 text-base font-semibold ${
-              mode === AppMode.RECORDING ? "text-red-500" : "text-primary"
+              modeColors[mode] || "text-primary"
             }`}
           >
             {mode === AppMode.RECORDING && (

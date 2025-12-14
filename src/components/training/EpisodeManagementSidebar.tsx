@@ -1,5 +1,13 @@
+import {
+  Activity,
+  ArrowLeft,
+  ArrowRight,
+  Brain,
+  Layers,
+  Loader2,
+  Zap,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { Activity, ArrowLeft, ArrowRight, Brain, Layers, Loader2, Zap, Play, RotateCcw, Rocket } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import * as episodeApi from "@/services/episodeApi";
@@ -86,7 +94,8 @@ export const EpisodeManagementContent = ({
   className,
 }: EpisodeManagementContentProps) => {
   const [interval, setInterval] = useState<number[]>([25]);
-  const [trainingJob, setTrainingJob] = useState<trainingApi.TrainingJob | null>(null);
+  const [trainingJob, setTrainingJob] =
+    useState<trainingApi.TrainingJob | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
   const [isTrainingLoading, setIsTrainingLoading] = useState(false);
   const [trainingError, setTrainingError] = useState<string | null>(null);
@@ -104,7 +113,9 @@ export const EpisodeManagementContent = ({
       setIsTrainingLoading(true);
       setTrainingError(null);
       try {
-        const result = await trainingApi.fetchTrainingJobStatus(selectedDataset);
+        const result = await trainingApi.fetchTrainingJobStatus(
+          selectedDataset
+        );
         if (cancelled) {
           return;
         }
@@ -144,10 +155,10 @@ export const EpisodeManagementContent = ({
   const trainingStatusLabel = trainingJob
     ? "Running"
     : trainingError
-      ? "Error"
-      : isTrainingLoading
-        ? "Checking"
-        : "Not Running";
+    ? "Error"
+    : isTrainingLoading
+    ? "Checking"
+    : "Not Running";
 
   const trainingStatusDescription =
     trainingError ??
@@ -155,8 +166,10 @@ export const EpisodeManagementContent = ({
     (!selectedDataset
       ? "Select a dataset to check training status"
       : trainingJob
-        ? `Policy: ${trainingJob.policy_type || "N/A"} • Mode: ${trainingJob.mode || "N/A"}`
-        : "No active training job");
+      ? `Policy: ${trainingJob.policy_type || "N/A"} • Mode: ${
+          trainingJob.mode || "N/A"
+        }`
+      : "No active training job");
 
   const startedAtLabel =
     trainingJob?.started_at && trainingJob.started_at !== ""
@@ -189,11 +202,13 @@ export const EpisodeManagementContent = ({
           onPromptDeleteEpisode={onPromptDeleteEpisode}
         />
       </div>
-         <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
+      <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Brain className={cn("h-4 w-4", accent.trainingIcon)} />
-            <h3 className="font-medium text-sm text-foreground">Model Training</h3>
+            <h3 className="font-medium text-sm text-foreground">
+              Model Training
+            </h3>
           </div>
           <Badge
             variant="outline"
@@ -215,7 +230,10 @@ export const EpisodeManagementContent = ({
           </Badge>
         </div>
 
-        <p className="text-[10px] text-muted-foreground mb-3 truncate" title={trainingStatusDescription}>
+        <p
+          className="text-[10px] text-muted-foreground mb-3 truncate"
+          title={trainingStatusDescription}
+        >
           {trainingStatusDescription}
           {startedAtLabel ? ` • Started ${startedAtLabel}` : ""}
         </p>
@@ -223,7 +241,9 @@ export const EpisodeManagementContent = ({
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
             <div className="flex items-center ">
-            <span className="text-[10px] font-medium text-muted-foreground">Current Step</span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                Current Step
+              </span>
               <Layers className="h-3.5 w-3.5 text-primary" />
               <span className="text-sm font-bold text-foreground">
                 {trainingJob ? trainingJob.current_step : 0}
@@ -232,7 +252,9 @@ export const EpisodeManagementContent = ({
           </div>
           <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
             <div className="flex items-center gap-1.5">
-            <span className="text-[10px] font-medium text-muted-foreground">Requested Steps</span>
+              <span className="text-[10px] font-medium text-muted-foreground">
+                Requested Steps
+              </span>
               <Activity className="h-3.5 w-3.5 text-accent" />
               <span className="text-sm font-bold text-foreground">
                 {trainingJob ? trainingJob.requested_steps : 0}
@@ -243,22 +265,30 @@ export const EpisodeManagementContent = ({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-[10px] font-medium text-muted-foreground">Training steps</Label>
-            <span className={cn("text-[10px] font-mono", accent.trainingStepsText)}>
+            <Label className="text-[10px] font-medium text-muted-foreground">
+              Training steps
+            </Label>
+            <span
+              className={cn("text-[10px] font-mono", accent.trainingStepsText)}
+            >
               {interval} steps
             </span>
           </div>
           <div className="flex items-center gap-3">
-             <Slider
-                value={interval}
-                onValueChange={(value) => setInterval(value)}
-                aria-label="Training Steps"
-                max={20000}
-                min={5000}
-                step={5000}
-                className="flex-1 py-0"
-              />
-             <Button size="sm" className={cn("h-7 px-3 text-xs", accent.trainButton)} disabled={isTrainingLoading}>
+            <Slider
+              value={interval}
+              onValueChange={(value) => setInterval(value)}
+              aria-label="Training Steps"
+              max={20000}
+              min={5000}
+              step={5000}
+              className="flex-1 py-0"
+            />
+            <Button
+              size="sm"
+              className={cn("h-7 px-3 text-xs", accent.trainButton)}
+              disabled={isTrainingLoading}
+            >
               <Zap className="mr-1.5 h-3 w-3 fill-current" />
               Train
             </Button>

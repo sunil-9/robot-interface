@@ -1,0 +1,53 @@
+{
+  "title": "SO-100 Control Instructions (PS5)",
+  "description": "Default control mapping for the SO-100 robot arm using a PlayStation 5 controller.",
+  "controls": [
+    {
+      "category": "Movement",
+      "items": [
+        {
+          "input": "Left Stick",
+          "action": "Move End Effector (X/Y Plane)"
+        },
+        {
+          "input": "Right Stick",
+          "action": "Rotate End Effector (Pitch/Yaw)"
+        },
+        {
+          "input": "L2 / R2",
+          "action": "Move Up / Down (Z Axis)"
+        }
+      ]
+    },
+    {
+      "category": "Gripper",
+      "items": [
+        {
+          "input": "L1",
+          "action": "Open Gripper"
+        },
+        {
+          "input": "R1",
+          "action": "Close Gripper"
+        }
+      ]
+    },
+    {
+      "category": "System",
+      "items": [
+        {
+          "input": "Triangle",
+          "action": "Home Position"
+        },
+        {
+          "input": "Circle",
+          "action": "Stop / Emergency Halt"
+        },
+        {
+          "input": "X (Cross)",
+          "action": "Start Recording (in Recording Mode)"
+        }
+      ]
+    }
+  ]
+}

@@ -30,38 +30,38 @@ export const DeleteDatasetDialog = ({
   onConfirm,
 }: DeleteDatasetDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent className="z-[9999] max-w-lg border-gray-700 bg-gray-900">
+    <AlertDialogContent className="z-[9999] max-w-lg border-border bg-card text-foreground">
       <AlertDialogHeader>
-        <AlertDialogTitle className="text-white">
+        <AlertDialogTitle className="text-foreground">
           {datasetName ? `Delete Dataset "${datasetName}"?` : "Delete Dataset?"}
         </AlertDialogTitle>
-        <AlertDialogDescription className="text-gray-400">
+        <AlertDialogDescription className="text-muted-foreground">
           {episodesPreview.length > 0 ? (
             <Fragment>
               <p className="mb-3">
                 This dataset contains {episodesPreview.length} episode(s):
               </p>
-              <ul className="mb-3 max-h-32 space-y-1 overflow-y-auto rounded bg-gray-800/50 p-2 text-sm">
+              <ul className="mb-3 max-h-32 space-y-1 overflow-y-auto rounded border border-border bg-muted/60 p-2 text-sm">
                 {episodesPreview.slice(0, 5).map((episode) => (
-                  <li key={episode.episode_index} className="text-gray-300">
+                  <li key={episode.episode_index} className="text-foreground">
                     • Episode {episode.episode_index} (
                     {episode.duration.toString()} seconds) created at{" "}
                     {new Date(episode.created_at).toLocaleString()}
                   </li>
                 ))}
                 {episodesPreview.length > 5 && (
-                  <li className="italic text-gray-400">
+                  <li className="italic text-muted-foreground">
                     ... and {episodesPreview.length - 5} more episode(s)
                   </li>
                 )}
               </ul>
-              <p className="font-medium text-red-400">
+              <p className="font-medium text-destructive">
                 Are you sure? This action cannot be undone and will permanently
                 delete the dataset and all its episodes.
               </p>
             </Fragment>
           ) : (
-            <p className="font-medium text-red-400">
+            <p className="font-medium text-destructive">
               Are you sure you want to delete this dataset? This action cannot
               be undone.
             </p>
@@ -71,14 +71,14 @@ export const DeleteDatasetDialog = ({
       <AlertDialogFooter>
         <AlertDialogCancel
           disabled={isDeleting}
-          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+          className="border-border text-foreground hover:bg-muted/60"
         >
           Cancel
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={onConfirm}
           disabled={isDeleting}
-          className="bg-red-600 hover:bg-red-700"
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
           {isDeleting ? "Deleting..." : "Delete Dataset"}
         </AlertDialogAction>

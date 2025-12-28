@@ -39,12 +39,12 @@ export const EpisodeCard = ({
     : "Unknown timestamp";
 
   return (
-    <Card className="flex items-center justify-between border-gray-700 bg-gray-800 px-4 py-0">
-      <div className="flex flex-1 items-center overflow-hidden text-xs text-gray-300 sm:text-sm">
-        <span className="shrink-0 font-semibold text-purple-300">{`#${displayIndex}`}</span>
-        <div className="ml-3 flex flex-wrap items-center gap-2 text-gray-400">
+    <Card className="flex items-center justify-between bg-card p-1  shadow-sm hover:shadow-md">
+      <div className="flex flex-1 items-center overflow-hidden text-xs text-foreground sm:text-sm">
+        <span className="shrink-0 font-semibold text-primary">{`#${displayIndex}`}</span>
+        <div className="ml-3 flex flex-wrap items-center gap-2 text-muted-foreground">
           <span>{formattedTimestamp}</span>
-          <span className="text-gray-600">•</span>
+          <span className="text-border">•</span>
           <span>{formatDuration(episode.duration)}</span>
         </div>
       </div>
@@ -53,7 +53,7 @@ export const EpisodeCard = ({
         <Button
           size="icon"
           variant="ghost"
-          className="text-gray-500 hover:text-white h-2 w-2"
+          className="h-2 w-2 text-muted-foreground hover:text-foreground"
           disabled
           aria-label="Replay (coming soon)"
         >
@@ -64,7 +64,7 @@ export const EpisodeCard = ({
           variant="ghost"
           onClick={() => onDelete(selectedDataset, episode.episode_index)}
           disabled={isDeleting}
-          className="text-gray-500 hover:text-red-600 h-2 w-2"
+          className="h-2 w-2 text-muted-foreground hover:text-destructive"
           aria-label="Delete episode"
         >
           <Trash2 className="h-2 w-2" />

@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeRobot Control Interface</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #8B5CF6; /* Violet-500 */
+            --background: #111827; /* Gray-900 */
+            --surface: #1F2937; /* Gray-800 */
+            --text-light: #F3F4F6; /* Gray-100 */
+            --header-height: 4.5rem; /* ~72px, height of the fixed header */
+            --mobile-header-height: 3.5rem; /* ~56px, reduced height for mobile */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--text-light);
+            /* Ensure the body doesn't scroll unnecessarily */
+            overflow: hidden; 
+        }
+        /* Custom scrollbar for data panels */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px; /* For horizontal scrollbars */
+            width: 8px; /* For vertical scrollbars */
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: var(--primary);
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: var(--surface);
+        }
+        .camera-video-placeholder {
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: #9CA3AF; /* Gray-400 */
+            background-color: #030712; /* Gray-900 */
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Layout adjustments to accommodate the absolute header */
+        #main-area {
+            padding-top: var(--header-height); 
+            padding-bottom: 0; 
+        }
+       
+        /* 1. Set the video container to occupy 100% of the remaining height */
+        #main-video-container {
+            /* Ensures it fills the remaining space */
+            height: 100%; 
+            margin-top: calc(-1 * var(--header-height)); 
+        }
+        
+        /* The buttons' styles need to be defined for the bubble effect */
+        .bubble-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.625rem 1.25rem; /* px-5 py-2.5 for smaller buttons */
+            color: white;
+            font-weight: 600; /* font-semibold */
+            border-radius: 0.5rem; /* rounded-lg */
+            transition: transform 150ms ease-in-out; 
+            font-size: 0.875rem; /* text-sm to make text fit better */
+        }
+        .bubble-btn:hover {
+            transform: scale(1.05);
+        }
+        .bubble-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Adjust Telemetry Overlay position back to top-4 relative to the video container */
+        #wrist-data {
+            top: 1.5rem; 
+        }
+        
+        /* Ensure main-area is a flex container and controls its child height */
+        #main-area {
+            display: flex; 
+            flex-direction: column;
+            flex: 1;
+        }
+        
+        /* ==================== MOBILE RESPONSIVENESS ==================== */
+        @media (max-width: 1023px) { /* Tailind's lg breakpoint is 1024px */
+            body {
+                overflow-y: auto;
+            }
+
+            /* Adjust header height dependency on mobile */
+            #main-area {
+                padding-top: var(--mobile-header-height);
+            }
+            
+            /* Ensure video starts right below the smaller mobile header */
+            #main-video-container {
+                height: auto; /* Let content height dictate video size on mobile */
+                aspect-ratio: 16 / 9; /* Maintain aspect ratio on mobile */
+                margin-top: calc(-1 * var(--mobile-header-height));
+                min-height: 200px;
+            }
+            
+            /* Main content rows stack vertically */
+            #main-content-row {
+                flex-direction: column;
+            }
+            
+            /* Auxiliary panel takes full width */
+            .w-full.lg\\:w-72 {
+                width: 100%;
+            }
+
+            /* Hide full-width utility for secondary cameras on mobile */
+            .lg\\:w-full {
+                width: auto;
+            }
+
+            /* Adjust Gamepad/Telemetry Overlays for smaller screens */
+            #gamepad-tracker, #wrist-data {
+                padding: 0.5rem 0.75rem;
+                bottom: 0.5rem;
+                left: 0.5rem;
+                /* Set fixed width/height for chart on mobile to ensure rendering */
+                width: 180px; 
+                height: 100px;
+            }
+            #wrist-data {
+                top: 3.5rem; /* Shift down to clear header */
+            }
+
+            /* Button Layout: Stack buttons vertically on small phones */
+            .mobile-stack {
+                flex-direction: column;
+                gap: 0.75rem;
+                width: 80%; /* Limit width on small screens */
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Global Header - FIXED OVERLAY (Absolute Position, Z-index 50, Transparent Background) -->
+    <header class="absolute top-0 left-0 right-0 z-50 py-3 px-4">
+        <div class="flex items-center justify-between">
+            <!-- Left Side: Empty or Logo -->
+            <div class="w-1/3 text-left">
+                <!-- Example of where a logo or branding could go -->
+            </div>
+
+            <!-- Center: Mode Pill -->
+            <div class="flex items-center justify-center">
+                <div class=" backdrop-blur-sm py-1.5 px-4 rounded-full flex items-center shadow-lg border border-white/10">
+                    <!-- Placeholder Back Button -->
+                    <button class="text-gray-400 hover:text-white mr-2 h-7 w-7 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg>
+                    </button>
+                    <h1 class="text-lg font-semibold mr-2 flex items-center gap-2 text-purple-300">Free exploration Mode</h1>
+                    <p class="text-xs text-gray-300">so_100 · gamepad-ps5-controller</p>
+                </div>
+            </div>
+            <div class="w-1/3 text-left">
+                <!-- Example of where a logo or branding could go -->
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT ROW: Handles layout stacking -->
+    <div id="main-content-row" class="flex flex-1 overflow-y-auto lg:overflow-hidden flex-col lg:flex-row">
+        
+        <!-- MAIN AREA (Main Video + Overlays) - Takes flexible width -->
+        <div id="main-area" class="flex flex-col flex-1 overflow-hidden"> 
+            
+            <!-- 1. Main Video Display - Maximized -->
+            <div id="main-video-container" class="relative bg-gray-800 shadow-2xl overflow-hidden min-h-[300px]">
+                
+                <!-- Mock Camera Feed (WebRTC Placeholder) -->
+                <div id="main-camera-feed" class="w-full h-full flex items-center justify-center bg-gray-900/50">
+                    <p id="main-camera-label" class="text-xl md:text-4xl font-light text-violet-400 p-8 text-center">MAIN HEAD CAMERA (Live Stream)</p>
+                    <!-- Actual <video> element for WebRTC would go here -->
+                </div>
+
+                <!-- Title Overlay - Ensure high Z-index to sit above video but below main header -->
+                <div class="absolute top-0 left-0 p-2 bg-gray-900/50 text-xs font-semibold rounded-br-lg z-20">
+                    Primary View
+                </div>
+
+                <!-- Gamepad Tracker Overlay (Left Bottom Corner) -->
+                <div id="gamepad-tracker" class="absolute bottom-4 left-4 p-3 bg-gray-900/80 backdrop-blur-sm rounded-lg shadow-lg border border-violet-700/50 z-20">
+                    <div class="flex items-center text-sm font-medium text-violet-300 mb-1">
+                        <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.75a2 2 0 01-1.789-2.894l3.5-7A2 2 0 0114 10zM20 17h-2.172a2 2 0 01-1.414-.586L10.586 9.172A2 2 0 0110 7H3"></path></svg>
+                        Controller Input Tracker
+                    </div>
+                    <p class="text-xs text-gray-400">Gamepad Active: <span class="text-green-400">32s</span></p>
+                    <p class="text-xs text-gray-400">Connected: Sony DualSense</p>
+                </div>
+                
+                <!-- Telemetry Overlay (Top Left Corner) - Now hosting the D3 chart -->
+                <!-- UPDATED: Background made more transparent, fixed width/height set -->
+                <div id="wrist-data" class="absolute top-16 left-4 p-3 bg-gray-900/60 backdrop-blur-sm rounded-lg shadow-lg border border-gray-700/50 text-xs z-20 w-[150px] h-[200px] flex flex-col">
+                    <!-- PRESERVED DATA LINES -->
+                    <p class="font-medium text-gray-300 mb-1">Wrist Telemetry</p>
+                    <p class="text-yellow-400 mb-2">No Data Found</p>
+                    <p class="font-medium text-gray-300 mb-1">Action Variance</p>
+                    <!-- CHART AREA: Takes remaining vertical space -->
+                    <svg id="wrist-chart" class="w-full flex-grow"></svg> 
+                </div>
+                
+            </div>
+            
+        </div>
+
+        <!-- 3. Auxiliary Cameras Panel - Full width on mobile, fixed width sidebar on desktop -->
+        <div class="w-full lg:w-72 lg:flex-shrink-0 bg-surface p-3 overflow-x-auto lg:overflow-y-auto custom-scrollbar border-t lg:border-t-0 lg:border-l border-gray-700">
+         
+            <!-- Camera Grid (Horizontal Flex on Mobile, Vertical Grid on Desktop) -->
+            <div id="auxiliary-views-container" class="flex gap-3 lg:grid lg:grid-cols-1">
+                <!-- Auxiliary camera views will be rendered here -->
+            </div>
+        </div>
+
+    </div>
+    
+    <!-- 2. Core Controls - Bubble Buttons (Fixed to the bottom of the screen) -->
+    <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex justify-center space-x-6 z-20 p-3 rounded-xl bg-gray-900/60 backdrop-blur-sm shadow-2xl border border-gray-700/50">
+        <!-- Start Recording - Green Bubble Button -->
+        <button class="bubble-btn bg-green-500 hover:bg-green-600 active:bg-green-700 shadow-xl shadow-green-500/50 hover:shadow-green-400/70">
+            <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+            Start Recording
+        </button>
+        
+        <!-- Deploy - Violet Bubble Button -->
+        <button class="bubble-btn bg-violet-500 hover:bg-violet-600 active:bg-violet-700 shadow-xl shadow-violet-500/50 hover:shadow-violet-400/70">
+            <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm-1 9V9a1 1 0 012 0v2h2a1 1 0 010 2h-2v2a1 1 0 01-2 0v-2H7a1 1 0 010-2h2z"></path></svg>
+            Deploy
+        </button>
+        
+        <!-- Rewind - Gray Bubble Button -->
+        <button class="bubble-btn bg-gray-500 hover:bg-gray-600 active:bg-gray-700 shadow-xl shadow-gray-500/50 hover:shadow-gray-400/70">
+            <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 6a1 1 0 100-2 1 1 0 000 2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>
+            Rewind
+        </button>
+    </div>
+
+
+    <script>
+        // --- D3 CHART IMPLEMENTATION START ---
+        function renderVarianceChart() {
+            // Generate 10 random variance numbers between 0 and 1
+            const data = Array.from({ length: 10 }, (_, i) => ({
+                step: i + 1,
+                variance: Math.random() // Random value between 0 and 1
+            }));
+
+            const container = d3.select("#wrist-chart");
+            
+            // Fixed dimensions of the parent div
+            const containerWidth = 150;
+            const containerHeight = 200;
+            
+            // Calculate height taken up by text elements and padding within the 200px container:
+            // p-3 padding top/bottom = 24px (12px top, 12px bottom)
+            // 3 lines of text (approx 16px height each) + margins = ~50px
+            // Total estimated vertical space consumed by text/margins/padding: 24 (p-3) + 50 (text/margins) = 74px
+            // Let's use a reliable estimate for the remaining chart area.
+            
+            // Estimate chart area based on total height (200px) minus header/padding (approx 50px)
+            const margin = { top: 2, right: 2, bottom: 2, left: 2 };
+            const width = 150 - 2 * 12 - margin.left - margin.right; // 150px - 24px padding = 126px width
+            const height = 200 - 12 - 12 - 50; // Total 200 - padding - (text height estimate) = 176px - 50px = 126px height
+            
+            // Adjusted height calculation based on inspection of text lines in HTML structure:
+            // p-3 padding: 6px top / 6px bottom (Tailwind p-3 ≈ 0.75rem ≈ 12px)
+            // Text lines (Wrist Telemetry, No Data Found, Action Variance) + margins are about 50px total.
+            // Safe Chart Height: 200 (Total) - 50 (Text/Padding/Margin Overhead) = 150px.
+            const calculatedHeight = 150; 
+            const calculatedWidth = 150; // Use fixed 150px width of container for simplicity
+
+            const finalWidth = calculatedWidth - 2 * 12 - margin.left - margin.right; // 150 - 24 = 126
+            const finalHeight = calculatedHeight - 2 * 6; // 150 - 12 = 138 (Need to adjust internal D3 calculation to account for text)
+
+            // Let's go with the calculation based on the total 200px height minus estimated text space.
+            const chartAreaHeight = 200 - 55; // 55px overhead estimate for text/paddings
+            const chartAreaWidth = 150 - 24; // 150px container width - 2*12px horizontal padding
+
+            const svg = container
+                .attr("width", chartAreaWidth)
+                .attr("height", chartAreaHeight)
+                .append("g")
+                .attr("transform", `translate(0, 0)`);
+
+            // X scale: maps steps (1-10) to pixel width
+            const xScale = d3.scaleLinear()
+                .domain(d3.extent(data, d => d.step))
+                .range([0, chartAreaWidth]);
+
+            // Y scale: maps variance (0-1) to pixel height (inverted for SVG)
+            const yScale = d3.scaleLinear()
+                .domain([0, 1])
+                .range([chartAreaHeight, 0]);
+
+            // Line generator
+            const line = d3.line()
+                .x(d => xScale(d.step))
+                .y(d => yScale(d.variance))
+                .curve(d3.curveMonotoneX); // Smooth the line
+
+            // Add the area underneath the line
+            const area = d3.area()
+                .x(d => xScale(d.step))
+                .y0(chartAreaHeight)
+                .y1(d => yScale(d.variance))
+                .curve(d3.curveMonotoneX);
+
+            svg.append("path")
+                .datum(data)
+                .attr("fill", "rgba(139, 92, 246, 0.3)") /* Violet-500 with opacity */
+                .attr("d", area);
+
+            // Add the line path
+            svg.append("path")
+                .datum(data)
+                .attr("fill", "none")
+                .attr("stroke", "rgba(139, 92, 246, 1)") /* Violet-500 */
+                .attr("stroke-width", 2)
+                .attr("d", line);
+
+            // Add circles for data points (optional, for detail)
+            svg.selectAll("circle")
+                .data(data)
+                .enter()
+                .append("circle")
+                .attr("cx", d => xScale(d.step))
+                .attr("cy", d => yScale(d.variance))
+                .attr("r", 3)
+                .attr("fill", "white")
+                .attr("stroke", "rgba(139, 92, 246, 1)")
+                .attr("stroke-width", 1.5);
+        }
+        // --- D3 CHART IMPLEMENTATION END ---
+
+        // Mock Backend Camera Data (This would come from your JSON payload)
+        const cameraConfig = [
+            { id: 'main-head', label: 'MAIN HEAD CAMERA', role: 'primary' },
+            { id: 'right-arm', label: 'RIGHT ARM CAMERA', role: 'auxiliary' },
+            { id: 'left-arm', label: 'LEFT ARM CAMERA', role: 'auxiliary' },
+            { id: 'wrist-cam', label: 'WRIST CAMERA', role: 'auxiliary' },
+            { id: 'side-cam-1', label: 'SIDE CAM 1', role: 'auxiliary' },
+            { id: 'side-cam-2', label: 'SIDE CAM 2', role: 'auxiliary' },
+            { id: 'side-cam-3', label: 'SIDE CAM 3', role: 'auxiliary' },
+        ];
+
+        // This is now static, based on backend configuration
+        const currentPrimaryCameraId = cameraConfig.find(c => c.role === 'primary').id;
+
+        // Function to initialize the UI based on camera config
+        function initializeCameras() {
+            // 1. Set the initial primary camera based on the config
+            updateMainCamera(currentPrimaryCameraId);
+            
+            // 2. Render auxiliary views
+            renderAuxiliaryViews();
+
+            // 3. Render the variance chart
+            renderVarianceChart();
+        }
+
+        // Function to update the main camera display (remains the main head cam)
+        function updateMainCamera(primaryId) {
+            const newMainCamera = cameraConfig.find(c => c.id === primaryId);
+
+            if (!newMainCamera) return;
+
+            // Update the main video label/placeholder
+            document.getElementById('main-camera-label').textContent = newMainCamera.label + ' (Live Stream)';
+            
+            console.log(`Primary Camera set to: ${newMainCamera.label}`);
+        }
+
+        // Function to render the auxiliary camera grid (now in the side panel)
+        function renderAuxiliaryViews() {
+            const auxCamContainer = document.getElementById('auxiliary-views-container');
+            auxCamContainer.innerHTML = '';
+
+            const auxiliaryCameras = cameraConfig.filter(c => c.id !== currentPrimaryCameraId);
+
+            auxiliaryCameras.forEach(camera => {
+                const cameraDiv = document.createElement('div');
+                // Use w-40 flex-shrink-0 for horizontal scrolling on mobile, w-full lg:w-full for desktop
+                cameraDiv.className = 'flex-shrink-0 w-40 lg:w-full relative aspect-video rounded-lg overflow-hidden shadow-lg border border-gray-700/50'; 
+                
+                const cameraLabelShort = camera.label.replace(' CAMERA', '').replace('MAIN ', '');
+
+                cameraDiv.innerHTML = `
+                    <div class="camera-video-placeholder">
+                        ${camera.label} Video Feed
+                        <!-- Actual WebRTC <video> element for this auxiliary feed goes here -->
+                    </div>
+                    <!-- Overlay Title -->
+                    <div class="absolute top-0 left-0 p-2 bg-gray-900/50 text-xs font-semibold rounded-br-lg z-10">
+                        ${cameraLabelShort}
+                    </div>
+                `;
+                auxCamContainer.appendChild(cameraDiv);
+            });
+        }
+
+        // Initialize on load
+        window.onload = initializeCameras;
+
+    </script>
+</body>
+</html>

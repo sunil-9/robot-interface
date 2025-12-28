@@ -32,7 +32,10 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
     timestamp: number;
   } | null>(null);
 
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(() => {
+    const saved = localStorage.getItem("input-tracker-visible");
+    return saved !== null ? saved === "true" : true;
+  });
   const [gamepads, setGamepads] = useState<Gamepad[]>([]);
   const gamepadStateRef = useRef<GamepadStateMap>({});
 
@@ -176,7 +179,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
       connected.forEach((gamepad) => {
         const index = gamepad.index;
-        
+
         // Initialize state if needed
         if (!stateMap[index]) {
           stateMap[index] = {
@@ -187,24 +190,25 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         }
 
         const state = stateMap[index];
-        
+
         // Check if enough time has passed since last send
         if (now - state.lastSent < FRAME_INTERVAL_MS) {
           return;
         }
 
         // Apply deadzone to axes
-        const normalizedAxes = gamepad.axes.map((value) => 
+        const normalizedAxes = gamepad.axes.map((value) =>
           Math.abs(value) < AXIS_DEADZONE ? 0 : value
         );
 
         // Check if any axes or buttons have changed
-        const axesChanged = normalizedAxes.some((value, idx) => 
-          Math.abs(value - (state.axes[idx] || 0)) > 0.01
+        const axesChanged = normalizedAxes.some(
+          (value, idx) => Math.abs(value - (state.axes[idx] || 0)) > 0.01
         );
-        const buttonsChanged = gamepad.buttons.some((button, idx) => 
-          button.pressed !== state.buttons[idx]?.pressed || 
-          Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01
+        const buttonsChanged = gamepad.buttons.some(
+          (button, idx) =>
+            button.pressed !== state.buttons[idx]?.pressed ||
+            Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01
         );
 
         const axesActive = normalizedAxes.some((value) => value !== 0);
@@ -360,11 +364,11 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   };
 
   return (
-    <Card className="fixed bottom-4 left-4 z-50 bg-black/30 backdrop-blur-sm border-gray-800 shadow-lg p-3 max-w-xs">
-      <div className="flex justify-between items-center">
+    <Card className="fixed bottom-4 left-4 z-50 max-w-xs border border-border bg-card/90 p-3 shadow-[0_12px_30px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_12px_30px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center justify-between">
         <Badge
           variant="outline"
-          className="bg-purple-900/30 border-purple-800 px-2 py-0.5 mb-2"
+          className="mb-2 border-primary/30 bg-primary/10 px-2 py-0.5 text-primary"
         >
           {controlType
             ? controlType.charAt(0).toUpperCase() + controlType.slice(1)
@@ -372,26 +376,31 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
           Input Tracker
         </Badge>
         <button
-          className="text-gray-500 hover:text-gray-300"
-          onClick={() => setIsVisible(false)}
+          className="text-muted-foreground transition hover:text-foreground"
+          onClick={() => {
+            setIsVisible(false);
+            localStorage.setItem("input-tracker-visible", "false");
+          }}
           aria-label="Close"
         >
           <X className="h-3 w-3" />
         </button>
       </div>
 
-      <div className="flex items-center mt-1">
-        <div className="bg-gray-800 rounded-full p-1.5 mr-3">
+      <div className="mt-1 flex items-center">
+        <div className="mr-3 rounded-full bg-muted p-1.5 text-foreground">
           {getInputIcon()}
         </div>
-        <div className="text-xs text-gray-300">{getInputDescription()}</div>
+        <div className="text-xs text-foreground">{getInputDescription()}</div>
       </div>
 
       {gamepads.length > 0 && (
-        <div className="mt-2 border-t border-gray-800 pt-2">
-          <div className="text-xs text-gray-500 mb-1">Connected gamepads:</div>
+        <div className="mt-2 border-t border-border pt-2">
+          <div className="mb-1 text-xs text-muted-foreground">
+            Connected gamepads:
+          </div>
           {gamepads.map((gamepad, index) => (
-            <div key={gamepad.id} className="text-xs text-gray-400 truncate">
+            <div key={gamepad.id} className="truncate text-xs text-foreground">
               {index + 1}: {gamepad.id}
             </div>
           ))}

@@ -29,6 +29,7 @@ import {
 import { useRobots } from "@/hooks/useRobots";
 import { AppRobot } from "@/types/robot";
 import { Header } from "@/components/Header";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -90,7 +91,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
       <Header page={"main"}/>
 
@@ -99,15 +100,15 @@ export default function Home() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left column: Robot selection */}
           <div className="lg:col-span-1">
-            <Card className="bg-gray-900 border-gray-800 shadow-lg h-full">
+            <Card className="bg-card border-border shadow-lg h-full">
               <CardHeader>
-                <CardTitle className="text-xl">Select Robot</CardTitle>
-                <CardDescription className="flex items-center justify-between">
+                <CardTitle className="text-xl text-foreground">Select Robot</CardTitle>
+                <CardDescription className="flex items-center justify-between text-muted-foreground">
                   <span>Choose a robot to work with</span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-gray-400 hover:text-white"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
                     onClick={() => refreshRobots()}
                     title="Refresh robots list"
                   >
@@ -125,15 +126,15 @@ export default function Home() {
                         <div
                           key={robot.id}
                           onClick={() => setSelectedRobot(robot.id)}
-                          className={`relative p-4 rounded-lg cursor-pointer transition-all 
-                          ${
+                          className={cn(
+                            "relative cursor-pointer rounded-lg border p-4 transition-all",
                             selectedRobot === robot.id
-                              ? "bg-purple-900/50 border-2 border-purple-500"
-                              : "bg-gray-800/50 border border-gray-700 hover:border-gray-600"
-                          }`}
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                              : "border-border bg-muted/60 hover:border-primary/40"
+                          )}
                         >
                           <div className="flex items-center">
-                            <div className="bg-gray-800 rounded-lg w-16 h-16 flex items-center justify-center overflow-hidden">
+                            <div className="bg-muted rounded-lg w-16 h-16 flex items-center justify-center overflow-hidden">
                               {/* Status indicator */}
                               <div
                                 className={`absolute top-2 right-2 h-2 w-2 rounded-full ${
@@ -154,7 +155,7 @@ export default function Home() {
                                   }}
                                 />
                               ) : (
-                                <span className="text-2xl text-gray-500">
+                                <span className="text-2xl text-muted-foreground">
                                   {robot.name[0]}
                                 </span>
                               )}
@@ -163,7 +164,7 @@ export default function Home() {
                               <h3 className="font-medium text-lg">
                                 {robot.name}
                               </h3>
-                              <p className="text-sm text-gray-400 line-clamp-1">
+                              <p className="text-sm text-muted-foreground line-clamp-1">
                                 {robot.description}
                               </p>
                             </div>
@@ -175,7 +176,7 @@ export default function Home() {
                     )}
 
                     {robotsError && (
-                      <div className="p-4 rounded-lg bg-red-900/20 border border-red-900 text-red-300">
+                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive-foreground">
                         <p className="text-sm font-medium">
                           Error loading robots
                         </p>
@@ -183,7 +184,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 text-xs h-7 bg-transparent border-red-700 text-red-300 hover:bg-red-900/50"
+                          className="mt-2 text-xs h-7 bg-transparent border-destructive text-destructive-foreground hover:bg-destructive/10"
                           onClick={() => refreshRobots()}
                         >
                           <RefreshCcw className="h-3 w-3 mr-1" /> Try Again
@@ -192,7 +193,7 @@ export default function Home() {
                     )}
 
                     {!loading && !robotsError && robots.length > 0 && (
-                      <div className="pt-2 text-xs text-gray-500 text-right">
+                      <div className="pt-2 text-xs text-muted-foreground text-right">
                         Last updated: {lastUpdated.toLocaleTimeString()}
                       </div>
                     )}
@@ -204,15 +205,15 @@ export default function Home() {
 
           {/* Middle column: Control device selection */}
           <div className="lg:col-span-1">
-            <Card className="bg-gray-900 border-gray-800 shadow-lg h-full">
+            <Card className="bg-card border-border shadow-lg h-full">
               <CardHeader>
-                <CardTitle className="text-xl">Select Control Device</CardTitle>
-                <CardDescription className="flex items-center justify-between">
+                <CardTitle className="text-xl text-foreground">Select Control Device</CardTitle>
+                <CardDescription className="flex items-center justify-between text-muted-foreground">
                   <span>Choose how you want to control the robot</span>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 text-gray-400 hover:text-white"
+                    className="h-6 w-6 text-muted-foreground hover:text-foreground"
                     onClick={() => refreshRobots()}
                     title="Refresh control devices list"
                   >
@@ -226,7 +227,7 @@ export default function Home() {
                     {loadingDevices ? (
                       <ControlDeviceSkeleton count={3} />
                     ) : deviceError ? (
-                      <div className="p-4 rounded-lg bg-red-900/20 border border-red-900 text-red-300">
+                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive-foreground">
                         <p className="text-sm font-medium">
                           Error loading control devices
                         </p>
@@ -234,7 +235,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 text-xs h-7 bg-transparent border-red-700 text-red-300 hover:bg-red-900/50"
+                          className="mt-2 text-xs h-7 bg-transparent border-destructive text-destructive-foreground hover:bg-destructive/10"
                           onClick={() => refreshRobots()}
                         >
                           <RefreshCcw className="h-3 w-3 mr-1" /> Try Again
@@ -245,15 +246,15 @@ export default function Home() {
                         <div
                           key={device.id}
                           onClick={() => setSelectedControl(device.id)}
-                          className={`relative p-4 rounded-lg cursor-pointer transition-all 
-                          ${
+                          className={cn(
+                            "relative cursor-pointer rounded-lg border p-4 transition-all",
                             selectedControl === device.id
-                              ? "bg-purple-900/50 border-2 border-purple-500"
-                              : "bg-gray-800/50 border border-gray-700 hover:border-gray-600"
-                          }`}
+                              ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+                              : "border-border bg-muted/60 hover:border-primary/40"
+                          )}
                         >
                           <div className="flex items-center">
-                            <div className="bg-gray-800 rounded-lg w-12 h-12 flex items-center justify-center overflow-hidden">
+                            <div className="bg-muted rounded-lg w-12 h-12 flex items-center justify-center overflow-hidden">
                               {/* Control device SVG or fallback image */}
                               {device.svgContent ? (
                                 <InlineSvg
@@ -272,7 +273,7 @@ export default function Home() {
                                         }}
                                       />
                                     ) : (
-                                      <span className="text-xl text-gray-500">
+                                      <span className="text-xl text-muted-foreground">
                                         {device.name[0]}
                                       </span>
                                     )
@@ -288,19 +289,19 @@ export default function Home() {
                                   }}
                                 />
                               ) : (
-                                <span className="text-xl text-gray-500">
+                                <span className="text-xl text-muted-foreground">
                                   {device.name[0]}
                                 </span>
                               )}
                             </div>
                             <div className="ml-3">
                               <h3 className="font-medium">{device.name}</h3>
-                              <p className="text-xs text-gray-400 line-clamp-1">
+                              <p className="text-xs text-muted-foreground line-clamp-1">
                                 {device.description}
                               </p>
                             </div>
                             {selectedControl === device.id && (
-                              <CheckCircle2 className="absolute top-4 right-4 text-purple-500 h-5 w-5" />
+                              <CheckCircle2 className="absolute top-4 right-4 h-5 w-5 text-primary" />
                             )}
                           </div>
                         </div>
@@ -312,7 +313,7 @@ export default function Home() {
                     {!loadingDevices &&
                       !deviceError &&
                       controlDevices.length > 0 && (
-                        <div className="pt-2 text-xs text-gray-500 text-right">
+                        <div className="pt-2 text-xs text-muted-foreground text-right">
                           Last updated: {lastUpdated.toLocaleTimeString()}
                         </div>
                       )}
@@ -324,31 +325,31 @@ export default function Home() {
 
           {/* Right column: Robot details and start session */}
           <div className="lg:col-span-1">
-            <Card className="bg-gray-900 border-gray-800 shadow-lg h-full">
+            <Card className="bg-card border-border shadow-lg h-full">
               <CardHeader>
-                <CardTitle className="text-xl">Session Details</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl text-foreground">Session Details</CardTitle>
+                <CardDescription className="text-muted-foreground">
                   Configure and start your session
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {selectedRobot ? (
                   <div className="space-y-6">
-                    <div className="border-b border-gray-800 pb-4">
+                    <div className="border-b border-border pb-4">
                       <h3 className="font-semibold text-lg mb-2 flex items-center">
-                        <Info className="h-4 w-4 mr-2 text-purple-400" />
+                        <Info className="h-4 w-4 mr-2 text-primary" />
                         Robot Information
                       </h3>
-                      <div className="bg-gray-800/50 rounded-lg p-4">
-                        <h4 className="font-medium text-purple-300">
+                      <div className="bg-muted/60 rounded-lg p-4">
+                        <h4 className="font-medium text-primary">
                           {getSelectedRobotData()?.name}
                         </h4>
-                        <p className="text-sm text-gray-300 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                           {getSelectedRobotData()?.description}
                         </p>
 
                         <div className="mt-3">
-                          <h5 className="text-xs uppercase text-gray-500 font-medium">
+                          <h5 className="text-xs uppercase text-muted-foreground font-medium">
                             Capabilities
                           </h5>
                           <div className="flex flex-wrap gap-2 mt-1">
@@ -357,7 +358,7 @@ export default function Home() {
                                 <Badge
                                   key={i}
                                   variant="secondary"
-                                  className="bg-purple-900/30 text-purple-300"
+                                  className="bg-primary/10 text-primary"
                                 >
                                   {cap}
                                 </Badge>
@@ -371,8 +372,8 @@ export default function Home() {
                             getSelectedRobotData()?.specifications || {}
                           ).map(([key, value]) => (
                             <div key={key} className="text-xs">
-                              <span className="text-gray-500">{key}: </span>
-                              <span className="text-gray-300">
+                              <span className="text-muted-foreground">{key}: </span>
+                              <span className="text-foreground">
                                 {Array.isArray(value)
                                   ? value.join(", ")
                                   : String(value)}
@@ -384,13 +385,13 @@ export default function Home() {
                     </div>
 
                     {selectedControl && (
-                      <div className="border-b border-gray-800 pb-4">
+                      <div className="border-b border-border pb-4">
                         <h3 className="font-semibold text-md mb-2">
                           Control Device
                         </h3>
-                        <div className="bg-gray-800/50 rounded-lg p-3">
+                        <div className="bg-muted/60 rounded-lg p-3">
                           <div className="flex items-center">
-                            <div className="bg-gray-700 rounded-md w-10 h-10 flex items-center justify-center">
+                            <div className="bg-muted rounded-md w-10 h-10 flex items-center justify-center">
                               {getSelectedControlData()?.svgContent ? (
                                 <InlineSvg
                                   content={getSelectedControlData()?.svgContent}
@@ -407,7 +408,7 @@ export default function Home() {
                                   }}
                                 />
                               ) : (
-                                <span className="text-lg text-gray-500">
+                                <span className="text-lg text-muted-foreground">
                                   {getSelectedControlData()?.name?.[0]}
                                 </span>
                               )}
@@ -416,7 +417,7 @@ export default function Home() {
                               <h4 className="text-sm font-medium">
                                 {getSelectedControlData()?.name}
                               </h4>
-                              <p className="text-xs text-gray-400">
+                              <p className="text-xs text-muted-foreground">
                                 {getSelectedControlData()?.description}
                               </p>
                             </div>
@@ -429,16 +430,16 @@ export default function Home() {
                   </div>
                 ) : (
                   <div className="h-[400px] flex items-center justify-center text-center">
-                    <div className="text-gray-500">
+                    <div className="text-muted-foreground">
                       <p className="mb-2">Select a robot and control device</p>
                       <p className="text-sm">Details will appear here</p>
                     </div>
                   </div>
                 )}
               </CardContent>
-              <CardFooter className="border-t border-gray-800 pt-4">
+              <CardFooter className="border-t border-border pt-4">
                 <Button
-                  className="w-full bg-purple-700 hover:bg-purple-600 text-white"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                   size="lg"
                   disabled={!selectedRobot || !selectedControl}
                   onClick={handleStartSession}
@@ -453,8 +454,8 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-800 py-4 bg-black">
-        <div className="container mx-auto text-center text-gray-500 text-sm">
+      <footer className="border-t border-border py-4 bg-card/80">
+        <div className="container mx-auto text-center text-muted-foreground text-sm">
           &copy; 2025 Robot Teaching Interface | Version 1.0.0
         </div>
       </footer>

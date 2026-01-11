@@ -873,6 +873,7 @@ export const TrainingInterface = ({
                 onRequestDeleteDataset: promptDeleteDataset,
                 onPromptDeleteEpisode: promptDeleteEpisode,
                 accentColor: "emerald",
+                robotId,
               }}
             />
           </div>

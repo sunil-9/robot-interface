@@ -9,6 +9,7 @@ interface EpisodeListProps {
   isDeleting: boolean;
   formatDuration: (seconds?: number) => string;
   onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
+  robotId?: string | null;
 }
 
 export const EpisodeList = ({
@@ -17,6 +18,7 @@ export const EpisodeList = ({
   isDeleting,
   formatDuration,
   onPromptDeleteEpisode,
+  robotId,
 }: EpisodeListProps) => {
   const reversedEpisodes = useMemo(
     () => [...(episodes || [])].reverse(),
@@ -50,6 +52,7 @@ export const EpisodeList = ({
           formatDuration={formatDuration}
           selectedDataset={selectedDataset}
           onDelete={onPromptDeleteEpisode}
+          robotId={robotId}
         />
       ))}
     </>

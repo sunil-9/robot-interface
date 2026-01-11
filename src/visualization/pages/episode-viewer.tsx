@@ -66,6 +66,10 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
     (currentPage - 1) * pageSize,
     currentPage * pageSize,
   );
+
+  // Popup / embed mode trims chrome (sidebar, headers) and relaxes sizing
+  const isPopupView =
+    searchParams.get("popup") === "1" || searchParams.get("popup") === "true";
   
   // Preload adjacent episodes' videos
   useEffect(() => {
@@ -175,55 +179,59 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
   };
 
   return (
-    <div className="flex h-screen max-h-screen bg-slate-950 text-gray-200">
+    <div className={`flex ${isPopupView ? "h-full" : "h-screen"} max-h-screen bg-slate-950 text-gray-200`}>
       {/* Sidebar */}
-      <Sidebar
-        datasetInfo={datasetInfo}
-        paginatedEpisodes={paginatedEpisodes}
-        episodeId={episodeId}
-        totalPages={totalPages}
-        currentPage={currentPage}
-        prevPage={prevPage}
-        nextPage={nextPage}
-        onSelectEpisode={(ep) => {
-          const newParams = new URLSearchParams(searchParams.toString());
-          newParams.set("episode", ep.toString());
-          navigate({ pathname: window.location.pathname, search: `?${newParams.toString()}` });
-        }}
-      />
+      {!isPopupView && (
+        <Sidebar
+          datasetInfo={datasetInfo}
+          paginatedEpisodes={paginatedEpisodes}
+          episodeId={episodeId}
+          totalPages={totalPages}
+          currentPage={currentPage}
+          prevPage={prevPage}
+          nextPage={nextPage}
+          onSelectEpisode={(ep) => {
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.set("episode", ep.toString());
+            navigate({ pathname: window.location.pathname, search: `?${newParams.toString()}` });
+          }}
+        />
+      )}
 
       {/* Content */}
       <div
-        className={`flex max-h-screen flex-col gap-4 p-4 md:flex-1 relative ${isLoading ? "overflow-hidden" : "overflow-y-auto"}`}
+        className={`flex max-h-screen flex-col gap-4 p-4 ${isPopupView ? "w-full" : "md:flex-1"} relative ${isLoading ? "overflow-hidden" : "overflow-y-auto"}`}
       >
         {isLoading && <Loading />}
 
-        <div className="flex items-center justify-start my-4">
-          <a
-            href="https://github.com/huggingface/lerobot"
-            target="_blank"
-            className="block"
-          >
-            <img
-              src="https://github.com/huggingface/lerobot/raw/main/media/lerobot-logo-thumbnail.png"
-              alt="LeRobot Logo"
-              className="w-32"
-            />
-          </a>
-
-          <div>
+        {!isPopupView && (
+          <div className="flex items-center justify-start my-4">
             <a
-              href={`https://huggingface.co/datasets/${datasetInfo.repoId}`}
+              href="https://github.com/huggingface/lerobot"
               target="_blank"
+              className="block"
             >
-              <p className="text-lg font-semibold">{datasetInfo.repoId}</p>
+              <img
+                src="https://github.com/huggingface/lerobot/raw/main/media/lerobot-logo-thumbnail.png"
+                alt="LeRobot Logo"
+                className="w-32"
+              />
             </a>
 
-            <p className="font-mono text-lg font-semibold">
-              episode {episodeId}
-            </p>
+            <div>
+              <a
+                href={`https://huggingface.co/datasets/${datasetInfo.repoId}`}
+                target="_blank"
+              >
+                <p className="text-lg font-semibold">{datasetInfo.repoId}</p>
+              </a>
+
+              <p className="font-mono text-lg font-semibold">
+                episode {episodeId}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Videos */}
         {videosInfo.length && (
@@ -234,7 +242,7 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
         )}
 
         {/* Language Instruction */}
-        {task && (
+        {!isPopupView && task && (
           <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-600">
             <p className="text-slate-300">
               <span className="font-semibold text-slate-100">Language Instruction:</span>

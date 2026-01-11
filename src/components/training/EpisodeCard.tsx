@@ -1,4 +1,4 @@
-import { RotateCw, Trash2 } from "lucide-react";
+import { ExternalLink, RotateCw, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ interface EpisodeCardProps {
   formatDuration: (seconds?: number) => string;
   selectedDataset: string;
   onDelete: (datasetId: string, episodeId: string) => void;
+  robotId?: string | null;
 }
 
 const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -27,16 +28,42 @@ export const EpisodeCard = ({
   formatDuration,
   selectedDataset,
   onDelete,
+  robotId,
 }: EpisodeCardProps) => {
   const episodeIndex = episode.episode_index;
   const displayIndex =
     episodeIndex !== undefined && !isNaN(Number(episodeIndex))
       ? Number(episodeIndex) + 1
       : index + 1;
+  const parsedEpisodeNumber = Number(episodeIndex);
+  const safeEpisodeNumber = Number.isFinite(parsedEpisodeNumber)
+    ? parsedEpisodeNumber
+    : index;
 
   const formattedTimestamp = episode.created_at
     ? shortDateFormatter.format(new Date(episode.created_at))
     : "Unknown timestamp";
+
+  const viewerBaseUrl =
+    selectedDataset && (robotId || selectedDataset)
+      ? `/visualization/local/${encodeURIComponent(
+          robotId || selectedDataset
+        )}/`
+      : null;
+  const viewerUrl =
+    viewerBaseUrl && Number.isFinite(safeEpisodeNumber)
+      ? `${viewerBaseUrl}?episode=${safeEpisodeNumber}`
+      : null;
+  const popupUrl = viewerUrl ? `${viewerUrl}&popup=1` : null;
+
+  const openPopup = () => {
+    if (!popupUrl) return;
+    window.open(
+      popupUrl,
+      "episode-viewer-popup",
+      "width=1280,height=900,noopener,noreferrer"
+    );
+  };
 
   return (
     <Card className="flex items-center justify-between bg-card p-1  shadow-sm hover:shadow-md">
@@ -49,16 +76,36 @@ export const EpisodeCard = ({
         </div>
       </div>
       <div className="flex items-center gap-5">
-        {/* Selection & replay actions will return with the new API */}
+        {/* Open viewer in a popup */}
         <Button
           size="icon"
           variant="ghost"
           className="h-2 w-2 text-muted-foreground hover:text-foreground"
-          disabled
-          aria-label="Replay (coming soon)"
+          aria-label="Open episode viewer"
+          disabled={!popupUrl}
+          onClick={openPopup}
         >
           <RotateCw className="h-2 w-2" />
         </Button>
+        {/* Open viewer in a new tab with the same URL */}
+        {viewerUrl && (
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-2 w-2 text-muted-foreground hover:text-foreground"
+            aria-label="Open episode viewer in new tab"
+            asChild
+          >
+            <a
+              href={viewerUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Open episode viewer in new tab"
+            >
+              <ExternalLink className="h-2 w-2" />
+            </a>
+          </Button>
+        )}
         <Button
           size="icon"
           variant="ghost"

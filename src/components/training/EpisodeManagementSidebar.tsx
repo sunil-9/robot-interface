@@ -70,6 +70,7 @@ interface EpisodeManagementSidebarProps {
   onRequestDeleteDataset: (dataset: string) => void;
   onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
   accentColor?: AccentColor;
+  robotId?: string | null;
 }
 
 interface EpisodeManagementContentProps
@@ -92,6 +93,7 @@ export const EpisodeManagementContent = ({
   onPromptDeleteEpisode,
   accentColor = "purple",
   className,
+  robotId,
 }: EpisodeManagementContentProps) => {
   const [interval, setInterval] = useState<number[]>([25]);
   const [trainingJob, setTrainingJob] =
@@ -166,7 +168,7 @@ export const EpisodeManagementContent = ({
     (!selectedDataset
       ? "Select a dataset to check training status"
       : trainingJob
-      ? `Policy: ${trainingJob.policy_type || "N/A"} • Mode: ${
+      ? `Policy: ${trainingJob.policy_type || "N/A"} </br>• Mode: ${
           trainingJob.mode || "N/A"
         }`
       : "No active training job");
@@ -200,6 +202,7 @@ export const EpisodeManagementContent = ({
           isDeleting={isDeleting}
           formatDuration={formatDuration}
           onPromptDeleteEpisode={onPromptDeleteEpisode}
+          robotId={robotId}
         />
       </div>
       <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
@@ -311,6 +314,7 @@ export const EpisodeManagementSidebar = ({
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
   accentColor = "purple",
+  robotId,
 }: EpisodeManagementSidebarProps) => {
   const accent = accentStyles[accentColor];
 
@@ -347,6 +351,7 @@ export const EpisodeManagementSidebar = ({
             onRequestDeleteDataset={onRequestDeleteDataset}
             onPromptDeleteEpisode={onPromptDeleteEpisode}
             accentColor={accentColor}
+            robotId={robotId}
           />
         </SheetContent>
       </Sheet>

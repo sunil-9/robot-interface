@@ -7,15 +7,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import controlInstructions from "@/data/control-instructions.json";
+// Commented out for future use - table-based control instructions
+// import {
+//   Table,
+//   TableBody,
+//   TableCell,
+//   TableHead,
+//   TableHeader,
+//   TableRow,
+// } from "@/components/ui/table";
+// import controlInstructions from "@/data/control-instructions.json";
 import { Gamepad2, HelpCircle } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -40,18 +41,27 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           {children ? children : <span className="sr-only">Control Help</span>}
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gamepad2 className="h-6 w-6" />
-            {controlInstructions.title}
+            SO-100 PS5 Controller Help
           </DialogTitle>
           <DialogDescription>
-            {controlInstructions.description}
+            PS5 controller instructions for SO-100 robot arm
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6 mt-4">
+        <div className="mt-4">
+          <img
+            src="/help/so_100_ps5_help.png"
+            alt="SO-100 PS5 Controller Instructions"
+            className="w-full h-auto rounded-lg"
+          />
+        </div>
+
+        {/* Commented out for future use - table-based control instructions */}
+        {/* <div className="space-y-6 mt-4">
           {controlInstructions.controls.map((category, index) => (
             <div key={index} className="space-y-2">
               <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
@@ -81,7 +91,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
               </div>
             </div>
           ))}
-        </div>
+        </div> */}
       </DialogContent>
     </Dialog>
   );

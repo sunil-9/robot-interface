@@ -11,6 +11,7 @@ import {
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
@@ -30,14 +31,25 @@ export const TrainingInterface = ({
   robotId,
   session,
 }: TrainingInterfaceProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isRecording, setIsRecording] = useState(false);
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [sidebarTab, setSidebarTab] = useState<"secondary" | "episodes">(
-    "secondary"
+
+  // Initialize sidebarTab from URL params, default to "secondary"
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
   );
+  const tabFromUrl = params.get("tab") as "secondary" | "episodes" | null;
+  const [sidebarTab, setSidebarTab] = useState<"secondary" | "episodes">(
+    tabFromUrl || "secondary"
+  );
+
   const [cameraConfigs, setCameraConfigs] = useState<RobotCameraConfig[]>([]);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -69,6 +81,28 @@ export const TrainingInterface = ({
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
   const deployDatasetRef = useRef<string | null>(deployDatasetId);
+
+  // Handle tab changes and update URL
+  const handleTabChange = useCallback(
+    (newTab: "secondary" | "episodes") => {
+      setSidebarTab(newTab);
+
+      // Update URL params
+      const newParams = new URLSearchParams(location.search);
+      newParams.set("tab", newTab);
+      navigate(`${location.pathname}?${newParams.toString()}`, {
+        replace: true,
+      });
+    },
+    [location.pathname, location.search, navigate]
+  );
+
+  // Update sidebarTab if URL param changes (on page refresh or navigation)
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== sidebarTab) {
+      setSidebarTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
 
   useEffect(() => {
     selectedDatasetRef.current = selectedDataset;
@@ -237,9 +271,8 @@ export const TrainingInterface = ({
 
     const leftSlots = slots.filter((slot) => slot.position === "left");
     const rightSlots = slots.filter((slot) => slot.position === "right");
-    //Todo: change back to "extra" from "main" after testing
 
-    const extraSlots = slots.filter((slot) => slot.position === "main");
+    const extraSlots = slots.filter((slot) => slot.position === "extra");
     return {
       main: mainSlot,
       left: leftSlots,
@@ -255,24 +288,14 @@ export const TrainingInterface = ({
     extras: extraSlots,
   } = cameraLayout;
 
-  // const availableExtras = extraSlots.filter(
-  //   (slot) => slot.key !== mainSlot?.key
-  // );
   const availableExtras = [...extraSlots, ...extraSlots];
   // change key to extra in each availableExtras slot
   availableExtras.forEach((slot) => {
     slot.position = "extra";
   });
-  // todo: delete after testing
-  const MockLeftSlot = {
-    key: "mock-left",
-    title: "Left Camera",
-    position: "left" as const,
-    stream: mainSlot?.stream ?? null,
-  };
-  // todo: replace above mock with actual left slot or null after testing
-  const fixedLeftSlot = leftSlots[0] ?? MockLeftSlot;
-  const fixedRightSlot = rightSlots[0] ?? MockLeftSlot;
+
+  const fixedLeftSlot = leftSlots[0] ?? null;
+  const fixedRightSlot = rightSlots[0] ?? null;
   const sidebarSlots = availableExtras;
 
   const fallbackImageForPosition = (
@@ -802,7 +825,7 @@ export const TrainingInterface = ({
               fallbackImage={fallbackImageForPosition(
                 mainSlot?.position ?? "main"
               )}
-              position={"main"} //todo: change back to mainSlot.position from "main" after testing
+              position={mainSlot?.position ?? null}
               isConnected={Boolean(mainSlot?.stream)}
               showTitle={true}
               className="h-full rounded-[32px] border-none bg-transparent"
@@ -810,9 +833,8 @@ export const TrainingInterface = ({
 
             {fixedLeftSlot && (
               <div className="absolute bottom-4 left-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
-                {/* Todo: remove hardcoded left slot after testing */}
                 <CameraView
-                  key={"left"}
+                  key={fixedLeftSlot.key}
                   title={fixedLeftSlot.title ?? "Left Camera"}
                   stream={fixedLeftSlot.stream ?? mainSlot?.stream ?? null}
                   fallbackImage={fallbackImageForPosition("left")}
@@ -827,10 +849,8 @@ export const TrainingInterface = ({
 
             {fixedRightSlot && (
               <div className="absolute bottom-4 right-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
-                {/* Todo: remove hardcoded right slot after testing */}
-
                 <CameraView
-                  key={"right"}
+                  key={fixedRightSlot.key}
                   title={fixedRightSlot.title}
                   stream={fixedRightSlot.stream ?? mainSlot?.stream}
                   fallbackImage={fallbackImageForPosition("right")}
@@ -859,7 +879,7 @@ export const TrainingInterface = ({
             />
             <SidebarTabs
               tab={sidebarTab}
-              onTabChange={setSidebarTab}
+              onTabChange={handleTabChange}
               secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
               episodeManagementProps={{
                 datasets,

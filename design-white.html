@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LeRobot Control Interface (Light Mode)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Light Mode Color Variables */
+        --primary: #8b5cf6; /* Violet-500 */
+        --background: #f9fafb; /* Gray-50 */
+        --surface: #ffffff; /* White */
+        --text-main: #111827; /* Gray-900 */
+        --text-muted: #6b7280; /* Gray-500 */
+        --header-height: 4.5rem;
+        --mobile-header-height: 3.5rem;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: var(--background);
+        color: var(--text-main);
+        overflow: hidden;
+      }
+      /* Custom scrollbar for light mode */
+      .custom-scrollbar::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: #cbd5e1; /* Slate-300 */
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: #94a3b8; /* Slate-400 */
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .camera-video-placeholder {
+        min-height: 100px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        color: #9ca3af;
+        background-color: #e5e7eb; /* Gray-200 placeholder */
+        width: 100%;
+        height: 100%;
+      }
+
+      #main-area {
+        padding-top: var(--header-height);
+        padding-bottom: 0;
+      }
+
+      #main-video-container {
+        height: 100%;
+        margin-top: calc(-1 * var(--header-height));
+      }
+
+      .bubble-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem 1.25rem;
+        color: white;
+        font-weight: 600;
+        border-radius: 0.5rem;
+        transition: transform 150ms ease-in-out;
+        font-size: 0.875rem;
+      }
+      .bubble-btn:hover {
+        transform: scale(1.05);
+      }
+      .bubble-btn:active {
+        transform: scale(0.95);
+      }
+
+      #wrist-data {
+        top: 1.5rem;
+      }
+
+      #main-area {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+      }
+
+      @media (max-width: 1023px) {
+        body {
+          overflow-y: auto;
+        }
+        #main-area {
+          padding-top: var(--mobile-header-height);
+        }
+        #main-video-container {
+          height: auto;
+          aspect-ratio: 16 / 9;
+          margin-top: calc(-1 * var(--mobile-header-height));
+          min-height: 200px;
+        }
+        #main-content-row {
+          flex-direction: column;
+        }
+        .w-full.lg\\:w-72 {
+          width: 100%;
+        }
+        .lg\\:w-full {
+          width: auto;
+        }
+        #gamepad-tracker,
+        #wrist-data {
+          padding: 0.5rem 0.75rem;
+          bottom: 0.5rem;
+          left: 0.5rem;
+          width: 180px;
+          height: 100px;
+        }
+        #wrist-data {
+          top: 3.5rem;
+        }
+        .mobile-stack {
+          flex-direction: column;
+          gap: 0.75rem;
+          width: 80%;
+          max-width: 300px;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen flex flex-col text-gray-900">
+    <!-- Global Header - Light Mode Overlay -->
+    <header class="absolute top-0 left-0 right-0 z-50 py-3 px-4">
+      <div class="flex items-center justify-between">
+        <!-- Left Side -->
+        <div class="w-1/3 text-left"></div>
+
+        <!-- Center: Mode Pill - White/Glass -->
+        <div class="flex items-center justify-center">
+          <div
+            class="bg-white/70 backdrop-blur-md py-1.5 px-4 rounded-full flex items-center shadow-sm border border-gray-200"
+          >
+            <button
+              class="text-gray-500 hover:text-gray-800 mr-2 h-7 w-7 transition"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-4 w-4"
+              >
+                <path d="m12 19-7-7 7-7"></path>
+                <path d="M19 12H5"></path>
+              </svg>
+            </button>
+            <h1
+              class="text-lg font-semibold mr-2 flex items-center gap-2 text-violet-600"
+            >
+              Free exploration Mode
+            </h1>
+            <p class="text-xs text-gray-500">so_100 · gamepad-ps5-controller</p>
+          </div>
+        </div>
+        <!-- Right Side -->
+        <div class="w-1/3 text-left"></div>
+      </div>
+    </header>
+
+    <!-- MAIN CONTENT ROW -->
+    <div
+      id="main-content-row"
+      class="flex flex-1 overflow-y-auto lg:overflow-hidden flex-col lg:flex-row"
+    >
+      <!-- MAIN AREA -->
+      <div id="main-area" class="flex flex-col flex-1 overflow-hidden">
+        <!-- 1. Main Video Display -->
+        <!-- Using bg-gray-100 instead of dark gray for the container -->
+        <div
+          id="main-video-container"
+          class="relative bg-gray-100 shadow-inner overflow-hidden min-h-[300px]"
+        >
+          <!-- Mock Camera Feed - Light Gray Placeholder -->
+          <div
+            id="main-camera-feed"
+            class="w-full h-full flex items-center justify-center bg-gray-200/50"
+          >
+            <p
+              id="main-camera-label"
+              class="text-xl md:text-4xl font-light text-gray-400 p-8 text-center"
+            >
+              MAIN HEAD CAMERA (Live Stream)
+            </p>
+          </div>
+
+          <!-- Title Overlay - Light Glass -->
+          <div
+            class="absolute top-0 left-0 p-2 bg-white/60 text-gray-700 text-xs font-semibold rounded-br-lg z-20 backdrop-blur-sm shadow-sm border-r border-b border-gray-200"
+          >
+            Primary View
+          </div>
+
+          <!-- Gamepad Tracker Overlay - Light Glass -->
+          <div
+            id="gamepad-tracker"
+            class="absolute bottom-4 left-4 p-3 bg-white/70 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 z-20"
+          >
+            <div
+              class="flex items-center text-sm font-medium text-violet-600 mb-1"
+            >
+              <svg
+                class="w-4 h-4 mr-1.5"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.75a2 2 0 01-1.789-2.894l3.5-7A2 2 0 0114 10zM20 17h-2.172a2 2 0 01-1.414-.586L10.586 9.172A2 2 0 0110 7H3"
+                ></path>
+              </svg>
+              Controller Input Tracker
+            </div>
+            <p class="text-xs text-gray-600">
+              Gamepad Active:
+              <span class="text-green-600 font-medium">32s</span>
+            </p>
+            <p class="text-xs text-gray-500">Connected: Sony DualSense</p>
+          </div>
+
+          <!-- Telemetry Overlay (Chart) - Light Glass -->
+          <div
+            id="wrist-data"
+            class="absolute top-16 left-4 p-3 bg-white/70 backdrop-blur-md rounded-lg shadow-lg border border-gray-200 text-xs z-20 w-[150px] h-[200px] flex flex-col"
+          >
+            <p class="font-medium text-gray-700 mb-1">Wrist Telemetry</p>
+            <p class="text-orange-500 mb-2 font-medium">No Data Found</p>
+            <p class="font-medium text-gray-700 mb-1">Action Variance</p>
+            <svg id="wrist-chart" class="w-full flex-grow"></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Auxiliary Cameras Panel - White Background -->
+      <div
+        class="w-full lg:w-72 lg:flex-shrink-0 bg-white p-3 overflow-x-auto lg:overflow-y-auto custom-scrollbar border-t lg:border-t-0 lg:border-l border-gray-200"
+      >
+        <!-- Camera Grid -->
+        <div
+          id="auxiliary-views-container"
+          class="flex gap-3 lg:grid lg:grid-cols-1"
+        >
+          <!-- Auxiliary camera views will be rendered here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Core Controls - Bubble Buttons (Floating Overlay) -->
+    <!-- Container background made white/glass for light mode -->
+    <div
+      class="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex justify-center space-x-6 z-20 p-3 rounded-xl bg-white/80 backdrop-blur-md shadow-xl border border-gray-200"
+    >
+      <!-- Start Recording - Green -->
+      <button
+        class="bubble-btn bg-green-500 hover:bg-green-600 active:bg-green-700 shadow-md shadow-green-500/30"
+      >
+        <svg
+          class="w-4 h-4 mr-1.5"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z"
+            clip-rule="evenodd"
+          ></path>
+        </svg>
+        Start Recording
+      </button>
+
+      <!-- Deploy - Violet -->
+      <button
+        class="bubble-btn bg-violet-600 hover:bg-violet-700 active:bg-violet-800 shadow-md shadow-violet-500/30"
+      >
+        <svg
+          class="w-4 h-4 mr-1.5"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M10 2a8 8 0 100 16 8 8 0 000-16zm-1 9V9a1 1 0 012 0v2h2a1 1 0 010 2h-2v2a1 1 0 01-2 0v-2H7a1 1 0 010-2h2z"
+          ></path>
+        </svg>
+        Deploy
+      </button>
+
+      <!-- Rewind - Gray -->
+      <button
+        class="bubble-btn bg-gray-600 hover:bg-gray-700 active:bg-gray-800 shadow-md shadow-gray-500/30"
+      >
+        <svg
+          class="w-4 h-4 mr-1.5"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zM10 6a1 1 0 100-2 1 1 0 000 2zm0 8a1 1 0 100-2 1 1 0 000 2z"
+            clip-rule="evenodd"
+          ></path>
+        </svg>
+        Rewind
+      </button>
+    </div>
+
+    <script>
+      // --- D3 CHART IMPLEMENTATION START ---
+      function renderVarianceChart() {
+        // Generate 10 random variance numbers between 0 and 1
+        const data = Array.from({ length: 10 }, (_, i) => ({
+          step: i + 1,
+          variance: Math.random(), // Random value between 0 and 1
+        }));
+
+        const container = d3.select("#wrist-chart");
+
+        // Re-calculate dimensions for light mode (same logic, just ensuring refresh)
+        const chartDiv = document.getElementById("wrist-data");
+
+        const padding = 12;
+        const headerHeight = 55; // Approx height for text lines above
+
+        // Since chartDiv has fixed size w-[150px] h-[200px]
+        const chartAreaWidth = 150 - 2 * padding;
+        const chartAreaHeight = 200 - headerHeight - padding;
+
+        const margin = { top: 2, right: 2, bottom: 2, left: 2 };
+
+        container.html("");
+
+        const svg = container
+          .attr("width", chartAreaWidth)
+          .attr("height", chartAreaHeight)
+          .append("g")
+          .attr("transform", `translate(0, 0)`);
+
+        const xScale = d3
+          .scaleLinear()
+          .domain(d3.extent(data, (d) => d.step))
+          .range([0, chartAreaWidth]);
+
+        const yScale = d3
+          .scaleLinear()
+          .domain([0, 1])
+          .range([chartAreaHeight, 0]);
+
+        const line = d3
+          .line()
+          .x((d) => xScale(d.step))
+          .y((d) => yScale(d.variance))
+          .curve(d3.curveMonotoneX);
+
+        const area = d3
+          .area()
+          .x((d) => xScale(d.step))
+          .y0(chartAreaHeight)
+          .y1((d) => yScale(d.variance))
+          .curve(d3.curveMonotoneX);
+
+        // Light Mode Chart Colors:
+        // Fill: Light Violet transparency
+        svg
+          .append("path")
+          .datum(data)
+          .attr("fill", "rgba(124, 58, 237, 0.1)")
+          .attr("d", area);
+
+        // Stroke: Stronger Violet for visibility on white
+        svg
+          .append("path")
+          .datum(data)
+          .attr("fill", "none")
+          .attr("stroke", "#7C3AED") /* Violet-600 */
+          .attr("stroke-width", 2)
+          .attr("d", line);
+
+        // Dots
+        svg
+          .selectAll("circle")
+          .data(data)
+          .enter()
+          .append("circle")
+          .attr("cx", (d) => xScale(d.step))
+          .attr("cy", (d) => yScale(d.variance))
+          .attr("r", 3)
+          .attr("fill", "white")
+          .attr("stroke", "#7C3AED") /* Violet-600 */
+          .attr("stroke-width", 1.5);
+      }
+      // --- D3 CHART IMPLEMENTATION END ---
+
+      const cameraConfig = [
+        { id: "main-head", label: "MAIN HEAD CAMERA", role: "primary" },
+        { id: "right-arm", label: "RIGHT ARM CAMERA", role: "auxiliary" },
+        { id: "left-arm", label: "LEFT ARM CAMERA", role: "auxiliary" },
+        { id: "wrist-cam", label: "WRIST CAMERA", role: "auxiliary" },
+        { id: "side-cam-1", label: "SIDE CAM 1", role: "auxiliary" },
+        { id: "side-cam-2", label: "SIDE CAM 2", role: "auxiliary" },
+        { id: "side-cam-3", label: "SIDE CAM 3", role: "auxiliary" },
+      ];
+
+      const currentPrimaryCameraId = cameraConfig.find(
+        (c) => c.role === "primary"
+      ).id;
+
+      function initializeCameras() {
+        updateMainCamera(currentPrimaryCameraId);
+        renderAuxiliaryViews();
+        renderVarianceChart();
+      }
+
+      function updateMainCamera(primaryId) {
+        const newMainCamera = cameraConfig.find((c) => c.id === primaryId);
+        if (!newMainCamera) return;
+        document.getElementById("main-camera-label").textContent =
+          newMainCamera.label + " (Live Stream)";
+      }
+
+      function renderAuxiliaryViews() {
+        const auxCamContainer = document.getElementById(
+          "auxiliary-views-container"
+        );
+        auxCamContainer.innerHTML = "";
+
+        const auxiliaryCameras = cameraConfig.filter(
+          (c) => c.id !== currentPrimaryCameraId
+        );
+
+        auxiliaryCameras.forEach((camera) => {
+          const cameraDiv = document.createElement("div");
+          // Updated styles for Light Mode cards
+          cameraDiv.className =
+            "flex-shrink-0 w-40 lg:w-full relative aspect-video rounded-lg overflow-hidden shadow-sm border border-gray-200 bg-gray-50";
+
+          const cameraLabelShort = camera.label
+            .replace(" CAMERA", "")
+            .replace("MAIN ", "");
+
+          cameraDiv.innerHTML = `
+                    <div class="camera-video-placeholder">
+                        ${camera.label} Video Feed
+                    </div>
+                    <div class="absolute top-0 left-0 p-2 bg-white/70 backdrop-blur-sm text-gray-700 text-xs font-semibold rounded-br-lg z-10 shadow-sm border-r border-b border-gray-200">
+                        ${cameraLabelShort}
+                    </div>
+                `;
+          auxCamContainer.appendChild(cameraDiv);
+        });
+      }
+
+      window.onload = initializeCameras;
+    </script>
+  </body>
+</html>

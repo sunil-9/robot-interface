@@ -25,12 +25,12 @@ export const DeleteEpisodeDialog = ({
   onConfirm,
 }: DeleteEpisodeDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent className="z-[9999] border-gray-700 bg-gray-900">
+    <AlertDialogContent className="z-[9999] border-border bg-card text-foreground">
       <AlertDialogHeader>
-        <AlertDialogTitle className="text-white">
+        <AlertDialogTitle className="text-foreground">
           Delete Episode?
         </AlertDialogTitle>
-        <AlertDialogDescription className="text-gray-400">
+        <AlertDialogDescription className="text-muted-foreground">
           Are you sure you want to delete episode {episodeLabel}? This action
           cannot be undone and will permanently remove all episode data.
         </AlertDialogDescription>
@@ -38,14 +38,14 @@ export const DeleteEpisodeDialog = ({
       <AlertDialogFooter>
         <AlertDialogCancel
           disabled={isDeleting}
-          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+          className="border-border text-foreground hover:bg-muted/60"
         >
           Cancel
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={onConfirm}
           disabled={isDeleting}
-          className="bg-red-600 hover:bg-red-700"
+          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
           {isDeleting ? "Deleting..." : "Delete"}
         </AlertDialogAction>

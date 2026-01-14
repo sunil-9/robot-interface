@@ -62,7 +62,7 @@ export const CameraView = ({
   const hasFallback = Boolean(fallbackImage);
 
   const alignmentClasses = clsx(
-    "relative flex h-full w-full bg-black",
+    "relative flex h-full w-full bg-background",
     position === "main"
       ? "items-center justify-center"
       : position === "right"
@@ -73,16 +73,21 @@ export const CameraView = ({
   );
 
   const frameClasses = clsx(
-    "relative overflow-hidden bg-black",
+    "relative flex items-center justify-center overflow-hidden bg-background",
     position === "main"
       ? "h-full w-full"
-      : "h-[370px] w-[640px] rounded-lg border border-purple-900/40"
+      : " w-full rounded-2xl shadow-sm",
+    position === "right" || position === "left" ? "h-[170px]" : "",
+    position === "extra" ? "extra" : "",
+    position === "main" ? "main" : "",
+    position === "right" ? "right" : "",
+    position === "left" ? "left" : ""
   );
 
   return (
     <Card
       className={clsx(
-        "relative h-full w-full overflow-hidden bg-black",
+        "relative h-full w-full overflow-hidden border-none bg-transparent shadow-none",
         className
       )}
     >
@@ -91,31 +96,48 @@ export const CameraView = ({
           {hasVideo ? (
             <video
               ref={videoRef}
-              className="h-full w-full "
+              className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
               muted
               playsInline
             />
           ) : hasFallback ? (
-            <img src={fallbackImage} alt={title} className="h-full w-full " />
+            <img
+              src={fallbackImage}
+              alt={title}
+              className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
+            />
           ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-gray-500">
-              <Camera className="h-8 w-8" />
-              <span className="text-xs uppercase tracking-wide">
+            <div className="flex h-full w-full flex-col items-center justify-center gap-2  bg-background text-muted-foreground">
+              <Camera className="h-8 w-8 text-muted-foreground/50" />
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {title}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wide">
                 Waiting for stream
               </span>
             </div>
           )}
 
           {showTitle && (
-            <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-2 bg-gradient-to-b from-black/80 to-transparent px-3 py-2 text-xs text-white">
-              <span className="font-medium tracking-wide">{title}</span>
-              <span className="flex items-center gap-1 text-[10px] uppercase tracking-wider">
+            <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
+              <span className="font-semibold tracking-wide text-foreground">
+                {title}
+              </span>
+              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
                 {isConnected ? (
-                  <Wifi className="h-3 w-3 text-green-400" />
+                  <Wifi className="h-3 w-3 text-emerald-500" />
                 ) : (
-                  <WifiOff className="h-3 w-3 text-yellow-400" />
+                  <WifiOff className="h-3 w-3 text-amber-500" />
                 )}
-                {isConnected ? "Connected" : "Waiting"}
+                <span
+                  className={clsx(
+                    isConnected
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-amber-600 dark:text-amber-400"
+                  )}
+                >
+                  {isConnected ? "Live" : "Waiting"}
+                </span>
               </span>
             </div>
           )}

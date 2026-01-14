@@ -9,6 +9,7 @@ interface EpisodeListProps {
   isDeleting: boolean;
   formatDuration: (seconds?: number) => string;
   onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
+  robotId?: string | null;
 }
 
 export const EpisodeList = ({
@@ -17,6 +18,7 @@ export const EpisodeList = ({
   isDeleting,
   formatDuration,
   onPromptDeleteEpisode,
+  robotId,
 }: EpisodeListProps) => {
   const reversedEpisodes = useMemo(
     () => [...(episodes || [])].reverse(),
@@ -26,7 +28,7 @@ export const EpisodeList = ({
   if (!selectedDataset) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-400">Please select a dataset first</p>
+        <p className="text-muted-foreground">Please select a dataset first</p>
       </div>
     );
   }
@@ -34,13 +36,13 @@ export const EpisodeList = ({
   if (reversedEpisodes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
-        <p className="text-gray-400">No episodes found in this dataset</p>
+        <p className="text-muted-foreground">No episodes found in this dataset</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2">
+    <>
       {reversedEpisodes.map((episode, index) => (
         <EpisodeCard
           key={episode.episode_index}
@@ -50,8 +52,9 @@ export const EpisodeList = ({
           formatDuration={formatDuration}
           selectedDataset={selectedDataset}
           onDelete={onPromptDeleteEpisode}
+          robotId={robotId}
         />
       ))}
-    </div>
+    </>
   );
 };

@@ -10,15 +10,15 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
-import { DatabaseBackup, Play, RotateCcw, Square } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
-import { EpisodeManagementSidebar } from "./training/EpisodeManagementSidebar";
+import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
+import { SidebarTabs } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
-import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -31,11 +31,25 @@ export const TrainingInterface = ({
   robotId,
   session,
 }: TrainingInterfaceProps) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const [isRecording, setIsRecording] = useState(false);
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Initialize sidebarTab from URL params, default to "secondary"
+  const params = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+  const tabFromUrl = params.get("tab") as "secondary" | "episodes" | null;
+  const [sidebarTab, setSidebarTab] = useState<"secondary" | "episodes">(
+    tabFromUrl || "secondary"
+  );
+
   const [cameraConfigs, setCameraConfigs] = useState<RobotCameraConfig[]>([]);
   const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -60,7 +74,43 @@ export const TrainingInterface = ({
   const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
     episodeApi.Episode[]
   >([]);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployRequestPending, setDeployRequestPending] = useState(false);
+  const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
   const { setMode } = useModeContext();
+  const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
+  const selectedDatasetRef = useRef<string | null>(selectedDataset);
+  const deployDatasetRef = useRef<string | null>(deployDatasetId);
+
+  // Handle tab changes and update URL
+  const handleTabChange = useCallback(
+    (newTab: "secondary" | "episodes") => {
+      setSidebarTab(newTab);
+
+      // Update URL params
+      const newParams = new URLSearchParams(location.search);
+      newParams.set("tab", newTab);
+      navigate(`${location.pathname}?${newParams.toString()}`, {
+        replace: true,
+      });
+    },
+    [location.pathname, location.search, navigate]
+  );
+
+  // Update sidebarTab if URL param changes (on page refresh or navigation)
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== sidebarTab) {
+      setSidebarTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
+  useEffect(() => {
+    selectedDatasetRef.current = selectedDataset;
+  }, [selectedDataset]);
+
+  useEffect(() => {
+    deployDatasetRef.current = deployDatasetId;
+  }, [deployDatasetId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -221,8 +271,8 @@ export const TrainingInterface = ({
 
     const leftSlots = slots.filter((slot) => slot.position === "left");
     const rightSlots = slots.filter((slot) => slot.position === "right");
-    const extraSlots = slots.filter((slot) => slot.position === "extra");
 
+    const extraSlots = slots.filter((slot) => slot.position === "extra");
     return {
       main: mainSlot,
       left: leftSlots,
@@ -237,10 +287,16 @@ export const TrainingInterface = ({
     right: rightSlots,
     extras: extraSlots,
   } = cameraLayout;
-  const extrasForRight = extraSlots.filter(
-    (slot) => slot.key !== mainSlot?.key
-  );
-  const rightColumnSlots = [...rightSlots, ...extrasForRight];
+
+  const availableExtras = [...extraSlots, ...extraSlots];
+  // change key to extra in each availableExtras slot
+  availableExtras.forEach((slot) => {
+    slot.position = "extra";
+  });
+
+  const fixedLeftSlot = leftSlots[0] ?? null;
+  const fixedRightSlot = rightSlots[0] ?? null;
+  const sidebarSlots = availableExtras;
 
   const fallbackImageForPosition = (
     position: "main" | "left" | "right" | "extra"
@@ -257,20 +313,20 @@ export const TrainingInterface = ({
     }
   };
 
-  const renderColumn = (
+  const renderSecondaryStack = (
     slots: CameraSlot[],
-    fallbackPosition: "left" | "right"
+    fallbackPosition: "left" | "right" | "extra"
   ) => {
     if (slots.length === 0) {
       return (
-        <div className="flex h-full items-center justify-center rounded border border-dashed border-purple-900/40 bg-black/40 text-xs text-gray-500">
+        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-border bg-card/70 text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-sm">
           No {fallbackPosition} cameras
         </div>
       );
     }
 
     return (
-      <div className="grid h-full auto-rows-fr gap-2">
+      <div className="space-y-3">
         {slots.map((slot) => (
           <CameraView
             key={slot.key}
@@ -281,7 +337,7 @@ export const TrainingInterface = ({
             )}
             position={slot.position}
             isConnected={Boolean(slot.stream)}
-            className="rounded-lg border border-purple-900/40 bg-gray-950/40"
+            className="h-[170px] rounded-2xl border border-border bg-card/80 shadow-sm"
           />
         ))}
       </div>
@@ -311,14 +367,14 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    if (isSidebarOpen && selectedDataset) {
+    if (episodePanelActive && selectedDataset) {
       fetchEpisodes();
     }
-    if (isSidebarOpen) {
+    if (episodePanelActive) {
       loadDatasets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSidebarOpen, selectedDataset]);
+  }, [episodePanelActive, selectedDataset]);
 
   // Create new dataset
   const handleCreateDataset = async () => {
@@ -404,8 +460,8 @@ export const TrainingInterface = ({
 
       setCurrentEpisodeId((prev) => prev ?? "pending");
       setIsRecording(true);
-      // Update episodes list if sidebar is open
-      if (isSidebarOpen) {
+      // Update episodes list if episode management UI is visible
+      if (episodePanelActive) {
         fetchEpisodes();
       }
     } catch (error) {
@@ -447,8 +503,8 @@ export const TrainingInterface = ({
 
       setIsRecording(false);
       setCurrentEpisodeId(null);
-      // Update episodes list if sidebar is open
-      if (isSidebarOpen) {
+      // Update episodes list if episode management UI is visible
+      if (episodePanelActive) {
         fetchEpisodes();
       }
     } catch (error) {
@@ -479,11 +535,122 @@ export const TrainingInterface = ({
   };
 
   const handleDeploy = () => {
+    if (!selectedDataset) {
+      toast({
+        title: "Error",
+        description: "Select a dataset before deploying",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const action = isDeploying ? "stop" : "start";
+    setDeployRequestPending(true);
+    setDeployDatasetId(selectedDataset);
+
+    const sent = session.sendControl({
+      type: "deploy",
+      payload: {
+        action,
+        datasetId: selectedDataset,
+      },
+    });
+
+    if (!sent) {
+      setDeployRequestPending(false);
+      toast({
+        title: "Error",
+        description: "Failed to send deploy request to robot",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
-      title: "Info",
-      description: "Deploy functionality is not implemented yet",
+      title: "Deployment request sent",
+      description:
+        action === "start"
+          ? `Deploying dataset "${selectedDataset}".`
+          : `Stopping deployment for dataset "${selectedDataset}".`,
     });
   };
+
+  useEffect(() => {
+    const unsubscribe = session.onTelemetry((payload) => {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+
+      const record = payload as Record<string, unknown>;
+      const type = typeof record.type === "string" ? record.type : null;
+      if (type !== "deploy") {
+        return;
+      }
+
+      const rawPayload = record.payload;
+      if (!rawPayload || typeof rawPayload !== "object") {
+        return;
+      }
+      const deployPayload = rawPayload as Record<string, unknown>;
+      const action =
+        typeof deployPayload.action === "string"
+          ? deployPayload.action.toLowerCase()
+          : null;
+      const status =
+        typeof deployPayload.status === "string"
+          ? deployPayload.status.toLowerCase()
+          : null;
+      const message =
+        typeof deployPayload.message === "string"
+          ? deployPayload.message
+          : null;
+      const datasetId =
+        typeof deployPayload.datasetId === "string"
+          ? deployPayload.datasetId
+          : typeof deployPayload.dataset_id === "string"
+          ? deployPayload.dataset_id
+          : null;
+
+      const resolvedDataset =
+        datasetId ??
+        deployDatasetRef.current ??
+        selectedDatasetRef.current ??
+        undefined;
+
+      setDeployRequestPending(false);
+
+      if (action === "deploy_ack") {
+        const active = status === "deploying";
+        setIsDeploying(active);
+        setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
+        toast({
+          title: active ? "Deployment accepted" : "Deployment updated",
+          description:
+            message ??
+            (resolvedDataset
+              ? `Dataset "${resolvedDataset}" status: ${status ?? "updated"}.`
+              : `Deployment status: ${status ?? "updated"}.`),
+        });
+        return;
+      }
+
+      if (action === "deploy_nack" || status === "error") {
+        setIsDeploying(false);
+        setDeployDatasetId(null);
+        toast({
+          title: "Deployment failed",
+          description:
+            message ??
+            "Deployment request was rejected. Check deployment services and try again.",
+          variant: "destructive",
+        });
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [session]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
@@ -589,129 +756,149 @@ export const TrainingInterface = ({
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-black text-white">
-      <main className="grid h-full grid-rows-[60%_40%]">
-        <div className="relative h-full">
-          <CameraView
-            key={mainSlot?.key ?? "main"}
-            title={mainSlot?.title ?? "Main Camera"}
-            stream={mainSlot?.stream ?? null}
-            fallbackImage={fallbackImageForPosition(
-              mainSlot?.position ?? "main"
-            )}
-            position={mainSlot?.position ?? "main"}
-            isConnected={Boolean(mainSlot?.stream)}
-            className="h-full rounded-none border border-purple-900/40 bg-black"
-          />
+    <div className="relative flex min-h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+      <section className="relative  flex  h-screen  flex-1 flex-col p-1">
+        <div className="flex flex-1 min-h-0 gap-2 ">
+          <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
+            {/* <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px]  uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
+             { mainSlot?.title}
+            </div> */}
 
-          <div className="absolute top-10 left-4 z-10 w-[260px] opacity-90 transition-opacity hover:opacity-100">
-            <ActionVarianceChart
-              title="2 sec future"
-              overlay
-              compact
-              showTitle={false}
+            <div className="absolute left-5 top-26 z-20">
+              <ActionVarianceChart
+                title="2 sec future"
+                overlay
+                compact
+                showTitle={false}
+              />
+            </div>
+
+            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
+              <div className="rounded-xl border border-border bg-card/85 px-3 py-2 text-muted-foreground shadow-lg backdrop-blur">
+                <div>
+                  <span className="text-muted-foreground/80">Signaling:</span>{" "}
+                  <span
+                    className={
+                      session.signalingConnected
+                        ? "text-emerald-500"
+                        : "text-amber-500"
+                    }
+                  >
+                    {session.signalingConnected ? "connected" : "connecting"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground/80">Peer:</span>{" "}
+                  <span className="text-primary">
+                    {session.connectionState}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground/80">Telemetry:</span>{" "}
+                  <span
+                    className={
+                      session.telemetryOpen
+                        ? "text-emerald-500"
+                        : "text-amber-500"
+                    }
+                  >
+                    {session.telemetryOpen ? "open" : "pending"}
+                  </span>
+                </div>
+              </div>
+              {cameraLoading && (
+                <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] text-primary shadow">
+                  Loading camera config…
+                </span>
+              )}
+              {cameraError && (
+                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] text-amber-700 shadow dark:border-amber-500/50 dark:bg-amber-900/40 dark:text-amber-100">
+                  {cameraError}
+                </span>
+              )}
+            </div>
+
+            <CameraView
+              key={mainSlot?.key ?? "main"}
+              title={mainSlot?.title ?? "Main Camera"}
+              stream={mainSlot?.stream ?? null}
+              fallbackImage={fallbackImageForPosition(
+                mainSlot?.position ?? "main"
+              )}
+              position={mainSlot?.position ?? null}
+              isConnected={Boolean(mainSlot?.stream)}
+              showTitle={true}
+              className="h-full rounded-[32px] border-none bg-transparent"
+            />
+
+            {fixedLeftSlot && (
+              <div className="absolute bottom-4 left-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
+                <CameraView
+                  key={fixedLeftSlot.key}
+                  title={fixedLeftSlot.title ?? "Left Camera"}
+                  stream={fixedLeftSlot.stream ?? mainSlot?.stream ?? null}
+                  fallbackImage={fallbackImageForPosition("left")}
+                  position="left"
+                  isConnected={Boolean(
+                    fixedLeftSlot.stream ?? mainSlot?.stream
+                  )}
+                  className="h-full w-full"
+                />
+              </div>
+            )}
+
+            {fixedRightSlot && (
+              <div className="absolute bottom-4 right-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
+                <CameraView
+                  key={fixedRightSlot.key}
+                  title={fixedRightSlot.title}
+                  stream={fixedRightSlot.stream ?? mainSlot?.stream}
+                  fallbackImage={fallbackImageForPosition("right")}
+                  position="right"
+                  isConnected={Boolean(
+                    fixedRightSlot.stream ?? mainSlot?.stream
+                  )}
+                  className="h-full w-full"
+                />
+              </div>
+            )}
+          </div>
+
+          <div className="flex  w-[360px] h-[calc(100vh_-_10px)] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+            <RecordingControls
+              isRecording={isRecording}
+              isLoading={isLoading}
+              currentEpisodeId={currentEpisodeId}
+              isDeploying={isDeploying}
+              isDeployingRequest={deployRequestPending}
+              onStart={startEpisode}
+              onStop={endEpisode}
+              onRewind={rewindEpisode}
+              onDeploy={handleDeploy}
+              style={RecordingControlStyle.COMPACT}
+            />
+            <SidebarTabs
+              tab={sidebarTab}
+              onTabChange={handleTabChange}
+              secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
+              episodeManagementProps={{
+                datasets,
+                selectedDataset,
+                isLoadingDatasets,
+                episodes,
+                isDeleting,
+                formatDuration,
+                onSelectDataset: setSelectedDataset,
+                onRequestCreateDataset: () => setIsCreateDialogOpen(true),
+                onRequestDeleteDataset: promptDeleteDataset,
+                onPromptDeleteEpisode: promptDeleteEpisode,
+                accentColor: "emerald",
+                robotId,
+              }}
             />
           </div>
-
-          <div className="absolute top-8 right-4 z-10 flex flex-col items-end gap-2 text-xs">
-            <div className="rounded-lg border border-purple-900/40 bg-black/70 px-3 py-2 shadow-lg">
-              <div>
-                <span className="text-gray-400">Signaling:</span>{" "}
-                <span
-                  className={
-                    session.signalingConnected
-                      ? "text-green-300"
-                      : "text-yellow-200"
-                  }
-                >
-                  {session.signalingConnected ? "connected" : "connecting"}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Peer:</span>{" "}
-                <span className="text-purple-200">
-                  {session.connectionState}
-                </span>
-              </div>
-              <div>
-                <span className="text-gray-400">Telemetry:</span>{" "}
-                <span
-                  className={
-                    session.telemetryOpen ? "text-green-300" : "text-yellow-200"
-                  }
-                >
-                  {session.telemetryOpen ? "open" : "pending"}
-                </span>
-              </div>
-            </div>
-            {cameraLoading && (
-              <span className="rounded bg-purple-900/60 px-2 py-1 text-[11px] text-purple-100 shadow">
-                Loading camera config…
-              </span>
-            )}
-            {cameraError && (
-              <span className="rounded bg-yellow-900/60 px-2 py-1 text-[11px] text-yellow-200 shadow">
-                {cameraError}
-              </span>
-            )}
-          </div>
-          <EpisodeManagementSidebar
-            isOpen={isSidebarOpen}
-            onOpenChange={setIsSidebarOpen}
-            datasets={datasets}
-            selectedDataset={selectedDataset}
-            isLoadingDatasets={isLoadingDatasets}
-            episodes={episodes}
-            isDeleting={isDeleting}
-            formatDuration={formatDuration}
-            onSelectDataset={setSelectedDataset}
-            onRequestCreateDataset={() => setIsCreateDialogOpen(true)}
-            onRequestDeleteDataset={promptDeleteDataset}
-            onPromptDeleteEpisode={promptDeleteEpisode}
-          />
         </div>
-
-        <div className="grid h-full grid-cols-7 gap-2 border-t border-purple-900/40 bg-gray-950/40 p-2">
-          <div className="col-span-3">{renderColumn(leftSlots, "left")}</div>
-
-          <div className="col-span-1 flex flex-col items-center justify-center gap-2">
-            <Button
-              onClick={isRecording ? endEpisode : startEpisode}
-              disabled={isLoading}
-              className={`w-full ${
-                isRecording
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-green-600 hover:bg-green-700"
-              } text-white`}
-            >
-              {isRecording ? (
-                <Square className="mr-1 h-4 w-4" />
-              ) : (
-                <Play className="mr-1 h-4 w-4" />
-              )}
-              {isRecording ? "End" : "Start"}
-            </Button>
-
-            <Button
-              onClick={rewindEpisode}
-              disabled={isLoading || !currentEpisodeId}
-              variant="outline"
-              className="w-full"
-            >
-              <RotateCcw className="mr-1 h-4 w-4" />
-              Rewind
-            </Button>
-            <Button onClick={handleDeploy} variant="outline" className="w-full">
-              <DatabaseBackup className="mr-1 h-4 w-4" />
-              Deploy
-            </Button>
-          </div>
-
-          <div className="col-span-3">
-            {renderColumn(rightColumnSlots, "right")}
-          </div>
-        </div>
-      </main>
+      </section>
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

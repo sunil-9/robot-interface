@@ -99,7 +99,7 @@ export const ActionVarianceChart = ({
       title: {
         display: compact && showTitle,
         text: title,
-        color: "white",
+        color: "hsl(var(--foreground))",
         font: {
           size: compact ? 12 : 16,
           weight: "bold",
@@ -137,7 +137,7 @@ export const ActionVarianceChart = ({
                           Math.floor(data.length / 2)
                         ]
                       : 0,
-                  borderColor: "#8b5cf6",
+                  borderColor: "hsl(var(--primary))",
                   borderWidth: 2,
                   borderDash: [5, 5],
                   label: {
@@ -145,14 +145,15 @@ export const ActionVarianceChart = ({
                     content: `Median: ${
                       data.length > 0
                         ? [...data]
-                            .sort((a, b) => a - b)
-                            // eslint-disable-next-line no-unexpected-multiline
-                            [Math.floor(data.length / 2)].toFixed(3)
+                            .sort((a, b) => a - b) [
+                              // eslint-disable-next-line no-unexpected-multiline
+                              Math.floor(data.length / 2)
+                            ].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
-                    backgroundColor: "#8b5cf6",
-                    color: "white",
+                    backgroundColor: "hsl(var(--primary))",
+                    color: "hsl(var(--primary-foreground))",
                     font: {
                       size: 11,
                       weight: "bold",
@@ -167,11 +168,11 @@ export const ActionVarianceChart = ({
       y: {
         // This was x axis before rotation
         grid: {
-          color: "rgba(255, 255, 255, 0.1)",
+          color: "rgba(148, 163, 184, 0.25)",
           display: !compact,
         },
         ticks: {
-          color: "white",
+          color: "hsl(var(--muted-foreground))",
           font: {
             size: compact ? 8 : 10,
           },
@@ -184,11 +185,11 @@ export const ActionVarianceChart = ({
         beginAtZero: true,
         max: 0.05,
         grid: {
-          color: "rgba(255, 255, 255, 0.1)",
+          color: "rgba(148, 163, 184, 0.25)",
           display: !compact,
         },
         ticks: {
-          color: "white",
+          color: "hsl(var(--muted-foreground))",
           font: {
             size: compact ? 8 : 12,
           },
@@ -274,19 +275,19 @@ export const ActionVarianceChart = ({
   );
 
   const ChartComponent = (
-    <div className="h-full relative">
+    <div className="relative h-full text-foreground opacity-60 hover:opacity-100 transition-opacity">
       {data.length === 0 ? (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
-            <div className="text-gray-400 text-lg mb-2">No Data Found</div>
-            <div className="text-gray-500 text-sm">
+            <div className="text-muted-foreground text-lg mb-2">No Data Found</div>
+            <div className="text-muted-foreground text-sm">
               {!isConnected
                 ? "WebSocket not connected"
                 : "Waiting for action variance data..."}
             </div>
             <button
               onClick={() => setIsHelpOpen(true)}
-              className="mt-4 px-3 py-1 bg-purple-700 hover:bg-purple-600 text-white rounded-md flex items-center justify-center mx-auto"
+              className="mt-4 px-3 py-1 bg-primary hover:bg-primary/90 text-primary-foreground rounded-md flex items-center justify-center mx-auto"
             >
               <HelpCircle className="h-4 w-4 mr-1" />
               <span>Chart Help</span>
@@ -315,29 +316,27 @@ export const ActionVarianceChart = ({
     <>
       <Card
         className={`${
-          overlay ? "bg-black bg-opacity-75" : "bg-gray-900"
-        } border-gray-700 h-full ${
-          compact ? "p-1" : ""
-        } fixed top-8 left-0 z-50`}
+          overlay ? "bg-card/80" : "bg-card"
+        } h-full rounded-lg p-0 fixed top-12 left-0 z-50 border-border opacity-40 transition-opacity hover:opacity-90`}
         style={{
           width: compact ? "300px" : "400px",
           height: compact ? "220px" : "320px",
         }}
       >
-        <div className={`${compact ? "p-1" : "p-4"} h-full flex flex-col`}>
+        <div className={` h-full flex flex-col`}>
           {showTitle && (
             <div className="flex justify-between items-center mb-1">
               <h3
                 className={`${
                   compact ? "text-xs" : "text-lg"
-                } font-semibold text-white`}
+                } font-semibold text-foreground`}
               >
                 {title}
               </h3>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setIsHelpOpen(true)}
-                  className="text-purple-400 hover:text-white transition-colors p-1 bg-gray-800 rounded-full"
+                  className="text-primary hover:text-foreground transition-colors p-1 bg-muted rounded-full"
                   aria-label="Show help information"
                   title="What is this chart?"
                 >
@@ -347,7 +346,7 @@ export const ActionVarianceChart = ({
                 </button>
                 <button
                   onClick={() => setIsFullscreen(true)}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="View fullscreen"
                   title="View fullscreen"
                 >
@@ -360,7 +359,7 @@ export const ActionVarianceChart = ({
             {ChartComponent}
           </div>
           {!compact && (
-            <div className="mt-2 text-xs text-gray-400">
+            <div className="mt-2 text-xs text-muted-foreground">
               <div className="flex justify-between">
                 <span>
                   {data.length === 0
@@ -370,15 +369,14 @@ export const ActionVarianceChart = ({
                     : usingWebSocketData
                     ? "Live WebSocket Data"
                     : "Data Available"}
-                  {isConnected && (
-                    <span className="ml-2 inline-block w-2 h-2 bg-green-500 rounded-full"></span>
-                  )}
-                  {!isConnected && (
-                    <span className="ml-2 inline-block w-2 h-2 bg-red-500 rounded-full"></span>
-                  )}
+                  <span
+                    className={`ml-2 inline-block h-2 w-2 rounded-full ${
+                      isConnected ? "bg-emerald-500" : "bg-red-500"
+                    }`}
+                  />
                 </span>
                 <span>Range: 0.000 - 0.050</span>
-                <span className="hidden sm:inline text-xs text-gray-400 ml-4">
+                <span className="hidden sm:inline text-xs text-muted-foreground ml-4">
                   • Time windows show action variance over future 2.0s horizon
                 </span>
               </div>
@@ -387,19 +385,19 @@ export const ActionVarianceChart = ({
               <div className="mt-3 flex justify-center items-center gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 bg-green-500 rounded"></div>
-                  <span className="text-gray-300">Low (&lt; 0.01)</span>
+                  <span className="text-foreground">Low (&lt; 0.01)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 bg-yellow-500 rounded"></div>
-                  <span className="text-gray-300">Mid (0.01-0.03)</span>
+                  <span className="text-foreground">Mid (0.01-0.03)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 bg-red-500 rounded"></div>
-                  <span className="text-gray-300">High (&gt; 0.03)</span>
+                  <span className="text-foreground">High (&gt; 0.03)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <div className="w-3 h-3 border-2 border-purple-500 border-dashed bg-transparent rounded"></div>
-                  <span className="text-purple-400">Median</span>
+                  <span className="text-primary">Median</span>
                 </div>
               </div>
             </div>
@@ -408,9 +406,9 @@ export const ActionVarianceChart = ({
       </Card>
 
       <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-6xl h-[80vh] bg-gray-900 border-gray-700 p-6">
+        <DialogContent className="max-w-6xl h-[80vh] bg-card border-border p-6 text-foreground">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-white">{title}</h2>
+            <h2 className="text-xl font-bold">{title}</h2>
             {/* remove minimize button for now 
             <button
               onClick={() => setIsFullscreen(false)}
@@ -425,15 +423,15 @@ export const ActionVarianceChart = ({
 
       {/* Help Dialog */}
       <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700 p-6 max-w-2xl">
+        <DialogContent className="bg-card border-border p-6 max-w-2xl text-foreground">
           <div className="flex flex-col">
-            <h2 className="text-xl font-bold text-white mb-4">
+            <h2 className="text-xl font-bold mb-4">
               Action Variance Chart Help
             </h2>
 
-            <div className="space-y-4 text-gray-200">
+            <div className="space-y-4 text-muted-foreground">
               <div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   What is this chart?
                 </h3>
                 <p className="mb-2">

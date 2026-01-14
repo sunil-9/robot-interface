@@ -1,7 +1,5 @@
 import { API_CONFIG } from "@/config/api";
 
-const DEFAULT_API_BASE = "http://127.0.0.1:8100";
-
 const knownOrigins = new Set<string>();
 
 const addOrigin = (candidate?: string | null) => {
@@ -9,14 +7,13 @@ const addOrigin = (candidate?: string | null) => {
     return;
   }
   try {
-    const parsed = new URL(candidate, DEFAULT_API_BASE);
+    const parsed = new URL(candidate, API_CONFIG.BASE_URL);
     knownOrigins.add(parsed.origin);
   } catch (error) {
     console.warn("[apiResponse] Failed to parse API origin:", candidate, error);
   }
 };
 
-addOrigin(DEFAULT_API_BASE);
 addOrigin(API_CONFIG.BASE_URL);
 
 const isManagedApiOrigin = (responseUrl?: string): boolean => {

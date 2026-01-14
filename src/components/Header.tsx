@@ -1,6 +1,7 @@
 import { AppMode } from "@/context/ModeContextDef";
 import { useModeContext } from "@/hooks/useModeContext";
-import { ArrowLeft, Circle } from "lucide-react";
+import { ArrowLeft, Circle, Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 
@@ -16,58 +17,111 @@ export const Header = ({
 }: HeaderProps) => {
   const navigate = useNavigate();
   const { getModeLabel, mode } = useModeContext();
+  const getStoredTheme = () => {
+    if (typeof window === "undefined") {
+      return "light";
+    }
+    const stored = window.localStorage.getItem("theme");
+    if (stored === "dark" || stored === "light") {
+      return stored;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  };
+  const [theme, setTheme] = useState<"light" | "dark">(getStoredTheme);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    window.localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  const modeColors: Record<AppMode, string> = {
+    [AppMode.RECORDING]: "text-red-500",
+    [AppMode.TRAINING]: "text-emerald-500",
+    [AppMode.REPLAY]: "text-blue-500",
+    [AppMode.POLICY_RUNNING]: "text-purple-500",
+  };
+
+  const ThemeToggle = () => (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={toggleTheme}
+      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      className="text-muted-foreground hover:text-foreground"
+    >
+      {theme === "dark" ? (
+        <Sun className="h-4 w-4" />
+      ) : (
+        <Moon className="h-4 w-4" />
+      )}
+    </Button>
+  );
 
   return page == "main" ? (
-    <header className="border-b border-gray-800 p-4 bg-black">
-      <div className="container mx-auto">
-        <h1 className="text-2xl font-bold text-purple-400">
-          Robot Teaching Interface
-        </h1>
-        <p className="text-gray-400 text-sm">
-          Select a robot and control device to begin
-        </p>
+    <header className="border-b border-border bg-card/80 backdrop-blur">
+      <div className="container mx-auto flex items-center justify-between gap-4 p-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">
+            Robot Teaching Interface
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Select a robot and control device to begin
+          </p>
+        </div>
+        <ThemeToggle />
       </div>
     </header>
   ) : page == "train" ? (
-    <header className="fixed top-0 left-0 right-0 z-50">
-      <div className="container mx-auto py-3 px-4">
-        <div className="flex items-center justify-center">
-          <div className="bg-black/30 backdrop-blur-sm py-1.5 px-4 rounded-full flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-white mr-2 h-7 w-7"
-              onClick={() => navigate("/")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
+    <header className="fixed left-1/2 top-4 z-50 -translate-x-1/2 opacity-50 transition-opacity hover:opacity-100">
+      <div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_10px_40px_rgba(15,23,42,0.15)] backdrop-blur">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          onClick={() => navigate("/")}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
 
-            <h1
-              className={`text-lg font-semibold mr-2 flex items-center gap-2 ${
-                mode === AppMode.RECORDING ? "text-red-400" : "text-purple-300"
-              }`}
-            >
-              {mode === AppMode.RECORDING && (
-                <Circle className="h-3 w-3 fill-current animate-pulse" />
-              )}
-              {getModeLabel()}
-            </h1>
-            <p className="text-xs text-gray-300">
-              {selectedRobot ? `${selectedRobot}` : ""}
-              {selectedControl ? ` · ${selectedControl}` : ""}
-            </p>
-          </div>
+        <div className="flex flex-col items-center text-center px-1">
+          <h1
+            className={`flex items-center justify-center gap-2 text-base font-semibold ${
+              modeColors[mode] || "text-primary"
+            }`}
+          >
+            {mode === AppMode.RECORDING && (
+              <Circle className="h-3 w-3 fill-current animate-pulse" />
+            )}
+            {getModeLabel()}
+          </h1>
+          <p className="text-[11px] text-muted-foreground">
+            {selectedRobot ? `${selectedRobot}` : ""}
+            {selectedControl ? ` · ${selectedControl}` : ""}
+          </p>
         </div>
+
+        <ThemeToggle />
       </div>
     </header>
   ) : (
-    <header className="h-12 bg-card border-b border-border flex items-center px-4 sticky top-0 z-20">
+    <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur">
       <div className="flex-1 flex justify-center">
         <h1 className="text-xl font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
           Imitation Machines
         </h1>
       </div>
-      <div className="w-10" /> {/* Spacer for balance */}
+      <ThemeToggle />
     </header>
   );
 };

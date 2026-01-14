@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import Test from "./pages/Test";
 import Train from "./pages/Train";
 import WebRTCDebug from "./pages/WebRTCDebug";
+import VisualizationPage from "./pages/Visualization";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,10 @@ const App = () => (
               <Route path="/test" element={<Test />} />
               <Route path="/deploy" element={<Deploy />} />
               <Route path="/webrtc-debug" element={<WebRTCDebug />} />
+              <Route
+                path="/visualization/:robotid/:datasetid"
+                element={<VisualizationPage />}
+              />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -30,17 +30,17 @@ export const CreateDatasetDialog = ({
   onCancel,
 }: CreateDatasetDialogProps) => (
   <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="border-gray-700 bg-gray-900 text-white">
+    <DialogContent className="border-border bg-card text-foreground">
       <DialogHeader>
         <DialogTitle>Create New Dataset</DialogTitle>
-        <DialogDescription className="text-gray-400">
+        <DialogDescription className="text-muted-foreground">
           Enter a name for your new dataset. This will be used to organize your
           training episodes.
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-4">
         <div className="space-y-2">
-          <Label htmlFor="dataset-name" className="text-gray-300">
+          <Label htmlFor="dataset-name" className="text-foreground">
             Dataset Name
           </Label>
           <Input
@@ -53,7 +53,7 @@ export const CreateDatasetDialog = ({
                 onSubmit();
               }
             }}
-            className="border-gray-700 bg-gray-800 text-white placeholder:text-gray-500"
+            className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/30"
             disabled={isCreating}
           />
         </div>
@@ -63,7 +63,7 @@ export const CreateDatasetDialog = ({
           variant="outline"
           onClick={onCancel}
           disabled={isCreating}
-          className="border-gray-700 text-gray-300 hover:bg-gray-800"
+          className="border-border text-foreground hover:bg-muted/60"
         >
           Cancel
         </Button>

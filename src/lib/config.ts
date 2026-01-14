@@ -11,9 +11,30 @@ const normalizeSignalingBase = (value: string): string => {
   return trimmed;
 };
 
-const rawApiBase =
-  (import.meta.env.VITE_CLOUD_API_BASE_URL as string | undefined) ??
-  "http://127.0.0.1:8100";
+const resolveApiBaseUrl = (): string => {
+  const primary = import.meta.env
+    .VITE_CLOUD_API_BASE_URL as string | undefined;
+  const local = import.meta.env
+    .VITE_LOCAL_CLOUD_API_BASE_URL as string | undefined;
+
+  const candidate = primary?.trim() || local?.trim();
+  if (candidate) {
+    return candidate;
+  }
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    console.warn(
+      "Falling back to window.origin for API base; set VITE_CLOUD_API_BASE_URL or VITE_LOCAL_CLOUD_API_BASE_URL."
+    );
+    return window.location.origin;
+  }
+
+  throw new Error(
+    "No API base URL configured. Please set VITE_CLOUD_API_BASE_URL or VITE_LOCAL_CLOUD_API_BASE_URL."
+  );
+};
+
+const rawApiBase = resolveApiBaseUrl();
 
 const normalizedApiBase = trimTrailingSlash(rawApiBase);
 
@@ -24,7 +45,11 @@ const inferSignalingBaseUrl = (apiUrl: string): string => {
     return `${scheme}//${url.host}/signaling`;
   } catch (error) {
     console.warn("Failed to infer signaling base URL from API base:", error);
-    return "ws://127.0.0.1:8100/signaling";
+    if (typeof window !== "undefined" && window.location?.host) {
+      const scheme = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${scheme}//${window.location.host}/signaling`;
+    }
+    throw error;
   }
 };
 

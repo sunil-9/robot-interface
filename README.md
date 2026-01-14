@@ -122,78 +122,73 @@ Use `useModeContext()` hook to access `mode` and `setMode`.
 - **Tailwind CSS** - Utility-first CSS framework
 - **WebSocket** - Real-time communication
 
-
-
 ## 📋 Prerequisites
 
-Before running the project, ensure you have:
+Ensure you have the following installed on Ubuntu 22.04:
 
-- **Node.js** (v16 or higher) and npm
+- **ROS2 Humble**
+- **uv** (Python package manager)
+- **Node.js** and **npm**
 
 ## 🚀 Getting Started
 
-### 1. Clone the Repository
+To keep everything organized, we will create a workspace folder:
 
 ```bash
-git clone <repository-url>
-cd web-interface
+mkdir -p ~/im
+cd ~/im
 ```
 
-### 2. Setup Backend Environment
-
-The project uses `uv` for Python dependency management.
+### Step 0: Clone and Setup `so-100-control`
 
 ```bash
-# Setup Robot Backend
-cd ../im-robot-backend
-uv sync
-
-# Setup Cloud Backend
-cd ../im-cloud-backend
-uv sync
+git clone https://github.com/imitationmachines/so-100-control
 ```
 
-### 3. Setup Frontend
+Follow the instructions in the `so-100-control` README to build and source the package.
+
+### Step 1: Clone `lerobot`
 
 ```bash
-# Navigate to frontend directory
-cd ../frontend
-
-# Install Node.js dependencies
-npm install
+git clone https://github.com/imitationmachines/lerobot
 ```
 
-## 🎯 Running the Project
+_Note: You don't need to do anything else with this repo; it is used as a dependency for the backend._
 
-The project requires the backends and frontend to run simultaneously:
-
-### 1. Start Robot Backend (Terminal 1)
+### Step 2: Clone and Setup Backend
 
 ```bash
-cd ../im-robot-backend
-# Ensure ROS2 environment is sourced if needed
+git clone https://github.com/imitationmachines/im-robot-backend
+```
+
+Follow the instructions in the `im-robot-backend` README to setup the backend properly, or use the following commands:
+
+```bash
+cd im-robot-backend
+UV_PYTHON=/usr/bin/python3.10 uv sync
+# Install lerobot in editable mode (adjust path as needed)
+uv pip install -e ../lerobot
+source /opt/ros/humble/setup.bash
 uv run uvicorn app.main:app --reload --port 8000
 ```
 
-This starts the robot-side service that bridges ROS2 topics.
+_Note: This runs the robot backend server on port 8000. Ensure the port is free._
 
-### 2. Start Cloud Backend (Terminal 2)
-
-```bash
-cd ../im-cloud-backend
-uv run uvicorn app.main:app --reload --port 8100
-```
-
-This starts the cloud service for dataset management and training.
-
-### 3. Start Frontend Development Server (Terminal 3)
+### Step 3: Clone and Setup Frontend
 
 ```bash
-cd ../frontend
+git clone https://github.com/imitationmachines/im-operator-interface
+cd im-operator-interface
+npm install
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:8081`.
+This will start the frontend server on port **8081** by default.
+
+### Step 4: Access the Interface
+
+Open your browser and navigate to:
+[http://localhost:8081](http://localhost:8081)
 
 ## ⚙️ Configuration
 

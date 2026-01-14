@@ -76,7 +76,7 @@ export const CameraView = ({
     "relative flex items-center justify-center overflow-hidden bg-background",
     position === "main"
       ? "h-full w-full"
-      : " w-full rounded-2xl border border-gray-200 shadow-sm",
+      : " w-full rounded-2xl shadow-sm",
     position === "right" || position === "left" ? "h-[170px]" : "",
     position === "extra" ? "extra" : "",
     position === "main" ? "main" : "",

@@ -49,7 +49,7 @@ export const Header = ({
     [AppMode.RECORDING]: "text-red-500",
     [AppMode.TRAINING]: "text-emerald-500",
     [AppMode.REPLAY]: "text-blue-500",
-    [AppMode.POLICY_RUNNING]: "text-purple-500",
+    [AppMode.POLICY_RUNNING]: "text-primary",
   };
 
   const ThemeToggle = () => (

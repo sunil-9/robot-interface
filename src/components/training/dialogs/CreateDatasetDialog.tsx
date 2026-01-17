@@ -70,7 +70,7 @@ export const CreateDatasetDialog = ({
         <Button
           onClick={onSubmit}
           disabled={isCreating || !newDatasetName.trim()}
-          className="bg-purple-600 hover:bg-purple-700"
+          className="bg-primary hover:bg-primary/90"
         >
           {isCreating ? "Creating..." : "Create Dataset"}
         </Button>

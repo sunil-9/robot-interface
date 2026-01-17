@@ -36,13 +36,13 @@ const accentStyles: Record<
 > = {
   purple: {
     trigger:
-      "border-purple-300 text-purple-700 shadow-[0_10px_30px_rgba(168,85,247,0.18)] hover:border-purple-400 hover:bg-purple-50 hover:shadow-[0_12px_40px_rgba(168,85,247,0.25)] dark:border-purple-700 dark:text-purple-200 dark:hover:bg-purple-950/50 dark:shadow-[0_0_22px_rgba(168,85,247,0.35)]",
-    trainingIcon: "text-purple-600 dark:text-purple-300",
-    trainingStepsText: "text-purple-700 dark:text-purple-200",
+      "border-primary/30 text-primary shadow-[0_10px_30px_hsl(var(--primary)/0.18)] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_12px_40px_hsl(var(--primary)/0.25)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 dark:shadow-[0_0_22px_hsl(var(--primary)/0.35)]",
+    trainingIcon: "text-primary dark:text-primary",
+    trainingStepsText: "text-primary dark:text-primary",
     trainButton:
-      "bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:text-gray-950 dark:hover:bg-purple-400",
+      "bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/80",
     loadingBadge:
-      "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/40 dark:bg-purple-950/40 dark:text-purple-100",
+      "border-primary/20 bg-primary/5 text-primary dark:border-primary/40 dark:bg-primary/10 dark:text-primary",
   },
   emerald: {
     trigger:
@@ -73,8 +73,10 @@ interface EpisodeManagementSidebarProps {
   robotId?: string | null;
 }
 
-interface EpisodeManagementContentProps
-  extends Omit<EpisodeManagementSidebarProps, "isOpen" | "onOpenChange"> {
+interface EpisodeManagementContentProps extends Omit<
+  EpisodeManagementSidebarProps,
+  "isOpen" | "onOpenChange"
+> {
   isActive: boolean;
   className?: string;
 }
@@ -91,7 +93,7 @@ export const EpisodeManagementContent = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-  accentColor = "purple",
+  accentColor = "emerald",
   className,
   robotId,
 }: EpisodeManagementContentProps) => {
@@ -115,9 +117,8 @@ export const EpisodeManagementContent = ({
       setIsTrainingLoading(true);
       setTrainingError(null);
       try {
-        const result = await trainingApi.fetchTrainingJobStatus(
-          selectedDataset
-        );
+        const result =
+          await trainingApi.fetchTrainingJobStatus(selectedDataset);
         if (cancelled) {
           return;
         }
@@ -157,10 +158,10 @@ export const EpisodeManagementContent = ({
   const trainingStatusLabel = trainingJob
     ? "Running"
     : trainingError
-    ? "Error"
-    : isTrainingLoading
-    ? "Checking"
-    : "Not Running";
+      ? "Error"
+      : isTrainingLoading
+        ? "Checking"
+        : "Not Running";
 
   const trainingStatusDescription =
     trainingError ??
@@ -168,10 +169,10 @@ export const EpisodeManagementContent = ({
     (!selectedDataset
       ? "Select a dataset to check training status"
       : trainingJob
-      ? `Policy: ${trainingJob.policy_type || "N/A"} </br>• Mode: ${
-          trainingJob.mode || "N/A"
-        }`
-      : "No active training job");
+        ? `Policy: ${trainingJob.policy_type || "N/A"} </br>• Mode: ${
+            trainingJob.mode || "N/A"
+          }`
+        : "No active training job");
 
   const startedAtLabel =
     trainingJob?.started_at && trainingJob.started_at !== ""
@@ -208,7 +209,7 @@ export const EpisodeManagementContent = ({
       <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Brain className={cn("h-4 w-4", accent.trainingIcon)} />
+            <Brain className={cn("h-4 w-4",  accent.trainingIcon)} />
             <h3 className="font-medium text-sm text-foreground">
               Model Training
             </h3>

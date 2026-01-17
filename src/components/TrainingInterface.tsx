@@ -901,11 +901,9 @@ export const TrainingInterface = ({
         </div>
       </section>
 
-      <div className="pointer-events-none fixed bottom-4 left-1/2 z-40 -translate-x-1/2">
-        <HelpDialog className="pointer-events-auto h-10 rounded-full border-primary/40 px-6 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.22)]">
-          Help
-        </HelpDialog>
-      </div>
+      <HelpDialog className="h-10 rounded-t-2xl border-primary/40 px-6 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.22)]">
+        Help
+      </HelpDialog>
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

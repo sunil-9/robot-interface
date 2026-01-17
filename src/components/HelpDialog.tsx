@@ -1,23 +1,15 @@
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-// Commented out for future use - table-based control instructions
-// import {
-//   Table,
-//   TableBody,
-//   TableCell,
-//   TableHead,
-//   TableHeader,
-//   TableRow,
-// } from "@/components/ui/table";
-// import controlInstructions from "@/data/control-instructions.json";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Gamepad2, HelpCircle } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
 
@@ -27,9 +19,21 @@ interface HelpDialogProps {
 }
 
 export function HelpDialog({ className, children }: HelpDialogProps) {
+  const [imageError, setImageError] = useState(false);
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const robot = params.get("robot");
+  const controller = params.get("controller");
+  const helpImageSrc =
+    robot && controller
+      ? `/help/${encodeURIComponent(robot)}/${encodeURIComponent(
+          controller
+        )}.png`
+      : "/help/so_100_ps5_help.png";
+
   return (
-    <Dialog>
-      <DialogTrigger asChild>
+    <Sheet>
+      <SheetTrigger asChild>
         <Button
           variant="outline"
           size={children ? "default" : "icon"}
@@ -40,59 +44,38 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           />
           {children ? children : <span className="sr-only">Control Help</span>}
         </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+      </SheetTrigger>
+      <SheetContent
+        side="bottom"
+        className="w-[min(100%-2rem,900px)] mx-auto rounded-t-2xl border border-border bg-background px-6 pb-6 pt-4 shadow-2xl max-h-[80vh] sm:max-h-[75vh]"
+      >
+        <SheetHeader className="w-full text-left">
+          <SheetTitle className="flex items-center gap-2">
             <Gamepad2 className="h-6 w-6" />
-            SO-100 PS5 Controller Help
-          </DialogTitle>
-          <DialogDescription>
-            PS5 controller instructions for SO-100 robot arm
-          </DialogDescription>
-        </DialogHeader>
+            Controller Help
+          </SheetTitle>
+          <SheetDescription>
+            {robot && controller
+              ? `${robot} ${controller} controls`
+              : "Controller instructions"}
+          </SheetDescription>
+        </SheetHeader>
 
-        <div className="mt-4">
-          <img
-            src="/help/so_100_ps5_help.png"
-            alt="SO-100 PS5 Controller Instructions"
-            className="w-full h-auto rounded-lg"
-          />
-        </div>
-
-        {/* Commented out for future use - table-based control instructions */}
-        {/* <div className="space-y-6 mt-4">
-          {controlInstructions.controls.map((category, index) => (
-            <div key={index} className="space-y-2">
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">
-                {category.category}
-              </h3>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">Input</TableHead>
-                      <TableHead>Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {category.items.map((item, itemIndex) => (
-                      <TableRow key={itemIndex}>
-                        <TableCell className="font-medium">
-                          <span className="inline-flex items-center justify-center rounded-md bg-muted px-2 py-1 text-xs font-medium ring-1 ring-inset ring-gray-500/10">
-                            {item.input}
-                          </span>
-                        </TableCell>
-                        <TableCell>{item.action}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+        <div className="mt-4 w-full">
+          {imageError ? (
+            <div className="flex h-48 w-full items-center justify-center rounded-lg border border-border bg-muted">
+              <p className="text-muted-foreground">No help found</p>
             </div>
-          ))}
-        </div> */}
-      </DialogContent>
-    </Dialog>
+          ) : (
+            <img
+              src={helpImageSrc}
+              alt="Controller instructions"
+              className="h-auto max-h-[55vh] w-full rounded-lg border border-border object-contain"
+              onError={() => setImageError(true)}
+            />
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

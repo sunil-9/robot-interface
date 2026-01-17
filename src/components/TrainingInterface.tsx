@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
+import { HelpDialog } from "./HelpDialog";
 import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
 import { SidebarTabs } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
@@ -899,6 +900,12 @@ export const TrainingInterface = ({
           </div>
         </div>
       </section>
+
+      <div className="pointer-events-none fixed bottom-4 left-1/2 z-40 -translate-x-1/2">
+        <HelpDialog className="pointer-events-auto h-10 rounded-full border-primary/40 px-6 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.22)]">
+          Help
+        </HelpDialog>
+      </div>
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

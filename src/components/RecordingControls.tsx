@@ -1,6 +1,5 @@
 import { Play, Rocket, RotateCcw, Square } from "lucide-react";
 
-import { HelpDialog } from "./HelpDialog";
 import { Button } from "./ui/button";
 
 export enum RecordingControlStyle {
@@ -97,13 +96,6 @@ export const RecordingControls = ({
           <Rocket className={`${iconMargin} ${iconSize}`} />
           {isDeploying ? "Stop Deploy" : "Deploy"}
         </Button>
-        <HelpDialog
-          className={`border-primary/40 ${textSize} ${
-            isCompact ? " gap-0 px-1 h-6 rounded-sm" : "rounded-full"
-          }`}
-        >
-          Help
-        </HelpDialog>
         {children}
       </div>
     </div>

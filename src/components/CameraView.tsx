@@ -10,7 +10,7 @@ interface CameraViewProps {
   isConnected?: boolean;
   showTitle?: boolean;
   className?: string;
-  position?: "main" | "right" | "left" | "extra";
+  position: "main" | "right" | "left" | "extra";
 }
 
 export const CameraView = ({

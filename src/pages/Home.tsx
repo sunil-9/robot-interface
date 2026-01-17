@@ -42,7 +42,6 @@ export default function Home() {
     refreshRobots,
     lastUpdated,
   } = useRobots(selectedRobot || "");
-  
 
   const handleStartSession = () => {
     if (selectedRobot && selectedControl) {
@@ -173,7 +172,7 @@ export default function Home() {
                     )}
 
                     {robotsError && (
-                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive-foreground">
+                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive">
                         <p className="text-sm font-medium">
                           Error loading robots
                         </p>
@@ -181,7 +180,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 text-xs h-7 bg-transparent border-destructive text-destructive-foreground hover:bg-destructive/10"
+                          className="mt-2 text-xs h-7 bg-transparent border-destructive text-destructive hover:bg-destructive/20"
                           onClick={() => refreshRobots()}
                         >
                           <RefreshCcw className="h-3 w-3 mr-1" /> Try Again
@@ -233,7 +232,7 @@ export default function Home() {
                     ) : loadingDevices ? (
                       <ControlDeviceSkeleton count={3} />
                     ) : deviceError ? (
-                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive-foreground">
+                      <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive">
                         <p className="text-sm font-medium">
                           Error loading control devices
                         </p>
@@ -241,7 +240,7 @@ export default function Home() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mt-2 text-xs h-7 bg-transparent border-destructive text-destructive-foreground hover:bg-destructive/10"
+                          className="mt-2 text-xs h-7 bg-transparent border-destructive text-destructive hover:bg-destructive/20"
                           onClick={() => refreshRobots()}
                         >
                           <RefreshCcw className="h-3 w-3 mr-1" /> Try Again

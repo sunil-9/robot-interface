@@ -335,7 +335,7 @@ export const TrainingInterface = ({
             fallbackImage={fallbackImageForPosition(
               slot.position === "extra" ? fallbackPosition : slot.position
             )}
-            position={slot.position}
+            position={slot.position ?? "extra"}
             isConnected={Boolean(slot.stream)}
             className="h-[170px] rounded-2xl border border-border bg-card/80 shadow-sm"
           />
@@ -825,7 +825,7 @@ export const TrainingInterface = ({
               fallbackImage={fallbackImageForPosition(
                 mainSlot?.position ?? "main"
               )}
-              position={mainSlot?.position ?? null}
+              position={mainSlot?.position ?? "main"}
               isConnected={Boolean(mainSlot?.stream)}
               showTitle={true}
               className="h-full rounded-[32px] border-none bg-transparent"

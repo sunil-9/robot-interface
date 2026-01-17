@@ -9,16 +9,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  CheckCircle2,
-  Info,
-  Link as LinkIcon,
-  Play,
-  RefreshCcw,
-} from "lucide-react";
+import { CheckCircle2, Info, Play, RefreshCcw } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import { Header } from "@/components/Header";
 import InlineSvg from "@/components/InlineSvg";
 import {
   ControlDeviceSkeleton,
@@ -27,9 +22,8 @@ import {
   RobotSkeleton,
 } from "@/components/RobotSkeleton";
 import { useRobots } from "@/hooks/useRobots";
-import { AppRobot } from "@/types/robot";
-import { Header } from "@/components/Header";
 import { cn } from "@/lib/utils";
+import { AppRobot } from "@/types/robot";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -47,7 +41,8 @@ export default function Home() {
     deviceError,
     refreshRobots,
     lastUpdated,
-  } = useRobots();
+  } = useRobots(selectedRobot || "");
+  
 
   const handleStartSession = () => {
     if (selectedRobot && selectedControl) {
@@ -93,7 +88,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       {/* Header */}
-      <Header page={"main"}/>
+      <Header page={"main"} />
 
       {/* Main content */}
       <main className="flex-grow container mx-auto p-4 md:p-8">
@@ -102,7 +97,9 @@ export default function Home() {
           <div className="lg:col-span-1">
             <Card className="bg-card border-border shadow-lg h-full">
               <CardHeader>
-                <CardTitle className="text-xl text-foreground">Select Robot</CardTitle>
+                <CardTitle className="text-xl text-foreground">
+                  Select Robot
+                </CardTitle>
                 <CardDescription className="flex items-center justify-between text-muted-foreground">
                   <span>Choose a robot to work with</span>
                   <Button
@@ -207,7 +204,9 @@ export default function Home() {
           <div className="lg:col-span-1">
             <Card className="bg-card border-border shadow-lg h-full">
               <CardHeader>
-                <CardTitle className="text-xl text-foreground">Select Control Device</CardTitle>
+                <CardTitle className="text-xl text-foreground">
+                  Select Control Device
+                </CardTitle>
                 <CardDescription className="flex items-center justify-between text-muted-foreground">
                   <span>Choose how you want to control the robot</span>
                   <Button
@@ -224,7 +223,14 @@ export default function Home() {
               <CardContent>
                 <ScrollArea className="h-[400px] pr-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-3">
-                    {loadingDevices ? (
+                    {!selectedRobot ? (
+                      <div className="p-4 rounded-lg bg-muted/10 border border-border text-muted-foreground">
+                        <p className="text-sm font-medium">
+                          Please select a robot to view available control
+                          devices.
+                        </p>
+                      </div>
+                    ) : loadingDevices ? (
                       <ControlDeviceSkeleton count={3} />
                     ) : deviceError ? (
                       <div className="p-4 rounded-lg bg-destructive/10 border border-destructive text-destructive-foreground">
@@ -327,7 +333,9 @@ export default function Home() {
           <div className="lg:col-span-1">
             <Card className="bg-card border-border shadow-lg h-full">
               <CardHeader>
-                <CardTitle className="text-xl text-foreground">Session Details</CardTitle>
+                <CardTitle className="text-xl text-foreground">
+                  Session Details
+                </CardTitle>
                 <CardDescription className="text-muted-foreground">
                   Configure and start your session
                 </CardDescription>
@@ -372,7 +380,9 @@ export default function Home() {
                             getSelectedRobotData()?.specifications || {}
                           ).map(([key, value]) => (
                             <div key={key} className="text-xs">
-                              <span className="text-muted-foreground">{key}: </span>
+                              <span className="text-muted-foreground">
+                                {key}:{" "}
+                              </span>
                               <span className="text-foreground">
                                 {Array.isArray(value)
                                   ? value.join(", ")
@@ -425,8 +435,6 @@ export default function Home() {
                         </div>
                       </div>
                     )}
-
-                   
                   </div>
                 ) : (
                   <div className="h-[400px] flex items-center justify-center text-center">

@@ -64,10 +64,13 @@ export const robotService = {
    * Fetch available operator devices from the API
    * @returns Promise with available operator devices
    */
-  async fetchOperatorDevices(): Promise<ControlDevice[]> {
+  async fetchOperatorDevices(robotId: string): Promise<ControlDevice[]> {
     try {
+      if (!robotId) {
+        throw new Error("Robot ID is required to fetch operator devices");
+      }
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.OPERATOR_DEVICES}`,
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.OPERATOR_DEVICES}/${robotId}`,
         {
           method: "GET",
           headers: {

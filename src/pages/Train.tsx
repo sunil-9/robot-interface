@@ -31,11 +31,11 @@ export default function TrainPage() {
   })();
 
   // Prioritize URL params over session storage for better user experience
-  const selectedRobot = params.get("robot") || sessionData?.robot || null;
-  const selectedControl =
+  const selectedRobot: string | null = params.get("robot") || sessionData?.robot || null;
+  const selectedControl: string | null =
     params.get("controller") || sessionData?.controller || null;
 
-  const session = useWebRTCSession(selectedRobot);
+  const session = useWebRTCSession({robotId: selectedRobot || "unknown", controllerId: selectedControl || "unknown"});
 
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
@@ -250,8 +250,8 @@ export default function TrainPage() {
       {/* Transparent overlay header */}
       <Header
         page={"train"}
-        selectedRobot={selectedRobot}
-        selectedControl={selectedControl}
+        selectedRobot={selectedRobot||"unknown"}
+        selectedControl={selectedControl||"unknown"}
       />
 
       {/* Main content takes full height */}

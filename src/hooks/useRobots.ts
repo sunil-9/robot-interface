@@ -2,7 +2,7 @@ import { robotService } from "@/services/robotService";
 import { AppRobot, ControlDevice, Robot } from "@/types/robot";
 import { useEffect, useState } from "react";
 
-export function useRobots() {
+export function useRobots(robotId: string) {
   const [robots, setRobots] = useState<AppRobot[]>([]);
   const [robotPresence, setRobotPresence] = useState<Robot[]>([]);
   const [controlDevices, setControlDevices] = useState<ControlDevice[]>([]);
@@ -32,12 +32,12 @@ export function useRobots() {
   };
 
   // Fetch operator devices from the API
-  const fetchControlDevices = async () => {
+  const fetchControlDevices = async (robotId: string) => {
     try {
       setLoadingDevices(true);
       setDeviceError(null);
 
-      const fetchedDevices = await robotService.fetchOperatorDevices();
+      const fetchedDevices = await robotService.fetchOperatorDevices(robotId);
       setControlDevices(fetchedDevices);
     } catch (err) {
       console.error("Error fetching control devices:", err);
@@ -54,18 +54,18 @@ export function useRobots() {
   // Refresh data
   const refreshData = () => {
     fetchRobots();
-    fetchControlDevices();
+    fetchControlDevices(robotId);
   };
 
   useEffect(() => {
     // Initial fetch for both robots and control devices
     fetchRobots();
-    fetchControlDevices();
+    fetchControlDevices(robotId);
 
     // Set up a refresh interval (every 30 seconds)
     const intervalId = setInterval(() => {
       fetchRobots();
-      fetchControlDevices();
+      fetchControlDevices(robotId);
     }, 30000);
 
     return () => {

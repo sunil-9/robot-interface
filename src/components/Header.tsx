@@ -7,8 +7,8 @@ import { Button } from "./ui/button";
 
 interface HeaderProps {
   page: string;
-  selectedRobot?: boolean;
-  selectedControl?: boolean;
+  selectedRobot?: string;
+  selectedControl?: string;
 }
 export const Header = ({
   page,

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { fetchRobotCameras, fetchSignalingConfig, type RobotCameraConfig } from "@/lib/api";
+import {
+  fetchRobotCameras,
+  fetchSignalingConfig,
+  type RobotCameraConfig,
+} from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
 
 type TelemetryListener = (message: unknown) => void;
@@ -132,7 +136,13 @@ export interface WebRTCSession {
   sendControl: (payload: unknown) => boolean;
 }
 
-export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
+export const useWebRTCSession = ({
+  robotId,
+  controllerId,
+}: {
+  robotId: string;
+  controllerId: string;
+}): WebRTCSession => {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const remotePeerIdRef = useRef<string | null>(null);
@@ -145,14 +155,18 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
   const reconnectTimerRef = useRef<number | null>(null);
   const joinedRef = useRef(false);
 
-  const [connectionState, setConnectionState] =
-    useState<RTCPeerConnectionState | "new">("new");
-  const [signalingState, setSignalingState] =
-    useState<RTCSignalingState | "new">("new");
+  const [connectionState, setConnectionState] = useState<
+    RTCPeerConnectionState | "new"
+  >("new");
+  const [signalingState, setSignalingState] = useState<
+    RTCSignalingState | "new"
+  >("new");
   const [signalingConnected, setSignalingConnected] = useState(false);
   const [telemetryOpen, setTelemetryOpen] = useState(false);
   const [remoteStreams, setRemoteStreams] = useState<RemoteStreamEntry[]>([]);
-  const [cameraInfos, setCameraInfos] = useState<RobotCameraConfig[] | null>(null);
+  const [cameraInfos, setCameraInfos] = useState<RobotCameraConfig[] | null>(
+    null
+  );
   const [lastError, setLastError] = useState<string | null>(null);
 
   // Discover which signaling server URL to use before establishing a session.
@@ -518,14 +532,17 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
           offerToReceiveVideo: true,
         });
         await pc.setLocalDescription(offer);
-        await sendSignalingMessage({
+        const offerPayload: Record<string, unknown> = {
           type: "offer",
           target_id: target,
+          control_mode: robotId + "with" + controllerId,
           sdp: {
             type: offer.type,
             sdp: offer.sdp ?? "",
           },
-        });
+        };
+
+        await sendSignalingMessage(offerPayload);
       } catch (error) {
         if (!cancelled) {
           console.error("Failed to create/send offer:", error);
@@ -536,10 +553,12 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
       }
     };
 
-  const handleSignalingMessage = async (message: Record<string, unknown>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleSignalingMessage = async (message: Record<string, any>) => {
       switch (message.type) {
         case "join-ack": {
-          const peerRoles = (message.peer_roles as Record<string, string>) ?? {};
+          const peerRoles =
+            (message.peer_roles as Record<string, string>) ?? {};
           const robotEntry = Object.entries(peerRoles).find(
             ([, role]) => role === "robot"
           );
@@ -682,7 +701,10 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
           } else if (event.data instanceof ArrayBuffer) {
             rawData = new TextDecoder().decode(event.data);
           } else {
-            console.warn("Unsupported signaling payload type:", typeof event.data);
+            console.warn(
+              "Unsupported signaling payload type:",
+              typeof event.data
+            );
             return;
           }
 
@@ -700,7 +722,9 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
 
           if (message.type === "error") {
             setLastError(
-              message.detail ?? message.message ?? "Signaling server reported an error."
+              (message.detail as string) ??
+                (message.message as string) ??
+                "Signaling server reported an error."
             );
             return;
           }
@@ -729,7 +753,10 @@ export const useWebRTCSession = (robotId: string | null): WebRTCSession => {
             reconnectTimerRef.current = null;
           }
           if (joinedRef.current && event.wasClean) {
-            console.info("Signaling websocket closed:", event.reason || "normal closure");
+            console.info(
+              "Signaling websocket closed:",
+              event.reason || "normal closure"
+            );
           }
           joinedRef.current = false;
           remotePeerIdRef.current = null;

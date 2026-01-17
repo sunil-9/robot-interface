@@ -109,14 +109,14 @@ type GamepadSnapshot = {
 };
 
 const WebRTCDebugPage = () => {
+  const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
   const {
     robotPresence: robotPresenceList,
     loading: isLoading,
     error: robotsError,
     refreshRobots,
-  } = useRobots();
+  } = useRobots(selectedRobot || "");
   const robots = robotPresenceList ?? EMPTY_ROBOT_LIST;
-  const [selectedRobot, setSelectedRobot] = useState<string | null>(null);
   const [commandPayload, setCommandPayload] = useState<string>(
     '{"type":"command","data":{}}'
   );
@@ -128,7 +128,7 @@ const WebRTCDebugPage = () => {
     []
   );
 
-  const session = useWebRTCSession(selectedRobot);
+  const session = useWebRTCSession({robotId: selectedRobot || undefined,controllerId:undefined,});
   const videoTiles = useMemo(() => {
     const matched =
       session.expectedCameras.length > 0

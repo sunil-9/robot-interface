@@ -22,7 +22,7 @@ import { Slider } from "@/components/ui/slider";
 import { DatasetSelector } from "./DatasetSelector";
 import { EpisodeList } from "./EpisodeList";
 
-type AccentColor = "purple" | "emerald";
+type AccentColor = "primary" | "accent";
 
 const accentStyles: Record<
   AccentColor,
@@ -34,7 +34,7 @@ const accentStyles: Record<
     loadingBadge: string;
   }
 > = {
-  purple: {
+  primary: {
     trigger:
       "border-primary/30 text-primary shadow-[0_10px_30px_hsl(var(--primary)/0.18)] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_12px_40px_hsl(var(--primary)/0.25)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 dark:shadow-[0_0_22px_hsl(var(--primary)/0.35)]",
     trainingIcon: "text-primary dark:text-primary",
@@ -44,15 +44,15 @@ const accentStyles: Record<
     loadingBadge:
       "border-primary/20 bg-primary/5 text-primary dark:border-primary/40 dark:bg-primary/10 dark:text-primary",
   },
-  emerald: {
+  accent: {
     trigger:
-      "border-emerald-300 text-emerald-700 shadow-[0_10px_30px_rgba(16,185,129,0.18)] hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-[0_12px_40px_rgba(16,185,129,0.25)] dark:border-emerald-700 dark:text-emerald-200 dark:hover:bg-emerald-950/40 dark:shadow-[0_0_22px_rgba(16,185,129,0.35)]",
-    trainingIcon: "text-emerald-600 dark:text-emerald-300",
-    trainingStepsText: "text-emerald-700 dark:text-emerald-200",
+      "border-accent/50 text-accent-foreground shadow-[0_10px_30px_hsl(var(--accent)/0.18)] hover:border-accent/70 hover:bg-accent/10 hover:shadow-[0_12px_40px_hsl(var(--accent)/0.25)] dark:border-accent/40 dark:text-accent-foreground dark:hover:bg-accent/20 dark:shadow-[0_0_22px_hsl(var(--accent)/0.35)]",
+    trainingIcon: "text-accent-foreground dark:text-accent",
+    trainingStepsText: "text-accent-foreground dark:text-accent",
     trainButton:
-      "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-gray-950 dark:hover:bg-emerald-400",
+      "bg-accent text-accent-foreground hover:bg-accent/90 dark:bg-accent dark:text-accent-foreground dark:hover:bg-accent/80",
     loadingBadge:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100",
+      "border-accent/30 bg-accent/10 text-accent-foreground dark:border-accent/40 dark:bg-accent/20 dark:text-accent",
   },
 };
 
@@ -93,7 +93,7 @@ export const EpisodeManagementContent = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-  accentColor = "emerald",
+  accentColor = "accent",
   className,
   robotId,
 }: EpisodeManagementContentProps) => {
@@ -209,7 +209,7 @@ export const EpisodeManagementContent = ({
       <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
-            <Brain className={cn("h-4 w-4",  accent.trainingIcon)} />
+            <Brain className={cn("h-4 w-4", accent.trainingIcon)} />
             <h3 className="font-medium text-sm text-foreground">
               Model Training
             </h3>
@@ -314,7 +314,7 @@ export const EpisodeManagementSidebar = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-  accentColor = "purple",
+  accentColor = "primary",
   robotId,
 }: EpisodeManagementSidebarProps) => {
   const accent = accentStyles[accentColor];

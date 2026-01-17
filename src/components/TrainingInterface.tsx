@@ -609,8 +609,8 @@ export const TrainingInterface = ({
         typeof deployPayload.datasetId === "string"
           ? deployPayload.datasetId
           : typeof deployPayload.dataset_id === "string"
-          ? deployPayload.dataset_id
-          : null;
+            ? deployPayload.dataset_id
+            : null;
 
       const resolvedDataset =
         datasetId ??

@@ -9,6 +9,7 @@ All colors MUST be HSL.
 @layer base {
   :root {
     /* Light (default) robotics theme */
+    /* Brand Colors: #E63946 (Orange/Red), #A8DADC (Gray/Teal) */
     --background: 210 20% 98%;
     --foreground: 222 22% 15%;
 
@@ -18,39 +19,47 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222 22% 15%;
 
-    --primary: 263 76% 60%;
+    --primary: 355 78% 56%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 218 18% 92%;
+    --secondary: 182 42% 92%;
     --secondary-foreground: 222 22% 20%;
 
-    --muted: 220 16% 92%;
+    --muted: 182 25% 90%;
     --muted-foreground: 222 8% 38%;
 
-    --accent: 161 72% 38%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 182 42% 76%;
+    --accent-foreground: 222 22% 15%;
 
-    --destructive: 0 72% 55%;
+    --destructive: 355 78% 56%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 18% 86%;
-    --input: 220 18% 86%;
-    --ring: 263 76% 60%;
+    --border: 182 30% 82%;
+    --input: 182 30% 82%;
+    --ring: 355 78% 56%;
 
     /* Custom design tokens */
-    --camera-bg: 210 20% 97%;
-    --chart-bg: 210 20% 97%;
+    --camera-bg: 182 20% 96%;
+    --chart-bg: 182 20% 96%;
     --sidebar-collapsed: 56px;
     --header-height: 64px;
-    
+
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(263 76% 60%), hsl(263 70% 52%));
-    --gradient-subtle: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 20% 96%));
-    
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(355 78% 56%),
+      hsl(355 78% 48%)
+    );
+    --gradient-subtle: linear-gradient(
+      180deg,
+      hsl(0 0% 100%),
+      hsl(182 20% 96%)
+    );
+
     /* Shadows */
-    --shadow-glow: 0 0 25px hsl(263 76% 60% / 0.35);
-    --shadow-card: 0 10px 30px hsl(220 20% 65% / 0.25);
-    
+    --shadow-glow: 0 0 25px hsl(355 78% 56% / 0.35);
+    --shadow-card: 0 10px 30px hsl(182 30% 50% / 0.2);
+
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
@@ -58,16 +67,17 @@ All colors MUST be HSL.
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 222 22% 18%;
-    --sidebar-primary: 263 76% 60%;
+    --sidebar-primary: 355 78% 56%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 218 18% 94%;
+    --sidebar-accent: 182 42% 92%;
     --sidebar-accent-foreground: 222 22% 18%;
-    --sidebar-border: 220 18% 86%;
-    --sidebar-ring: 263 76% 60%;
+    --sidebar-border: 182 30% 82%;
+    --sidebar-ring: 355 78% 56%;
   }
 
   .dark {
     /* Dark robotics theme */
+    /* Brand Colors: #E63946 (Orange/Red), #A8DADC (Gray/Teal) */
     --background: 222 15% 10%;
     --foreground: 210 25% 95%;
 
@@ -77,36 +87,44 @@ All colors MUST be HSL.
     --popover: 222 15% 13%;
     --popover-foreground: 210 25% 95%;
 
-    --primary: 263 76% 65%;
+    --primary: 355 78% 60%;
     --primary-foreground: 0 0% 98%;
 
-    --secondary: 222 10% 20%;
-    --secondary-foreground: 210 20% 90%;
+    --secondary: 182 30% 20%;
+    --secondary-foreground: 182 42% 85%;
 
     --muted: 222 12% 24%;
-    --muted-foreground: 210 15% 70%;
+    --muted-foreground: 182 30% 70%;
 
-    --accent: 161 72% 45%;
+    --accent: 182 42% 50%;
     --accent-foreground: 222 15% 10%;
 
-    --destructive: 0 72% 60%;
+    --destructive: 355 78% 60%;
     --destructive-foreground: 210 25% 95%;
 
-    --border: 222 12% 24%;
-    --input: 222 12% 24%;
-    --ring: 263 76% 65%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 210 20% 90%;
-    --sidebar-primary: 263 76% 65%;
+    --border: 182 20% 24%;
+    --input: 182 20% 24%;
+    --ring: 355 78% 60%;
+    --sidebar-background: 222 15% 8%;
+    --sidebar-foreground: 182 30% 90%;
+    --sidebar-primary: 355 78% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 12% 20%;
+    --sidebar-accent: 182 30% 18%;
     --sidebar-accent-foreground: 210 25% 95%;
-    --sidebar-border: 222 12% 24%;
-    --sidebar-ring: 263 76% 65%;
+    --sidebar-border: 182 20% 24%;
+    --sidebar-ring: 355 78% 60%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(263 76% 65%), hsl(263 70% 55%));
-    --gradient-subtle: linear-gradient(180deg, hsl(222 15% 12%), hsl(222 15% 9%));
-    --shadow-glow: 0 0 25px hsl(263 76% 65% / 0.35);
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(355 78% 60%),
+      hsl(355 78% 50%)
+    );
+    --gradient-subtle: linear-gradient(
+      180deg,
+      hsl(222 15% 12%),
+      hsl(222 15% 9%)
+    );
+    --shadow-glow: 0 0 25px hsl(355 78% 60% / 0.35);
     --shadow-card: 0 10px 30px hsl(222 50% 5% / 0.35);
   }
 }

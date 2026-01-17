@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Gamepad2, HelpCircle, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Gamepad2, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -72,9 +72,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
               <Gamepad2 className="h-5 w-5 text-primary" />
               <span className="font-semibold">Controller Help</span>
               <span className="text-xs text-muted-foreground">
-                {robot && controller
-                  ? `${robot} • ${controller}`
-                  : "Controls"}
+                {robot && controller ? `${robot} • ${controller}` : "Controls"}
               </span>
             </div>
             <Button

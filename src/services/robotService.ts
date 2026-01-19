@@ -151,32 +151,14 @@ function mapApiRobotToAppRobot(robot: Robot): AppRobot {
  */
 function mapApiDeviceToControlDevice(device: ApiOperatorDevice): ControlDevice {
   // Generate a unique ID based on the device name
-  const deviceId =
-    device.type + device.name.toLowerCase().replace(/\s+/g, "-");
-
-  // Map device type to description
-  const descriptions: Record<string, string> = {
-    gamepad: "Game controller for precise robot operation",
-    input: "Standard computer input device",
-    industrial: "Professional industrial control device",
-  };
+  const deviceId =device.name.toLowerCase().replace(/\s+/g, "-");
 
   // Get description based on type or use a default
-  const description =
-    descriptions[device.type] || `${device.type} control device`;
-
-  // Fallback image map if SVG is not available
-  const imageMap: Record<string, string> = {
-    gamepad: "/controls/joystick.png",
-    input: "/controls/keyboard.png",
-    industrial: "/controls/smartpad.png",
-  };
-
+  const description =device.description 
   return {
     id: deviceId,
     name: device.name,
     description: description,
-    image: imageMap[device.type] || undefined,
-    svgContent: device.image_svg, // Pass through the SVG content for inline rendering
+    image: device.image,
   };
 }

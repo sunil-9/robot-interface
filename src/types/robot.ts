@@ -32,8 +32,8 @@ export interface AppRobot {
 // API operator device interface
 export interface ApiOperatorDevice {
   name: string;
-  type: string;
-  image_svg?: string;
+  description: string;
+  image?: string;
 }
 
 export interface OperatorDevicesResponse {

@@ -42,7 +42,7 @@ export function useRobots(robotId: string) {
     } catch (err) {
       console.error("Error fetching control devices:", err);
       setDeviceError(
-        err instanceof Error ? err.message : "Failed to fetch control devices"
+        err instanceof Error ? err.message : "Failed to fetch control devices",
       );
       // Fallback to empty array if fetch fails
       setControlDevices([]);
@@ -53,25 +53,44 @@ export function useRobots(robotId: string) {
 
   // Refresh data
   const refreshData = () => {
+    console.log("refreshing data");
     fetchRobots();
     fetchControlDevices(robotId);
   };
 
+  // Initial fetch for robots only (runs once)
   useEffect(() => {
-    // Initial fetch for both robots and control devices
     fetchRobots();
-    fetchControlDevices(robotId);
 
-    // Set up a refresh interval (every 30 seconds)
+    // Set up a refresh interval for robots (every 30 seconds)
     const intervalId = setInterval(() => {
       fetchRobots();
-      fetchControlDevices(robotId);
     }, 30000);
 
     return () => {
       clearInterval(intervalId);
     };
   }, []);
+
+  // Fetch control devices when robotId changes
+  useEffect(() => {
+    if (robotId) {
+      fetchControlDevices(robotId);
+
+      // Set up a refresh interval for control devices (every 30 seconds)
+      const intervalId = setInterval(() => {
+        fetchControlDevices(robotId);
+      }, 30000);
+
+      return () => {
+        clearInterval(intervalId);
+      };
+    } else {
+      // Clear control devices when no robot is selected
+      setControlDevices([]);
+      setLoadingDevices(false);
+    }
+  }, [robotId]);
 
   return {
     robots,

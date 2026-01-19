@@ -70,7 +70,7 @@ export const robotService = {
         throw new Error("Robot ID is required to fetch operator devices");
       }
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.OPERATOR_DEVICES}/${robotId}`,
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOT_CONFIGS}/${robotId}/${API_CONFIG.ENDPOINTS.OPERATOR_DEVICES}`,
         {
           method: "GET",
           headers: {

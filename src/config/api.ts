@@ -10,7 +10,7 @@ export const API_CONFIG = {
   // API endpoints
   ENDPOINTS: {
     ROBOTS: "/robots/",
-    OPERATOR_DEVICES: "/robots/operator_device",
+    OPERATOR_DEVICES: "operator_device",
     SIGNALING_CONFIG: "/config/signaling",
     WEBRTC_BASE: "/api/webrtc",
     WEBRTC_TEST: "/api/webrtc/test",
@@ -19,6 +19,7 @@ export const API_CONFIG = {
     WEBRTC_HEALTH: "/api/webrtc/health",
     DATASETS: "/datasets",
     TRAINING: "/training",
+    ROBOT_CONFIGS: "/robot-configs",
   },
 
   // Timeout configurations (in milliseconds)

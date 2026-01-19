@@ -121,7 +121,10 @@ export default function Home() {
                       robots.map((robot) => (
                         <div
                           key={robot.id}
-                          onClick={() => setSelectedRobot(robot.id)}
+                          onClick={() => {
+                            setSelectedRobot(robot.id);
+                            setSelectedControl(null); 
+                          }}
                           className={cn(
                             "relative cursor-pointer rounded-lg border p-4 transition-all",
                             selectedRobot === robot.id

@@ -92,7 +92,6 @@ const inferFromApiBase = (path: string): string => {
   } catch (error) {
     console.warn("Failed to infer WebSocket URL from apiBaseUrl:", error);
     const fallbacks = [
-      import.meta.env.VITE_LOCAL_CLOUD_API_BASE_URL as string | undefined,
       import.meta.env.VITE_CLOUD_API_BASE_URL as string | undefined,
     ].filter(Boolean) as string[];
 

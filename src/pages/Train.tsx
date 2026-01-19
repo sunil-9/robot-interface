@@ -66,7 +66,6 @@ export default function TrainPage() {
       const candidates = [
         cloudConfig.apiBaseUrl,
         import.meta.env.VITE_CLOUD_API_BASE_URL as string | undefined,
-        import.meta.env.VITE_LOCAL_CLOUD_API_BASE_URL as string | undefined,
       ];
 
       for (const candidate of candidates) {

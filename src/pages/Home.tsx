@@ -123,13 +123,13 @@ export default function Home() {
                           key={robot.id}
                           onClick={() => {
                             setSelectedRobot(robot.id);
-                            setSelectedControl(null); 
+                            setSelectedControl(null);
                           }}
                           className={cn(
                             "relative cursor-pointer rounded-lg border p-4 transition-all",
                             selectedRobot === robot.id
                               ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                              : "border-border bg-muted/60 hover:border-primary/40"
+                              : "border-border bg-muted/60 hover:border-primary/40",
                           )}
                         >
                           <div className="flex items-center">
@@ -258,7 +258,7 @@ export default function Home() {
                             "relative cursor-pointer rounded-lg border p-4 transition-all",
                             selectedControl === device.id
                               ? "border-primary bg-primary/10 ring-2 ring-primary/30"
-                              : "border-border bg-muted/60 hover:border-primary/40"
+                              : "border-border bg-muted/60 hover:border-primary/40",
                           )}
                         >
                           <div className="flex items-center">
@@ -303,7 +303,7 @@ export default function Home() {
                               )}
                             </div>
                             <div className="ml-3">
-                              <h3 className="font-medium">{device.name}</h3>
+                              <h3 className="font-medium">{device.name} </h3>
                               <p className="text-xs text-muted-foreground line-clamp-1">
                                 {device.description}
                               </p>
@@ -372,14 +372,14 @@ export default function Home() {
                                 >
                                   {cap}
                                 </Badge>
-                              )
+                              ),
                             )}
                           </div>
                         </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-2">
                           {Object.entries(
-                            getSelectedRobotData()?.specifications || {}
+                            getSelectedRobotData()?.specifications || {},
                           ).map(([key, value]) => (
                             <div key={key} className="text-xs">
                               <span className="text-muted-foreground">

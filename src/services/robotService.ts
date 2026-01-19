@@ -152,7 +152,7 @@ function mapApiRobotToAppRobot(robot: Robot): AppRobot {
 function mapApiDeviceToControlDevice(device: ApiOperatorDevice): ControlDevice {
   // Generate a unique ID based on the device name
   const deviceId =
-    device.type + "-" + device.name.toLowerCase().replace(/\s+/g, "-");
+    device.type + device.name.toLowerCase().replace(/\s+/g, "-");
 
   // Map device type to description
   const descriptions: Record<string, string> = {

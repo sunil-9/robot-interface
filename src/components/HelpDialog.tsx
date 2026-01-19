@@ -22,7 +22,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
       ? `/help/${encodeURIComponent(robot)}/${encodeURIComponent(
           controller
         )}.png`
-      : "/help/so_100_ps5_help.png";
+      : "/help/default.png";
 
   return (
     <div className="fixed bottom-0 left-1/2 z-50 -translate-x-1/2">

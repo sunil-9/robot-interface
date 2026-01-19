@@ -893,7 +893,7 @@ export const TrainingInterface = ({
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
                 onPromptDeleteEpisode: promptDeleteEpisode,
-                accentColor: "emerald",
+                accentColor: "accent",
                 robotId,
               }}
             />

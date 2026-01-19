@@ -44,11 +44,11 @@ export const TrainingInterface = ({
   // Initialize sidebarTab from URL params, default to "secondary"
   const params = useMemo(
     () => new URLSearchParams(location.search),
-    [location.search]
+    [location.search],
   );
   const tabFromUrl = params.get("tab") as "secondary" | "episodes" | null;
   const [sidebarTab, setSidebarTab] = useState<"secondary" | "episodes">(
-    tabFromUrl || "secondary"
+    tabFromUrl || "secondary",
   );
 
   const [cameraConfigs, setCameraConfigs] = useState<RobotCameraConfig[]>([]);
@@ -95,7 +95,7 @@ export const TrainingInterface = ({
         replace: true,
       });
     },
-    [location.pathname, location.search, navigate]
+    [location.pathname, location.search, navigate],
   );
 
   // Update sidebarTab if URL param changes (on page refresh or navigation)
@@ -136,7 +136,7 @@ export const TrainingInterface = ({
         }
         setCameraConfigs(configs);
         setCameraError(
-          configs.length === 0 ? "No cameras configured for this robot." : null
+          configs.length === 0 ? "No cameras configured for this robot." : null,
         );
       } catch (error) {
         if (cancelled) {
@@ -146,7 +146,7 @@ export const TrainingInterface = ({
         setCameraError(
           error instanceof Error
             ? error.message
-            : "Failed to load camera configuration."
+            : "Failed to load camera configuration.",
         );
       } finally {
         if (!cancelled) {
@@ -181,7 +181,7 @@ export const TrainingInterface = ({
     };
 
     const classifyPosition = (
-      value: unknown
+      value: unknown,
     ): "main" | "left" | "right" | "extra" => {
       const normalized = normalize(value);
       if (!normalized) {
@@ -210,7 +210,7 @@ export const TrainingInterface = ({
         }
         const candidate = available.find(
           (item) =>
-            !consumed.has(item.index) && item.normalized === normalizedLabel
+            !consumed.has(item.index) && item.normalized === normalizedLabel,
         );
         if (candidate) {
           consumed.add(candidate.index);
@@ -233,7 +233,7 @@ export const TrainingInterface = ({
       const observationKey = normalize(
         typeof config.observation_key === "string"
           ? config.observation_key
-          : undefined
+          : undefined,
       );
       const remote = claimStream([config.position, rawName, observationKey]);
 
@@ -300,7 +300,7 @@ export const TrainingInterface = ({
   const sidebarSlots = availableExtras;
 
   const fallbackImageForPosition = (
-    position: "main" | "left" | "right" | "extra"
+    position: "main" | "left" | "right" | "extra",
   ) => {
     switch (position) {
       case "main":
@@ -316,7 +316,7 @@ export const TrainingInterface = ({
 
   const renderSecondaryStack = (
     slots: CameraSlot[],
-    fallbackPosition: "left" | "right" | "extra"
+    fallbackPosition: "left" | "right" | "extra",
   ) => {
     if (slots.length === 0) {
       return (
@@ -334,7 +334,7 @@ export const TrainingInterface = ({
             title={slot.title}
             stream={slot.stream}
             fallbackImage={fallbackImageForPosition(
-              slot.position === "extra" ? fallbackPosition : slot.position
+              slot.position === "extra" ? fallbackPosition : slot.position,
             )}
             position={slot.position ?? "extra"}
             isConnected={Boolean(slot.stream)}
@@ -713,7 +713,7 @@ export const TrainingInterface = ({
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}/${datasetToDelete}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -824,7 +824,7 @@ export const TrainingInterface = ({
               title={mainSlot?.title ?? "Main Camera"}
               stream={mainSlot?.stream ?? null}
               fallbackImage={fallbackImageForPosition(
-                mainSlot?.position ?? "main"
+                mainSlot?.position ?? "main",
               )}
               position={mainSlot?.position ?? "main"}
               isConnected={Boolean(mainSlot?.stream)}
@@ -841,7 +841,7 @@ export const TrainingInterface = ({
                   fallbackImage={fallbackImageForPosition("left")}
                   position="left"
                   isConnected={Boolean(
-                    fixedLeftSlot.stream ?? mainSlot?.stream
+                    fixedLeftSlot.stream ?? mainSlot?.stream,
                   )}
                   className="h-full w-full"
                 />
@@ -857,7 +857,7 @@ export const TrainingInterface = ({
                   fallbackImage={fallbackImageForPosition("right")}
                   position="right"
                   isConnected={Boolean(
-                    fixedRightSlot.stream ?? mainSlot?.stream
+                    fixedRightSlot.stream ?? mainSlot?.stream,
                   )}
                   className="h-full w-full"
                 />

@@ -1,7 +1,7 @@
+import { Camera, FileVideo } from "lucide-react";
 import React from "react";
 import { EpisodeManagementContent } from "./training/EpisodeManagementSidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Camera,FileVideo } from "lucide-react";
 
 interface SidebarTabsProps {
   tab: "secondary" | "episodes";
@@ -30,13 +30,13 @@ export function SidebarTabs({
           value="secondary"
           className="rounded-xl text-[11px] font-semibold uppercase tracking-wide gap-1"
         >
-         <Camera className="h-4" /> Other Cameras
+          <Camera className="h-4" /> Other Cameras
         </TabsTrigger>
         <TabsTrigger
           value="episodes"
           className="rounded-xl text-[11px] font-semibold uppercase tracking-wide"
         >
-         <FileVideo className="h-4" /> Episodes
+          <FileVideo className="h-4" /> Episodes
         </TabsTrigger>
       </TabsList>
 

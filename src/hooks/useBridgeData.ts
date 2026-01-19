@@ -267,44 +267,45 @@ export const useBridgeData = () => {
   // Old useEffect removed - now using callback pattern to avoid React batching issues
 
   // Debug: Log the complete bridge data state periodically
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log("🔍 Complete Bridge Data State:", {
-        isConnected: bridgeData.isConnected,
-        error: bridgeData.error,
-        hasState: !!bridgeData.state,
-        hasCommand: !!bridgeData.command,
-        hasCamera_head: !!bridgeData.camera_head,
-        hasCamera_left: !!bridgeData.camera_left,
-        hasCamera_right: !!bridgeData.camera_right,
-        hasMask_head: !!bridgeData.mask_head,
-        hasMask_left: !!bridgeData.mask_left,
-        hasMask_right: !!bridgeData.mask_right,
-        hasActionVariance: !!bridgeData.action_variance,
-        camera_head_length: bridgeData.camera_head
-          ? bridgeData.camera_head.length
-          : 0,
-        camera_left_length: bridgeData.camera_left
-          ? bridgeData.camera_left.length
-          : 0,
-        camera_right_length: bridgeData.camera_right
-          ? bridgeData.camera_right.length
-          : 0,
-        mask_head_length: bridgeData.mask_head
-          ? bridgeData.mask_head.length
-          : 0,
-        mask_left_length: bridgeData.mask_left
-          ? bridgeData.mask_left.length
-          : 0,
-        mask_right_length: bridgeData.mask_right
-          ? bridgeData.mask_right.length
-          : 0,
-        action_variance_values: bridgeData.action_variance?.data || null,
-      });
-    }, 5000); // Every 5 seconds
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       console.log("🔍 Complete Bridge Data State:", {
+//         isConnected: bridgeData.isConnected,
+//         error: bridgeData.error,
+//         hasState: !!bridgeData.state,
+//         hasCommand: !!bridgeData.command,
+//         hasCamera_head: !!bridgeData.camera_head,
+//         hasCamera_left: !!bridgeData.camera_left,
+//         hasCamera_right: !!bridgeData.camera_right,
+//         hasMask_head: !!bridgeData.mask_head,
+//         hasMask_left: !!bridgeData.mask_left,
+//         hasMask_right: !!bridgeData.mask_right,
+//         hasActionVariance: !!bridgeData.action_variance,
+//         camera_head_length: bridgeData.camera_head
+//           ? bridgeData.camera_head.length
+//           : 0,
+//         camera_left_length: bridgeData.camera_left
+//           ? bridgeData.camera_left.length
+//           : 0,
+//         camera_right_length: bridgeData.camera_right
+//           ? bridgeData.camera_right.length
+//           : 0,
+//         mask_head_length: bridgeData.mask_head
+//           ? bridgeData.mask_head.length
+//           : 0,
+//         mask_left_length: bridgeData.mask_left
+//           ? bridgeData.mask_left.length
+//           : 0,
+//         mask_right_length: bridgeData.mask_right
+//           ? bridgeData.mask_right.length
+//           : 0,
+//         action_variance_values: bridgeData.action_variance?.data || null,
+//       });
+//     }, 5000); // Every 5 seconds
 
-    return () => clearInterval(interval);
-  }, [bridgeData]);
+//     return () => clearInterval(interval);
+//   }, [bridgeData]);
+
 
   return bridgeData;
-};
+}

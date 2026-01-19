@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { postParentMessageWithParams } from "../utils/postParentMessage";
-import { SimpleVideosPlayer } from "../components/simple-videos-player";
 import DataRecharts from "../components/data-recharts";
-import PlaybackBar from "../components/playback-bar";
-import { TimeProvider, useTime } from "../context/time-context";
-import Sidebar from "../components/side-nav";
 import Loading from "../components/loading-component";
+import PlaybackBar from "../components/playback-bar";
+import Sidebar from "../components/side-nav";
+import { SimpleVideosPlayer } from "../components/simple-videos-player";
+import { TimeProvider, useTime } from "../context/time-context";
+import { postParentMessageWithParams } from "../utils/postParentMessage";
 import { getAdjacentEpisodesVideoInfo } from "./fetch-data";
 
 export default function EpisodeViewer({
@@ -14,11 +14,13 @@ export default function EpisodeViewer({
   error,
   org,
   dataset,
+  isEmbedded = false,
 }: {
   data?: any;
   error?: string;
   org?: string;
   dataset?: string;
+  isEmbedded?: boolean;
 }) {
   if (error) {
     return (
@@ -32,12 +34,27 @@ export default function EpisodeViewer({
   }
   return (
     <TimeProvider duration={data.duration}>
-      <EpisodeViewerInner data={data} org={org} dataset={dataset} />
+      <EpisodeViewerInner
+        data={data}
+        org={org}
+        dataset={dataset}
+        isEmbedded={isEmbedded}
+      />
     </TimeProvider>
   );
 }
 
-function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; dataset?: string; }) {
+function EpisodeViewerInner({
+  data,
+  org,
+  dataset,
+  isEmbedded = false,
+}: {
+  data: any;
+  org?: string;
+  dataset?: string;
+  isEmbedded?: boolean;
+}) {
   const {
     datasetInfo,
     episodeId,
@@ -69,12 +86,14 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
 
   // Popup / embed mode trims chrome (sidebar, headers) and relaxes sizing
   const isPopupView =
-    searchParams.get("popup") === "1" || searchParams.get("popup") === "true";
-  
+    isEmbedded ||
+    searchParams.get("popup") === "1" ||
+    searchParams.get("popup") === "true";
+
   // Preload adjacent episodes' videos
   useEffect(() => {
     if (!org || !dataset) return;
-    
+
     const preloadAdjacent = async () => {
       try {
         await getAdjacentEpisodesVideoInfo(org, dataset, episodeId, 2);
@@ -83,7 +102,7 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
         // Skip preloading on error
       }
     };
-    
+
     preloadAdjacent();
   }, [org, dataset, episodeId]);
 
@@ -160,7 +179,10 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
       ) {
         const newParams = new URLSearchParams(searchParams.toString());
         newParams.set("episode", nextEpisodeId.toString());
-        navigate({ pathname: window.location.pathname, search: `?${newParams.toString()}` });
+        navigate({
+          pathname: window.location.pathname,
+          search: `?${newParams.toString()}`,
+        });
       }
     }
   };
@@ -179,7 +201,9 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
   };
 
   return (
-    <div className={`flex ${isPopupView ? "h-full" : "h-screen"} max-h-screen bg-slate-950 text-gray-200`}>
+    <div
+      className={`flex ${isPopupView ? "h-[93vh]" : "h-screen"} max-h-screen bg-slate-950 text-gray-200`}
+    >
       {/* Sidebar */}
       {!isPopupView && (
         <Sidebar
@@ -193,14 +217,17 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
           onSelectEpisode={(ep) => {
             const newParams = new URLSearchParams(searchParams.toString());
             newParams.set("episode", ep.toString());
-            navigate({ pathname: window.location.pathname, search: `?${newParams.toString()}` });
+            navigate({
+              pathname: window.location.pathname,
+              search: `?${newParams.toString()}`,
+            });
           }}
         />
       )}
 
       {/* Content */}
       <div
-        className={`flex max-h-screen flex-col gap-4 p-4 ${isPopupView ? "w-full" : "md:flex-1"} relative ${isLoading ? "overflow-hidden" : "overflow-y-auto"}`}
+        className={`flex max-h-screen flex-col gap-4 p-4 w-full relative ${isLoading ? "overflow-hidden" : "overflow-y-auto"}`}
       >
         {isLoading && <Loading />}
 
@@ -245,10 +272,12 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
         {!isPopupView && task && (
           <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-600">
             <p className="text-slate-300">
-              <span className="font-semibold text-slate-100">Language Instruction:</span>
+              <span className="font-semibold text-slate-100">
+                Language Instruction:
+              </span>
             </p>
             <div className="mt-2 text-slate-300">
-              {task.split('\n').map((instruction, index) => (
+              {task.split("\n").map((instruction, index) => (
                 <p key={index} className="mb-1">
                   {instruction}
                 </p>
@@ -263,7 +292,6 @@ function EpisodeViewerInner({ data, org, dataset }: { data: any; org?: string; d
             data={chartDataGroups}
             onChartsReady={() => setChartsReady(true)}
           />
-
         </div>
 
         <PlaybackBar />

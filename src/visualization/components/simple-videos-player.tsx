@@ -236,14 +236,14 @@ export const SimpleVideosPlayer = ({
                   >
                     {isEnlarged ? <FaCompress /> : <FaExpand />}
                   </button>
-                  <button
+                  {/* <button
                     title="Hide Video"
                     className="ml-1 p-1 hover:bg-slate-700 rounded"
                     onClick={() => setHiddenVideos(prev => [...prev, info.filename])}
                     disabled={videosInfo.filter(v => !hiddenVideos.includes(v.filename)).length === 1}
                   >
                     <FaTimes />
-                  </button>
+                  </button> */}
                 </span>
               </p>
               <video

@@ -43,16 +43,8 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           )}
         >
           <HelpCircle
-            className={cn("h-5 w-5", children && "mr-2 h-3.5 w-3.5")}
+            className={cn("h-5 w-5", children && "h-5 w-5")}
           />
-          {children ? (
-            <>
-              {children}
-              <ChevronUp className="ml-2 h-4 w-4" />
-            </>
-          ) : (
-            <span className="sr-only">Control Help</span>
-          )}
         </Button>
       </div>
 
@@ -61,7 +53,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
         className={cn(
           "absolute bottom-0 left-1/2 -translate-x-1/2 w-[min(100vw-2rem,900px)] transition-all duration-300 ease-in-out",
           isOpen
-            ? "translate-y-0 opacity-100"
+            ? "translate-y-0 opacity-50"
             : "translate-y-full opacity-0 pointer-events-none"
         )}
       >
@@ -86,16 +78,16 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           </div>
 
           {/* Content */}
-          <div className="p-4 max-h-[65vh] overflow-y-auto">
+          <div className="max-h-[65vh] ">
             {imageError ? (
-              <div className="flex h-48 w-full items-center justify-center rounded-lg border border-border bg-muted">
+              <div className="flex h-48  items-center justify-center rounded-lg border border-border bg-muted">
                 <p className="text-muted-foreground">No help found</p>
               </div>
             ) : (
               <img
                 src={helpImageSrc}
                 alt="Controller instructions"
-                className="h-auto max-h-[55vh] w-full rounded-lg border border-border object-contain"
+                className="h-auto max-h-[40vh] rounded-lg border border-border object-contain"
                 onError={() => setImageError(true)}
               />
             )}

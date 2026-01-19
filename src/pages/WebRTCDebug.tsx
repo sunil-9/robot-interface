@@ -77,7 +77,7 @@ const RemoteVideoTile = ({
           {connected ? "connected" : "waiting"}
         </Badge>
       </div>
-      <div className="relative aspect-video w-full overflow-hidden rounded border border-purple-900/40 bg-black">
+      <div className="relative aspect-video w-full overflow-hidden rounded border border-primary/40 bg-black">
         <video
           ref={videoRef}
           autoPlay
@@ -123,12 +123,17 @@ const WebRTCDebugPage = () => {
   const [telemetryLog, setTelemetryLog] = useState<
     Array<{ stamp: Date; data: unknown }>
   >([]);
-  const [gamepadSummaries, setGamepadSummaries] = useState<GamepadSummary[]>([]);
+  const [gamepadSummaries, setGamepadSummaries] = useState<GamepadSummary[]>(
+    []
+  );
   const [gamepadSnapshots, setGamepadSnapshots] = useState<GamepadSnapshot[]>(
     []
   );
 
-  const session = useWebRTCSession({robotId: selectedRobot || undefined,controllerId:undefined,});
+  const session = useWebRTCSession({
+    robotId: selectedRobot || undefined,
+    controllerId: undefined,
+  });
   const videoTiles = useMemo(() => {
     const matched =
       session.expectedCameras.length > 0
@@ -189,7 +194,11 @@ const WebRTCDebugPage = () => {
     [robots, selectedRobot]
   );
 
-  const { robotId: activeRobotId, telemetryOpen: telemetryActive, sendControl: sendTelemetryControl } = session;
+  const {
+    robotId: activeRobotId,
+    telemetryOpen: telemetryActive,
+    sendControl: sendTelemetryControl,
+  } = session;
 
   useEffect(() => {
     if (typeof navigator === "undefined" || !("getGamepads" in navigator)) {
@@ -209,9 +218,13 @@ const WebRTCDebugPage = () => {
       }
 
       const rawGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
-      const connected = Array.from(rawGamepads).filter((item): item is Gamepad => Boolean(item));
+      const connected = Array.from(rawGamepads).filter(
+        (item): item is Gamepad => Boolean(item)
+      );
 
-      const connectedIndexes = new Set(connected.map((gamepad) => gamepad.index));
+      const connectedIndexes = new Set(
+        connected.map((gamepad) => gamepad.index)
+      );
       previousState.forEach((_, index) => {
         if (!connectedIndexes.has(index)) {
           previousState.delete(index);
@@ -230,7 +243,8 @@ const WebRTCDebugPage = () => {
           prev.length === snapshot.length &&
           prev.every(
             (item, idx) =>
-              item.index === snapshot[idx]?.index && item.id === snapshot[idx]?.id
+              item.index === snapshot[idx]?.index &&
+              item.id === snapshot[idx]?.id
           )
         ) {
           return prev;
@@ -241,15 +255,13 @@ const WebRTCDebugPage = () => {
       const snapshots: GamepadSnapshot[] = [];
 
       connected.forEach((gamepad) => {
-        const stored =
-          previousState.get(gamepad.index) ??
-          {
-            buttons: gamepad.buttons.map((button) => ({
-              pressed: button.pressed,
-              value: button.value,
-            })),
-            axes: [...gamepad.axes],
-          };
+        const stored = previousState.get(gamepad.index) ?? {
+          buttons: gamepad.buttons.map((button) => ({
+            pressed: button.pressed,
+            value: button.value,
+          })),
+          axes: [...gamepad.axes],
+        };
 
         if (stored.buttons.length < gamepad.buttons.length) {
           stored.buttons = gamepad.buttons.map((button, idx) => ({
@@ -258,7 +270,9 @@ const WebRTCDebugPage = () => {
           }));
         }
         if (stored.axes.length < gamepad.axes.length) {
-          stored.axes = gamepad.axes.map((value, idx) => stored.axes[idx] ?? value);
+          stored.axes = gamepad.axes.map(
+            (value, idx) => stored.axes[idx] ?? value
+          );
         }
 
         const normalizedAxes = gamepad.axes.map((value, index) => {
@@ -299,7 +313,9 @@ const WebRTCDebugPage = () => {
           console.log("WebRTC sending control snapshot:", payload);
           const sent = sendTelemetryControl(payload);
           if (!sent) {
-            console.warn("Failed to forward gamepad state over telemetry channel.");
+            console.warn(
+              "Failed to forward gamepad state over telemetry channel."
+            );
           }
         }
 
@@ -324,13 +340,18 @@ const WebRTCDebugPage = () => {
             }
             const axesEqual =
               Object.keys(item.axes).length === Object.keys(next.axes).length &&
-              Object.entries(item.axes).every(([key, value]) => next.axes[key] === value);
+              Object.entries(item.axes).every(
+                ([key, value]) => next.axes[key] === value
+              );
             if (!axesEqual) {
               return false;
             }
             const buttonsEqual =
-              Object.keys(item.buttons).length === Object.keys(next.buttons).length &&
-              Object.entries(item.buttons).every(([key, value]) => next.buttons[key] === value);
+              Object.keys(item.buttons).length ===
+                Object.keys(next.buttons).length &&
+              Object.entries(item.buttons).every(
+                ([key, value]) => next.buttons[key] === value
+              );
             return buttonsEqual;
           });
           if (same) {
@@ -362,7 +383,9 @@ const WebRTCDebugPage = () => {
     try {
       const parsed = JSON.parse(commandPayload || "{}");
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        console.warn("Control payload must be an object with a `type` property.");
+        console.warn(
+          "Control payload must be an object with a `type` property."
+        );
         return;
       }
       const record = parsed as Record<string, unknown>;
@@ -377,14 +400,14 @@ const WebRTCDebugPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <header className="border-b border-purple-900/40 bg-black/80 py-4">
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="border-b border-primary/40 bg-background/80 py-4">
         <div className="container mx-auto flex items-center justify-between px-6">
           <div>
-            <h1 className="text-2xl font-semibold text-purple-300">
+            <h1 className="text-2xl font-semibold text-primary">
               WebRTC Debugger
             </h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-muted-foreground">
               Use this page to exercise the signaling flow between the operator
               UI and the robot backend via the cloud server.
             </p>
@@ -392,7 +415,7 @@ const WebRTCDebugPage = () => {
           <Button
             asChild
             variant="ghost"
-            className="text-purple-200 hover:text-white"
+            className="text-primary hover:text-foreground"
           >
             <Link to="/">Back to Home</Link>
           </Button>
@@ -400,9 +423,9 @@ const WebRTCDebugPage = () => {
       </header>
 
       <main className="container mx-auto grid gap-6 px-6 py-6 lg:grid-cols-[320px_1fr]">
-        <Card className="bg-gray-900 border-purple-900/40">
+        <Card className="bg-card border-primary/40">
           <CardHeader>
-            <CardTitle className="text-lg text-purple-200">
+            <CardTitle className="text-lg text-primary">
               1. Pick a Robot
             </CardTitle>
           </CardHeader>
@@ -420,7 +443,7 @@ const WebRTCDebugPage = () => {
                 {robotsError ?? "Failed to load robots."}
               </p>
             )}
-            <ScrollArea className="h-64 rounded border border-purple-900/40 bg-gray-950/60 p-2">
+            <ScrollArea className="h-64 rounded border border-primary/40 bg-muted/30 p-2">
               <div className="space-y-3">
                 {robots.map((robot) => {
                   const isSelected = robot.robot_id === selectedRobot;
@@ -431,8 +454,8 @@ const WebRTCDebugPage = () => {
                       onClick={() => setSelectedRobot(robot.robot_id)}
                       className={`w-full rounded border px-3 py-2 text-left transition ${
                         isSelected
-                          ? "border-purple-500 bg-purple-900/40 text-purple-100"
-                          : "border-purple-900/40 bg-gray-900 hover:border-purple-700 hover:bg-gray-800"
+                          ? "border-primary bg-primary/20 text-primary"
+                          : "border-primary/40 bg-card hover:border-primary/70 hover:bg-muted"
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
@@ -472,9 +495,9 @@ const WebRTCDebugPage = () => {
         </Card>
 
         <div className="space-y-6">
-          <Card className="bg-gray-900 border-purple-900/40">
+          <Card className="bg-card border-primary/40">
             <CardHeader>
-              <CardTitle className="text-lg text-purple-200">
+              <CardTitle className="text-lg text-primary">
                 2. Connection Status {selectedRobot ? `(${selectedRobot})` : ""}
               </CardTitle>
             </CardHeader>
@@ -514,7 +537,7 @@ const WebRTCDebugPage = () => {
                 </p>
               )}
               {selectedRobotMeta && (
-                <div className="rounded border border-purple-900/40 bg-gray-950/60 p-3 text-xs text-gray-300">
+                <div className="rounded border border-primary/40 bg-muted/30 p-3 text-xs text-muted-foreground">
                   <p>
                     Heartbeat interval:{" "}
                     {selectedRobotMeta.heartbeat_interval ?? "n/a"}s
@@ -538,9 +561,9 @@ const WebRTCDebugPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-purple-900/40">
+          <Card className="bg-card border-primary/40">
             <CardHeader>
-              <CardTitle className="text-lg text-purple-200">
+              <CardTitle className="text-lg text-primary">
                 3. Video / Telemetry
               </CardTitle>
             </CardHeader>
@@ -567,23 +590,23 @@ const WebRTCDebugPage = () => {
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded border border-dashed border-purple-900/40 bg-gray-950/60 p-6 text-center text-sm text-gray-400">
+                    <div className="rounded border border-dashed border-primary/40 bg-muted/30 p-6 text-center text-sm text-muted-foreground">
                       No remote streams detected yet.
                     </div>
                   )}
                 </div>
                 <div className="flex-1 space-y-2">
-                  <p className="text-sm text-gray-300">
+                  <p className="text-sm text-muted-foreground">
                     Telemetry Log (latest {MAX_LOG_ENTRIES})
                   </p>
-                  <ScrollArea className="h-60 rounded border border-purple-900/40 bg-gray-950/60 p-3 text-xs text-gray-200">
+                  <ScrollArea className="h-60 rounded border border-primary/40 bg-muted/30 p-3 text-xs text-foreground">
                     <div className="space-y-2">
                       {telemetryLog.map((entry, idx) => (
-                        <div key={idx} className="rounded bg-gray-900/80 p-2">
-                          <p className="text-purple-300">
+                        <div key={idx} className="rounded bg-card p-2">
+                          <p className="text-primary">
                             {formatTimestamp(entry.stamp)}
                           </p>
-                          <pre className="whitespace-pre-wrap break-words text-gray-200">
+                          <pre className="whitespace-pre-wrap break-words text-foreground">
                             {JSON.stringify(entry.data, null, 2)}
                           </pre>
                         </div>
@@ -600,22 +623,27 @@ const WebRTCDebugPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-purple-900/40">
+          <Card className="bg-card border-primary/40">
             <CardHeader>
-              <CardTitle className="text-lg text-purple-200">4. Gamepad Input Monitor</CardTitle>
+              <CardTitle className="text-lg text-primary">
+                4. Gamepad Input Monitor
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <p className="text-sm text-gray-300">Connected gamepads</p>
+                <p className="text-sm text-muted-foreground">
+                  Connected gamepads
+                </p>
                 {gamepadSummaries.length > 0 ? (
                   <div className="mt-2 space-y-2">
                     {gamepadSummaries.map((summary) => (
                       <div
                         key={`${summary.index}-${summary.id}`}
-                        className="rounded border border-purple-900/40 bg-gray-950/70 p-2 text-xs text-gray-200"
+                        className="rounded border border-primary/40 bg-muted/30 p-2 text-xs text-foreground"
                       >
-                        <p className="text-purple-300 font-medium">
-                          #{summary.index} &mdash; {summary.id || "Unnamed controller"}
+                        <p className="text-primary font-medium">
+                          #{summary.index} &mdash;{" "}
+                          {summary.id || "Unnamed controller"}
                         </p>
                       </div>
                     ))}
@@ -625,82 +653,105 @@ const WebRTCDebugPage = () => {
                   </div>
                 ) : (
                   <p className="mt-2 text-xs text-gray-500">
-                    No gamepads detected. Connect a controller and press any button to wake it.
+                    No gamepads detected. Connect a controller and press any
+                    button to wake it.
                   </p>
                 )}
               </div>
               <div>
-                <p className="text-sm text-gray-300">Current controller state</p>
-                <ScrollArea className="mt-2 max-h-80 rounded border border-purple-900/40 bg-gray-950/60 p-3">
+                <p className="text-sm text-muted-foreground">
+                  Current controller state
+                </p>
+                <ScrollArea className="mt-2 max-h-80 rounded border border-primary/40 bg-muted/30 p-3">
                   <div className="space-y-3">
                     {gamepadSnapshots.length > 0 ? (
                       gamepadSnapshots.map((snapshot) => (
                         <div
                           key={`${snapshot.index}-${snapshot.id}`}
-                          className="space-y-2 rounded bg-gray-900/80 p-2 text-xs text-gray-200"
+                          className="space-y-2 rounded bg-card p-2 text-xs text-foreground"
                         >
                           <div className="flex items-center justify-between">
-                            <p className="text-purple-300 font-medium">
-                              #{snapshot.index} &mdash; {snapshot.id || "Controller"}
+                            <p className="text-primary font-medium">
+                              #{snapshot.index} &mdash;{" "}
+                              {snapshot.id || "Controller"}
                             </p>
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] text-muted-foreground">
                               {formatTimestamp(new Date(snapshot.timestamp))}
                             </span>
                           </div>
                           <div>
-                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Axes</p>
+                            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                              Axes
+                            </p>
                             <div className="mt-1 grid grid-cols-2 gap-1">
-                              {Object.entries(snapshot.axes).map(([key, value]) => (
-                                <div
-                                  key={`axis-${key}`}
-                                  className="rounded border border-purple-900/40 bg-gray-950/70 px-2 py-1"
-                                >
-                                  <p className="font-medium text-purple-200">Axis {key}</p>
-                                  <p className="text-gray-300">{value.toFixed(2)}</p>
-                                </div>
-                              ))}
+                              {Object.entries(snapshot.axes).map(
+                                ([key, value]) => (
+                                  <div
+                                    key={`axis-${key}`}
+                                    className="rounded border border-primary/40 bg-muted/30 px-2 py-1"
+                                  >
+                                    <p className="font-medium text-primary">
+                                      Axis {key}
+                                    </p>
+                                    <p className="text-muted-foreground">
+                                      {value.toFixed(2)}
+                                    </p>
+                                  </div>
+                                )
+                              )}
                             </div>
                           </div>
                           <div>
-                            <p className="text-[11px] text-gray-400 uppercase tracking-wide">Buttons</p>
+                            <p className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                              Buttons
+                            </p>
                             <div className="mt-1 grid grid-cols-2 gap-1">
-                              {Object.entries(snapshot.buttons).map(([key, value]) => {
-                                const isPressed = value >= 0.5;
-                                return (
-                                  <div
-                                    key={`button-${key}`}
-                                    className={`rounded border px-2 py-1 ${
-                                      isPressed
-                                        ? "border-green-600 bg-green-900/40 text-green-200"
-                                        : "border-purple-900/40 bg-gray-950/70 text-gray-300"
-                                    }`}
-                                  >
-                                    <p className="font-medium">
-                                      Button {key} {isPressed ? "●" : ""}
-                                    </p>
-                                    <p className="text-gray-300">{value.toFixed(2)}</p>
-                                  </div>
-                                );
-                              })}
+                              {Object.entries(snapshot.buttons).map(
+                                ([key, value]) => {
+                                  const isPressed = value >= 0.5;
+                                  return (
+                                    <div
+                                      key={`button-${key}`}
+                                      className={`rounded border px-2 py-1 ${
+                                        isPressed
+                                          ? "border-green-600 bg-green-900/40 text-green-200"
+                                          : "border-primary/40 bg-muted/30 text-muted-foreground"
+                                      }`}
+                                    >
+                                      <p className="font-medium">
+                                        Button {key} {isPressed ? "●" : ""}
+                                      </p>
+                                      <p className="text-gray-300">
+                                        {value.toFixed(2)}
+                                      </p>
+                                    </div>
+                                  );
+                                }
+                              )}
                             </div>
                           </div>
                         </div>
                       ))
                     ) : (
-                      <p className="text-xs text-gray-500">No inputs captured yet.</p>
+                      <p className="text-xs text-gray-500">
+                        No inputs captured yet.
+                      </p>
                     )}
                   </div>
                 </ScrollArea>
                 <p className="mt-2 text-xs text-gray-500">
-                  Controller snapshots stream continuously over the telemetry channel.
+                  Controller snapshots stream continuously over the telemetry
+                  channel.
                 </p>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-900 border-purple-900/40">
+          <Card className="bg-card border-primary/40">
             <CardHeader>
-              <CardTitle className="text-lg text-purple-200">5. Send Control Messages</CardTitle>
+              <CardTitle className="text-lg text-primary">
+                5. Send Control Messages
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-3">
@@ -744,8 +795,8 @@ const WebRTCDebugPage = () => {
             </CardContent>
           </Card>
 
-          <Separator className="border-purple-900/40" />
-          <p className="text-xs text-gray-500">
+          <Separator className="border-primary/40" />
+          <p className="text-xs text-muted-foreground">
             Tip: open browser devtools to inspect raw signaling messages and
             confirm ICE negotiation.
           </p>

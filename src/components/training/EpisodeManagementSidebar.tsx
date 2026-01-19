@@ -22,7 +22,7 @@ import { Slider } from "@/components/ui/slider";
 import { DatasetSelector } from "./DatasetSelector";
 import { EpisodeList } from "./EpisodeList";
 
-type AccentColor = "purple" | "emerald";
+type AccentColor = "primary" | "accent";
 
 const accentStyles: Record<
   AccentColor,
@@ -34,25 +34,25 @@ const accentStyles: Record<
     loadingBadge: string;
   }
 > = {
-  purple: {
+  primary: {
     trigger:
-      "border-purple-300 text-purple-700 shadow-[0_10px_30px_rgba(168,85,247,0.18)] hover:border-purple-400 hover:bg-purple-50 hover:shadow-[0_12px_40px_rgba(168,85,247,0.25)] dark:border-purple-700 dark:text-purple-200 dark:hover:bg-purple-950/50 dark:shadow-[0_0_22px_rgba(168,85,247,0.35)]",
-    trainingIcon: "text-purple-600 dark:text-purple-300",
-    trainingStepsText: "text-purple-700 dark:text-purple-200",
+      "border-primary/30 text-primary shadow-[0_10px_30px_hsl(var(--primary)/0.18)] hover:border-primary/50 hover:bg-primary/5 hover:shadow-[0_12px_40px_hsl(var(--primary)/0.25)] dark:border-primary/40 dark:text-primary dark:hover:bg-primary/10 dark:shadow-[0_0_22px_hsl(var(--primary)/0.35)]",
+    trainingIcon: "text-primary dark:text-primary",
+    trainingStepsText: "text-primary dark:text-primary",
     trainButton:
-      "bg-purple-600 text-white hover:bg-purple-700 dark:bg-purple-500 dark:text-gray-950 dark:hover:bg-purple-400",
+      "bg-primary text-primary-foreground hover:bg-primary/90 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/80",
     loadingBadge:
-      "border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-500/40 dark:bg-purple-950/40 dark:text-purple-100",
+      "border-primary/20 bg-primary/5 text-primary dark:border-primary/40 dark:bg-primary/10 dark:text-primary",
   },
-  emerald: {
+  accent: {
     trigger:
-      "border-emerald-300 text-emerald-700 shadow-[0_10px_30px_rgba(16,185,129,0.18)] hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-[0_12px_40px_rgba(16,185,129,0.25)] dark:border-emerald-700 dark:text-emerald-200 dark:hover:bg-emerald-950/40 dark:shadow-[0_0_22px_rgba(16,185,129,0.35)]",
-    trainingIcon: "text-emerald-600 dark:text-emerald-300",
-    trainingStepsText: "text-emerald-700 dark:text-emerald-200",
+      "border-accent/50 text-accent-foreground shadow-[0_10px_30px_hsl(var(--accent)/0.18)] hover:border-accent/70 hover:bg-accent/10 hover:shadow-[0_12px_40px_hsl(var(--accent)/0.25)] dark:border-accent/40 dark:text-accent-foreground dark:hover:bg-accent/20 dark:shadow-[0_0_22px_hsl(var(--accent)/0.35)]",
+    trainingIcon: "text-accent-foreground dark:text-accent",
+    trainingStepsText: "text-accent-foreground dark:text-accent",
     trainButton:
-      "bg-emerald-600 text-white hover:bg-emerald-700 dark:bg-emerald-500 dark:text-gray-950 dark:hover:bg-emerald-400",
+      "bg-accent text-accent-foreground hover:bg-accent/90 dark:bg-accent dark:text-accent-foreground dark:hover:bg-accent/80",
     loadingBadge:
-      "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/40 dark:bg-emerald-950/40 dark:text-emerald-100",
+      "border-accent/30 bg-accent/10 text-accent-foreground dark:border-accent/40 dark:bg-accent/20 dark:text-accent",
   },
 };
 
@@ -73,8 +73,10 @@ interface EpisodeManagementSidebarProps {
   robotId?: string | null;
 }
 
-interface EpisodeManagementContentProps
-  extends Omit<EpisodeManagementSidebarProps, "isOpen" | "onOpenChange"> {
+interface EpisodeManagementContentProps extends Omit<
+  EpisodeManagementSidebarProps,
+  "isOpen" | "onOpenChange"
+> {
   isActive: boolean;
   className?: string;
 }
@@ -91,7 +93,7 @@ export const EpisodeManagementContent = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-  accentColor = "purple",
+  accentColor = "accent",
   className,
   robotId,
 }: EpisodeManagementContentProps) => {
@@ -115,9 +117,8 @@ export const EpisodeManagementContent = ({
       setIsTrainingLoading(true);
       setTrainingError(null);
       try {
-        const result = await trainingApi.fetchTrainingJobStatus(
-          selectedDataset
-        );
+        const result =
+          await trainingApi.fetchTrainingJobStatus(selectedDataset);
         if (cancelled) {
           return;
         }
@@ -157,10 +158,10 @@ export const EpisodeManagementContent = ({
   const trainingStatusLabel = trainingJob
     ? "Running"
     : trainingError
-    ? "Error"
-    : isTrainingLoading
-    ? "Checking"
-    : "Not Running";
+      ? "Error"
+      : isTrainingLoading
+        ? "Checking"
+        : "Not Running";
 
   const trainingStatusDescription =
     trainingError ??
@@ -168,10 +169,10 @@ export const EpisodeManagementContent = ({
     (!selectedDataset
       ? "Select a dataset to check training status"
       : trainingJob
-      ? `Policy: ${trainingJob.policy_type || "N/A"} </br>• Mode: ${
-          trainingJob.mode || "N/A"
-        }`
-      : "No active training job");
+        ? `Policy: ${trainingJob.policy_type || "N/A"} </br>• Mode: ${
+            trainingJob.mode || "N/A"
+          }`
+        : "No active training job");
 
   const startedAtLabel =
     trainingJob?.started_at && trainingJob.started_at !== ""
@@ -313,7 +314,7 @@ export const EpisodeManagementSidebar = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-  accentColor = "purple",
+  accentColor = "primary",
   robotId,
 }: EpisodeManagementSidebarProps) => {
   const accent = accentStyles[accentColor];

@@ -145,7 +145,8 @@ export const ActionVarianceChart = ({
                     content: `Median: ${
                       data.length > 0
                         ? [...data]
-                            .sort((a, b) => a - b) [
+                            .sort((a, b) => a - b)
+                            [
                               // eslint-disable-next-line no-unexpected-multiline
                               Math.floor(data.length / 2)
                             ].toFixed(3)
@@ -279,7 +280,9 @@ export const ActionVarianceChart = ({
       {data.length === 0 ? (
         <div className="h-full flex items-center justify-center">
           <div className="text-center">
-            <div className="text-muted-foreground text-lg mb-2">No Data Found</div>
+            <div className="text-muted-foreground text-lg mb-2">
+              No Data Found
+            </div>
             <div className="text-muted-foreground text-sm">
               {!isConnected
                 ? "WebSocket not connected"
@@ -299,7 +302,7 @@ export const ActionVarianceChart = ({
           <div className="absolute bottom-2 right-2 z-10">
             <button
               onClick={() => setIsHelpOpen(true)}
-              className="bg-gray-800 bg-opacity-70 text-purple-300 hover:text-white p-1 rounded-full"
+              className="bg-muted bg-opacity-70 text-primary hover:text-foreground p-1 rounded-full"
               aria-label="Help"
               title="Show chart explanation"
             >
@@ -367,8 +370,8 @@ export const ActionVarianceChart = ({
                       ? "WebSocket Disconnected"
                       : "No Data Available"
                     : usingWebSocketData
-                    ? "Live WebSocket Data"
-                    : "Data Available"}
+                      ? "Live WebSocket Data"
+                      : "Data Available"}
                   <span
                     className={`ml-2 inline-block h-2 w-2 rounded-full ${
                       isConnected ? "bg-emerald-500" : "bg-red-500"
@@ -396,7 +399,7 @@ export const ActionVarianceChart = ({
                   <span className="text-foreground">High (&gt; 0.03)</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <div className="w-3 h-3 border-2 border-purple-500 border-dashed bg-transparent rounded"></div>
+                  <div className="w-3 h-3 border-2 border-primary border-dashed bg-transparent rounded"></div>
                   <span className="text-primary">Median</span>
                 </div>
               </div>
@@ -487,15 +490,15 @@ export const ActionVarianceChart = ({
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-white mb-2">
+                <h3 className="text-lg font-semibold text-foreground mb-2">
                   Median Line
                 </h3>
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-purple-500 border-dashed bg-transparent"></div>
+                  <div className="w-4 h-4 border-2 border-primary border-dashed bg-transparent"></div>
                   <p>
-                    The purple dashed line represents the median value of all
-                    displayed variance values. This helps identify the central
-                    tendency of the data.
+                    The primary colored dashed line represents the median value
+                    of all displayed variance values. This helps identify the
+                    central tendency of the data.
                   </p>
                 </div>
               </div>

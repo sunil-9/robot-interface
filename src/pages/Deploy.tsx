@@ -30,10 +30,8 @@ export default function DeployPage() {
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-purple-400">
-                Deploy Mode
-              </h1>
-              <p className="text-gray-400 text-sm">
+              <h1 className="text-2xl font-bold text-primary">Deploy Mode</h1>
+              <p className="text-muted-foreground text-sm">
                 Deploy trained models to the robot
               </p>
             </div>
@@ -51,7 +49,7 @@ export default function DeployPage() {
           </p>
           <Button
             onClick={() => navigate("/")}
-            className="bg-purple-700 hover:bg-purple-600"
+            className="bg-primary hover:bg-primary/90"
           >
             Return to Home
           </Button>

@@ -107,7 +107,7 @@ export const CameraView = ({
               className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
             />
           ) : (
-            <div className="flex h-[100vh] w-full flex-col items-center justify-center gap-2  bg-background text-muted-foreground">
+            <div className="flex  w-full flex-col items-center justify-center gap-2  bg-background text-muted-foreground">
               <Camera className="h-8 w-8 text-muted-foreground/50" />
               <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {title}

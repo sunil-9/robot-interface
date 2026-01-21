@@ -111,12 +111,11 @@ export const EpisodeManagementContent = ({
   const handleReviewEpisode = useCallback(
     (episodeIndex: number) => {
       if (selectedDataset) {
-        // Use "local" as the org for local datasets, and robotId or selectedDataset as the dataset identifier
-        const datasetIdentifier = robotId || selectedDataset;
-        openViewer("local", datasetIdentifier, episodeIndex);
+        // Use "local" as the org and selectedDataset as the dataset identifier
+        openViewer("local", selectedDataset, episodeIndex);
       }
     },
-    [robotId, selectedDataset, openViewer],
+    [selectedDataset, openViewer],
   );
 
   useEffect(() => {

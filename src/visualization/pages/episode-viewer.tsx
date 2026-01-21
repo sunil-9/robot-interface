@@ -229,8 +229,9 @@ function EpisodeViewerInner({
         )}
 
         {/* Videos */}
-        {videosInfo.length && (
+        {videosInfo.length > 0 && (
           <SimpleVideosPlayer
+            key={`videos-${episodeId}`}
             videosInfo={videosInfo}
             onVideosReady={() => setVideosReady(true)}
           />

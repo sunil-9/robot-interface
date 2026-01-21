@@ -3,7 +3,7 @@
  */
 
 const DATASET_URL =
-  import.meta.env.VITE_DATASET_URL || "http://localhost:8081/visualization";
+  import.meta.env.VITE_DATASET_URL ;
 
 /**
  * Dataset information structure from info.json
@@ -21,7 +21,7 @@ interface DatasetInfo {
   splits: Record<string, string>;
   data_path: string;
   video_path: string;
-  features: Record<string, any>;
+  features: Record<string, unknown>;
 }
 
 /**
@@ -29,7 +29,8 @@ interface DatasetInfo {
  */
 export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
   try {
-    const testUrl = `${DATASET_URL}/${repoId}/resolve/main/meta/info.json`;
+    // Simple static path for local storage
+    const testUrl = `${DATASET_URL}/${repoId}/meta/info.json`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -43,7 +44,7 @@ export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch dataset info: ${response.statups}`);
+      throw new Error(`Failed to fetch dataset info: ${response.status}`);
     }
 
     const data = await response.json();
@@ -51,7 +52,7 @@ export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
     // Check if it has the required structure
     if (!data.features) {
       throw new Error(
-        "Dataset info.json does not have the expected features structure"
+        "Dataset info.json does not have the expected features structure",
       );
     }
 
@@ -62,7 +63,7 @@ export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
     }
     throw new Error(
       `Dataset ${repoId} is not compatible with this visualizer. ` +
-        "Failed to read dataset information from the main revision."
+        "Failed to read dataset information from the main revision.",
     );
   }
 }
@@ -86,7 +87,7 @@ export async function getDatasetVersion(repoId: string): Promise<string> {
       throw new Error(
         `Dataset ${repoId} has codebase version ${codebaseVersion}, which is not supported. ` +
           "This tool only works with dataset versions 3.0, 2.1, or 2.0. " +
-          "Please use a compatible dataset version."
+          "Please use a compatible dataset version.",
       );
     }
 
@@ -97,7 +98,7 @@ export async function getDatasetVersion(repoId: string): Promise<string> {
     }
     throw new Error(
       `Dataset ${repoId} is not compatible with this visualizer. ` +
-        "Failed to read dataset information from the main revision."
+        "Failed to read dataset information from the main revision.",
     );
   }
 }

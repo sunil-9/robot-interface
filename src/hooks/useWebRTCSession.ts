@@ -535,7 +535,7 @@ export const useWebRTCSession = ({
         const offerPayload: Record<string, unknown> = {
           type: "offer",
           target_id: target,
-          control_mode: robotId + "with" + controllerId,
+          input_device:  controllerId,
           sdp: {
             type: offer.type,
             sdp: offer.sdp ?? "",

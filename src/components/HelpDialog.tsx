@@ -20,7 +20,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
   const helpImageSrc =
     robot && controller
       ? `/help/${encodeURIComponent(robot)}/${encodeURIComponent(
-          controller
+          controller,
         )}.png`
       : "/help/default.png";
 
@@ -30,7 +30,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
       <div
         className={cn(
           "transition-all duration-300 ease-in-out",
-          isOpen ? "opacity-0 pointer-events-none" : "opacity-100"
+          isOpen ? "opacity-0 pointer-events-none" : "opacity-100",
         )}
       >
         <Button
@@ -39,7 +39,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           className={cn(
             "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
             children ? "" : "h-9 w-9",
-            className
+            className,
           )}
         >
           <HelpCircle
@@ -51,18 +51,18 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
       {/* Expanded panel */}
       <div
         className={cn(
-          "absolute bottom-0 left-1/2 -translate-x-1/2 w-[min(100vw-2rem,900px)] transition-all duration-300 ease-in-out",
+          "absolute bottom-0 left-1/2 -translate-x-1/2 w-auto transition-all duration-300 ease-in-out",
           isOpen
             ? "translate-y-0 opacity-50"
             : "translate-y-full opacity-0 pointer-events-none"
         )}
       >
-        <div className="rounded-t-2xl border border-b-0 border-border bg-card/95 backdrop-blur-sm shadow-2xl">
+        <div className="rounded-t-xl border border-b-0 border-border bg-card/95 backdrop-blur-sm shadow-xl w-[356px]">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-2">
-              <Gamepad2 className="h-5 w-5 text-primary" />
-              <span className="font-semibold">Controller Help</span>
+          <div className="flex items-center justify-between px-2 py-1.5 border-b border-border">
+            <div className="flex items-center gap-1.5">
+              <Gamepad2 className="h-4 w-4 text-primary" />
+              <span className="font-medium text-sm">Help</span>
               <span className="text-xs text-muted-foreground">
                 {robot && controller ? `${robot} • ${controller}` : "Controls"}
               </span>
@@ -70,24 +70,25 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-full"
+              className="h-6 w-6 rounded-full"
               onClick={() => setIsOpen(false)}
             >
-              <ChevronDown className="h-4 w-4" />
+              <ChevronDown className="h-3 w-3" />
             </Button>
           </div>
 
           {/* Content */}
-          <div className="max-h-[65vh] ">
+
+          <div className="p-[3px]">
             {imageError ? (
-              <div className="flex h-48  items-center justify-center rounded-lg border border-border bg-muted">
-                <p className="text-muted-foreground">No help found</p>
+              <div className="flex h-[350px] w-[350px] items-center justify-center rounded border border-border bg-muted">
+                <p className="text-muted-foreground text-sm">No help found</p>
               </div>
             ) : (
               <img
                 src={helpImageSrc}
                 alt="Controller instructions"
-                className="h-auto max-h-[40vh] rounded-lg border border-border object-contain"
+                className="h-[350px] w-[350px] rounded border border-border object-contain"
                 onError={() => setImageError(true)}
               />
             )}

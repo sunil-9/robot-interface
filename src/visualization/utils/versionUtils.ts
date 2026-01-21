@@ -43,7 +43,7 @@ export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch dataset info: ${response.status}`);
+      throw new Error(`Failed to fetch dataset info: ${response.statups}`);
     }
 
     const data = await response.json();

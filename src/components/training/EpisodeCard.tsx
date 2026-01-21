@@ -86,7 +86,7 @@ export const EpisodeCard = ({
           <Play className="h-2 w-2" />
         </Button>
         {/* Open viewer in a new tab */}
-        {viewerUrl && (
+        {/* {viewerUrl && (
           <Button
             size="icon"
             variant="ghost"
@@ -103,7 +103,7 @@ export const EpisodeCard = ({
               <ExternalLink className="h-2 w-2" />
             </a>
           </Button>
-        )}
+        )} */}
         <Button
           size="icon"
           variant="ghost"

@@ -6,7 +6,6 @@ import PlaybackBar from "../components/playback-bar";
 import Sidebar from "../components/side-nav";
 import { SimpleVideosPlayer } from "../components/simple-videos-player";
 import { TimeProvider, useTime } from "../context/time-context";
-import { postParentMessageWithParams } from "../utils/postParentMessage";
 import { getAdjacentEpisodesVideoInfo } from "./fetch-data";
 
 export default function EpisodeViewer({
@@ -117,13 +116,6 @@ function EpisodeViewerInner({
     }
   }, []);
 
-  // sync with parent window hf.co/spaces
-  useEffect(() => {
-    postParentMessageWithParams((params: URLSearchParams) => {
-      params.set("path", window.location.pathname + window.location.search);
-    });
-  }, []);
-
   // Initialize based on URL time parameter
   useEffect(() => {
     // Initialize page based on current episode
@@ -154,9 +146,6 @@ function EpisodeViewerInner({
         "",
         `${window.location.pathname}?${newParams.toString()}`,
       );
-      postParentMessageWithParams((params: URLSearchParams) => {
-        params.set("path", window.location.pathname + window.location.search);
-      });
     }
   }, [isPlaying, currentTime, searchParams]);
 
@@ -233,30 +222,9 @@ function EpisodeViewerInner({
 
         {!isPopupView && (
           <div className="flex items-center justify-start my-4">
-            <a
-              href="https://github.com/huggingface/lerobot"
-              target="_blank"
-              className="block"
-            >
-              <img
-                src="https://github.com/huggingface/lerobot/raw/main/media/lerobot-logo-thumbnail.png"
-                alt="LeRobot Logo"
-                className="w-32"
-              />
-            </a>
-
-            <div>
-              <a
-                href={`https://huggingface.co/datasets/${datasetInfo.repoId}`}
-                target="_blank"
-              >
-                <p className="text-lg font-semibold">{datasetInfo.repoId}</p>
-              </a>
-
-              <p className="font-mono text-lg font-semibold">
-                episode {episodeId}
-              </p>
-            </div>
+            <p className="font-mono text-lg font-semibold">
+              Episode {episodeId}
+            </p>
           </div>
         )}
 

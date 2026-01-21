@@ -43,16 +43,8 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           )}
         >
           <HelpCircle
-            className={cn("h-5 w-5", children && "mr-2 h-3.5 w-3.5")}
+            className={cn("h-5 w-5", children && "h-5 w-5")}
           />
-          {children ? (
-            <>
-              {children}
-              <ChevronUp className="ml-2 h-4 w-4" />
-            </>
-          ) : (
-            <span className="sr-only">Control Help</span>
-          )}
         </Button>
       </div>
 
@@ -61,8 +53,8 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
         className={cn(
           "absolute bottom-0 left-1/2 -translate-x-1/2 w-auto transition-all duration-300 ease-in-out",
           isOpen
-            ? "translate-y-0 opacity-100"
-            : "translate-y-full opacity-0 pointer-events-none",
+            ? "translate-y-0 opacity-50"
+            : "translate-y-full opacity-0 pointer-events-none"
         )}
       >
         <div className="rounded-t-xl border border-b-0 border-border bg-card/95 backdrop-blur-sm shadow-xl w-[356px]">
@@ -86,6 +78,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           </div>
 
           {/* Content */}
+
           <div className="p-[3px]">
             {imageError ? (
               <div className="flex h-[350px] w-[350px] items-center justify-center rounded border border-border bg-muted">

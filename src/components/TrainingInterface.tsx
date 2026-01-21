@@ -20,6 +20,8 @@ import { SidebarTabs } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
+import { useEpisodeViewer } from "./training/EpisodeViewerContext";
+import { EpisodeViewerPanel } from "./training/EpisodeViewerPanel";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -34,6 +36,7 @@ export const TrainingInterface = ({
 }: TrainingInterfaceProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { viewerState: episodeViewerState } = useEpisodeViewer();
 
   const [isRecording, setIsRecording] = useState(false);
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
@@ -775,6 +778,8 @@ export const TrainingInterface = ({
             </div>
 
             <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
+              {/* 
+              todo: add session status indicators back
               <div className="rounded-xl border border-border bg-card/85 px-3 py-2 text-muted-foreground shadow-lg backdrop-blur">
                 <div>
                   <span className="text-muted-foreground/80">Signaling:</span>{" "}
@@ -806,7 +811,7 @@ export const TrainingInterface = ({
                     {session.telemetryOpen ? "open" : "pending"}
                   </span>
                 </div>
-              </div>
+              </div> */}
               {cameraLoading && (
                 <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] text-primary shadow">
                   Loading camera config…
@@ -819,18 +824,23 @@ export const TrainingInterface = ({
               )}
             </div>
 
-            <CameraView
-              key={mainSlot?.key ?? "main"}
-              title={mainSlot?.title ?? "Main Camera"}
-              stream={mainSlot?.stream ?? null}
-              fallbackImage={fallbackImageForPosition(
-                mainSlot?.position ?? "main",
-              )}
-              position={mainSlot?.position ?? "main"}
-              isConnected={Boolean(mainSlot?.stream)}
-              showTitle={true}
-              className="h-full rounded-[32px] border-none bg-transparent"
-            />
+            {/* Show Episode Viewer OR Camera View in main area */}
+            {episodeViewerState.isOpen ? (
+              <EpisodeViewerPanel className="h-full" />
+            ) : (
+              <CameraView
+                key={mainSlot?.key ?? "main"}
+                title={mainSlot?.title ?? "Main Camera"}
+                stream={mainSlot?.stream ?? null}
+                fallbackImage={fallbackImageForPosition(
+                  mainSlot?.position ?? "main",
+                )}
+                position={mainSlot?.position ?? "main"}
+                isConnected={Boolean(mainSlot?.stream)}
+                showTitle={true}
+                className="h-full rounded-[32px] border-none bg-transparent"
+              />
+            )}
 
             {fixedLeftSlot && (
               <div className="absolute bottom-4 left-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">

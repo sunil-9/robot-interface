@@ -7,7 +7,7 @@ import {
   Loader2,
   Zap,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import * as episodeApi from "@/services/episodeApi";
@@ -21,6 +21,7 @@ import { Slider } from "@/components/ui/slider";
 
 import { DatasetSelector } from "./DatasetSelector";
 import { EpisodeList } from "./EpisodeList";
+import { useEpisodeViewer } from "./EpisodeViewerContext";
 
 type AccentColor = "primary" | "accent";
 
@@ -105,6 +106,19 @@ export const EpisodeManagementContent = ({
   const [trainingError, setTrainingError] = useState<string | null>(null);
   const accent = accentStyles[accentColor];
 
+  const { openViewer } = useEpisodeViewer();
+
+  const handleReviewEpisode = useCallback(
+    (episodeIndex: number) => {
+      if (selectedDataset) {
+        // Use "local" as the org for local datasets, and robotId or selectedDataset as the dataset identifier
+        const datasetIdentifier = robotId || selectedDataset;
+        openViewer("local", datasetIdentifier, episodeIndex);
+      }
+    },
+    [robotId, selectedDataset, openViewer],
+  );
+
   useEffect(() => {
     if (!isActive || !selectedDataset) {
       setTrainingJob(null);
@@ -133,7 +147,7 @@ export const EpisodeManagementContent = ({
         setTrainingError(
           error instanceof Error
             ? error.message
-            : "Failed to load training status"
+            : "Failed to load training status",
         );
       } finally {
         if (!cancelled) {
@@ -203,6 +217,7 @@ export const EpisodeManagementContent = ({
           isDeleting={isDeleting}
           formatDuration={formatDuration}
           onPromptDeleteEpisode={onPromptDeleteEpisode}
+          onReviewEpisode={handleReviewEpisode}
           robotId={robotId}
         />
       </div>
@@ -222,7 +237,7 @@ export const EpisodeManagementContent = ({
                 "border-green-200 bg-green-50 text-green-700 dark:border-green-500/40 dark:bg-green-900/30 dark:text-green-100",
               trainingError &&
                 "border-red-200 bg-red-50 text-red-700 dark:border-red-500/40 dark:bg-red-900/40 dark:text-red-100",
-              isTrainingLoading && accent.loadingBadge
+              isTrainingLoading && accent.loadingBadge,
             )}
           >
             <span className="flex items-center gap-1">
@@ -328,7 +343,7 @@ export const EpisodeManagementSidebar = ({
             size="icon"
             className={cn(
               "flex h-16 w-6 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-all duration-300 hover:scale-110 hover:shadow-lg",
-              accent.trigger
+              accent.trigger,
             )}
           >
             {isOpen ? (

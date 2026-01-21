@@ -1,4 +1,4 @@
-import { ExternalLink, RotateCw, Trash2 } from "lucide-react";
+import { ExternalLink, Play, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ interface EpisodeCardProps {
   formatDuration: (seconds?: number) => string;
   selectedDataset: string;
   onDelete: (datasetId: string, episodeId: string) => void;
+  onReview: (episodeIndex: number) => void;
   robotId?: string | null;
 }
 
@@ -28,6 +29,7 @@ export const EpisodeCard = ({
   formatDuration,
   selectedDataset,
   onDelete,
+  onReview,
   robotId,
 }: EpisodeCardProps) => {
   const episodeIndex = episode.episode_index;
@@ -47,22 +49,18 @@ export const EpisodeCard = ({
   const viewerBaseUrl =
     selectedDataset && (robotId || selectedDataset)
       ? `/visualization/local/${encodeURIComponent(
-          robotId || selectedDataset
+          robotId || selectedDataset,
         )}/`
       : null;
   const viewerUrl =
     viewerBaseUrl && Number.isFinite(safeEpisodeNumber)
       ? `${viewerBaseUrl}?episode=${safeEpisodeNumber}`
       : null;
-  const popupUrl = viewerUrl ? `${viewerUrl}&popup=1` : null;
 
-  const openPopup = () => {
-    if (!popupUrl) return;
-    window.open(
-      popupUrl,
-      "episode-viewer-popup",
-      "width=1280,height=900,noopener,noreferrer"
-    );
+  const handleReview = () => {
+    if (Number.isFinite(safeEpisodeNumber)) {
+      onReview(safeEpisodeNumber);
+    }
   };
 
   return (
@@ -76,18 +74,18 @@ export const EpisodeCard = ({
         </div>
       </div>
       <div className="flex items-center gap-5">
-        {/* Open viewer in a popup */}
+        {/* Open viewer in the side panel */}
         <Button
           size="icon"
           variant="ghost"
-          className="h-2 w-2 text-muted-foreground hover:text-foreground"
-          aria-label="Open episode viewer"
-          disabled={!popupUrl}
-          onClick={openPopup}
+          className="h-2 w-2 text-muted-foreground hover:text-primary"
+          aria-label="Review episode"
+          disabled={!Number.isFinite(safeEpisodeNumber)}
+          onClick={handleReview}
         >
-          <RotateCw className="h-2 w-2" />
+          <Play className="h-2 w-2" />
         </Button>
-        {/* Open viewer in a new tab with the same URL */}
+        {/* Open viewer in a new tab */}
         {viewerUrl && (
           <Button
             size="icon"

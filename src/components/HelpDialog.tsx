@@ -57,9 +57,9 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
             : "translate-y-full opacity-0 pointer-events-none"
         )}
       >
-        <div className="rounded-t-xl border border-b-0 border-border bg-card/95 backdrop-blur-sm shadow-xl w-[356px]">
+        <div className="rounded-t-xl  bg-card/95 backdrop-blur-sm shadow-xl w-[450px]">
           {/* Header */}
-          <div className="flex items-center justify-between px-2 py-1.5 border-b border-border">
+          <div className="flex items-center justify-between px-2 py-1.5 r">
             <div className="flex items-center gap-1.5">
               <Gamepad2 className="h-4 w-4 text-primary" />
               <span className="font-medium text-sm">Help</span>
@@ -81,14 +81,14 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
 
           <div className="p-[3px]">
             {imageError ? (
-              <div className="flex h-[350px] w-[350px] items-center justify-center rounded border border-border bg-muted">
+              <div className="flex h-[350px] w-[450px] items-center justify-center bg-muted">
                 <p className="text-muted-foreground text-sm">No help found</p>
               </div>
             ) : (
               <img
                 src={helpImageSrc}
                 alt="Controller instructions"
-                className="h-[350px] w-[350px] rounded border border-border object-contain"
+                className="h-[350px] w-[450px] rounded object-contain"
                 onError={() => setImageError(true)}
               />
             )}

@@ -58,7 +58,7 @@ export function SidebarTabs({
         value="episodes"
         className="flex-1 focus-visible:outline-none"
       >
-        <div className="mt-2 h-full overflow-hidden rounded-xl border border-border bg-muted/50 dark:bg-muted/20">
+        <div className="border-t  h-full overflow-hidden rounded-xl ">
           <EpisodeManagementContent
             {...episodeManagementProps}
             isActive={tab === "episodes"}

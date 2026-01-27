@@ -209,7 +209,7 @@ export const EpisodeManagementContent = ({
         onRequestDelete={onRequestDeleteDataset}
       />
 
-      <div className="overflow-y-auto max-h-[40%] h-1/2 bg-muted/40 p-2 dark:bg-muted/30">
+      <div className="overflow-y-auto  h-[62%] p-2 dark:bg-muted/30">
         <EpisodeList
           selectedDataset={selectedDataset}
           episodes={episodes}
@@ -220,7 +220,7 @@ export const EpisodeManagementContent = ({
           robotId={robotId}
         />
       </div>
-      <div className="border-t border-border bg-card p-3 shadow-[0_-5px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-5px_20px_rgba(0,0,0,0.2)]">
+      <div className=" fixed bottom-5 border-t border-border bg-card pt-3 w-[330px]">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <Brain className={cn("h-4 w-4", accent.trainingIcon)} />

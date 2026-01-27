@@ -1,10 +1,4 @@
-import {
-  ArrowLeft,
-  ArrowRight,
-  Brain,
-  Loader2,
-  Zap,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Brain, Loader2, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -104,7 +98,7 @@ export const EpisodeManagementContent = ({
   const [trainingError, setTrainingError] = useState<string | null>(null);
   const accent = accentStyles[accentColor];
 
-  const { openViewer } = useEpisodeViewer();
+  const { openViewer, viewerState } = useEpisodeViewer();
 
   const handleReviewEpisode = useCallback(
     (episodeIndex: number) => {
@@ -216,6 +210,11 @@ export const EpisodeManagementContent = ({
           onPromptDeleteEpisode={onPromptDeleteEpisode}
           onReviewEpisode={handleReviewEpisode}
           robotId={robotId}
+          viewingEpisodeIndex={
+            viewerState.isOpen && viewerState.datasetId === selectedDataset
+              ? viewerState.episodeIndex
+              : null
+          }
         />
       </div>
       <div className=" fixed bottom-5 border-t border-border bg-card pt-3 w-[330px]">
@@ -260,16 +259,24 @@ export const EpisodeManagementContent = ({
               Training Progress
             </span>
             <span className="text-xs font-mono text-foreground">
-              {trainingJob ? trainingJob.current_step : 0} / {trainingJob ? trainingJob.requested_steps : 0} steps
+              {trainingJob ? trainingJob.current_step : 0} /{" "}
+              {trainingJob ? trainingJob.requested_steps : 0} steps
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
               style={{
-                width: `${trainingJob && trainingJob.requested_steps > 0
-                  ? Math.min((trainingJob.current_step / trainingJob.requested_steps) * 100, 100)
-                  : 0}%`,
+                width: `${
+                  trainingJob && trainingJob.requested_steps > 0
+                    ? Math.min(
+                        (trainingJob.current_step /
+                          trainingJob.requested_steps) *
+                          100,
+                        100,
+                      )
+                    : 0
+                }%`,
               }}
             />
           </div>

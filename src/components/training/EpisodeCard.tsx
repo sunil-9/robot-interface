@@ -1,4 +1,4 @@
-import { ExternalLink, Play, Trash2 } from "lucide-react";
+import { Play, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,7 @@ interface EpisodeCardProps {
   onDelete: (datasetId: string, episodeId: string) => void;
   onReview: (episodeIndex: number) => void;
   robotId?: string | null;
+  isViewing?: boolean;
 }
 
 const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -31,6 +32,7 @@ export const EpisodeCard = ({
   onDelete,
   onReview,
   robotId,
+  isViewing = false,
 }: EpisodeCardProps) => {
   const episodeIndex = episode.episode_index;
   const displayIndex =
@@ -64,9 +66,13 @@ export const EpisodeCard = ({
   };
 
   return (
-    <Card className="flex items-center justify-between bg-card p-1  shadow-sm hover:shadow-md">
+    <Card
+      className={`flex items-center justify-between p-1 shadow-sm hover:shadow-md transition-all ${isViewing ? "bg-primary/15 border-primary/50 ring-1 ring-primary/30" : "bg-card"}`}
+    >
       <div className="flex flex-1 items-center overflow-hidden text-xs text-foreground sm:text-sm">
-        <span className="shrink-0 font-semibold text-primary">{`#${displayIndex}`}</span>
+        <span
+          className={`shrink-0 font-semibold ${isViewing ? "text-primary" : "text-primary"}`}
+        >{`#${displayIndex}`}</span>
         <div className="ml-3 flex flex-wrap items-center gap-2 text-muted-foreground">
           <span>{formattedTimestamp}</span>
           <span className="text-border">•</span>

@@ -8,7 +8,8 @@ import { getEpisodeDataSafe } from "@/visualization/pages/fetch-data";
 
 import { useEpisodeViewer } from "./EpisodeViewerContext";
 
-interface EpisodeViewerPanelProps {p
+interface EpisodeViewerPanelProps {
+  p;
   className?: string;
 }
 
@@ -17,7 +18,7 @@ interface EpisodeViewerPanelProps {p
  * This is NOT a fixed/overlay panel - it's meant to be rendered inline
  */
 export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
-  const { viewerState, closeViewer } = useEpisodeViewer();
+  const { viewerState, closeViewer, changeEpisode } = useEpisodeViewer();
   const { isOpen, robotId, datasetId, episodeIndex } = viewerState;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -150,6 +151,7 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
               org={robotId ?? undefined}
               dataset={datasetId ?? undefined}
               isEmbedded={true}
+              onEpisodeChange={changeEpisode}
             />
           </div>
         )}

@@ -11,6 +11,7 @@ interface EpisodeListProps {
   onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
   onReviewEpisode: (episodeIndex: number) => void;
   robotId?: string | null;
+  viewingEpisodeIndex?: number | null;
 }
 
 export const EpisodeList = ({
@@ -21,6 +22,7 @@ export const EpisodeList = ({
   onPromptDeleteEpisode,
   onReviewEpisode,
   robotId,
+  viewingEpisodeIndex,
 }: EpisodeListProps) => {
   const reversedEpisodes = useMemo(
     () => [...(episodes || [])].reverse(),
@@ -58,6 +60,7 @@ export const EpisodeList = ({
           onDelete={onPromptDeleteEpisode}
           onReview={onReviewEpisode}
           robotId={robotId}
+          isViewing={viewingEpisodeIndex === Number(episode.episode_index)}
         />
       ))}
     </>

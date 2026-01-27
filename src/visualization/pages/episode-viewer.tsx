@@ -14,12 +14,14 @@ export default function EpisodeViewer({
   org,
   dataset,
   isEmbedded = false,
+  onEpisodeChange,
 }: {
   data?: any;
   error?: string;
   org?: string;
   dataset?: string;
   isEmbedded?: boolean;
+  onEpisodeChange?: (episodeIndex: number) => void;
 }) {
   if (error) {
     return (
@@ -38,6 +40,7 @@ export default function EpisodeViewer({
         org={org}
         dataset={dataset}
         isEmbedded={isEmbedded}
+        onEpisodeChange={onEpisodeChange}
       />
     </TimeProvider>
   );
@@ -48,11 +51,13 @@ function EpisodeViewerInner({
   org,
   dataset,
   isEmbedded = false,
+  onEpisodeChange,
 }: {
   data: any;
   org?: string;
   dataset?: string;
   isEmbedded?: boolean;
+  onEpisodeChange?: (episodeIndex: number) => void;
 }) {
   const {
     datasetInfo,
@@ -158,7 +163,7 @@ function EpisodeViewerInner({
       setIsPlaying((prev: boolean) => !prev);
     } else if (key === "ArrowDown" || key === "ArrowUp") {
       e.preventDefault();
-      const nextEpisodeId = key === "ArrowDown" ? episodeId + 1 : episodeId - 1;
+      const nextEpisodeId = key === "ArrowUp" ? episodeId + 1 : episodeId - 1;
       const lowestEpisodeId = episodes[0];
       const highestEpisodeId = episodes[episodes.length - 1];
 
@@ -166,12 +171,18 @@ function EpisodeViewerInner({
         nextEpisodeId >= lowestEpisodeId &&
         nextEpisodeId <= highestEpisodeId
       ) {
-        const newParams = new URLSearchParams(searchParams.toString());
-        newParams.set("episode", nextEpisodeId.toString());
-        navigate({
-          pathname: window.location.pathname,
-          search: `?${newParams.toString()}`,
-        });
+        // When embedded, use the callback to change episode via context
+        if (isEmbedded && onEpisodeChange) {
+          onEpisodeChange(nextEpisodeId);
+        } else {
+          // Otherwise navigate via URL
+          const newParams = new URLSearchParams(searchParams.toString());
+          newParams.set("episode", nextEpisodeId.toString());
+          navigate({
+            pathname: window.location.pathname,
+            search: `?${newParams.toString()}`,
+          });
+        }
       }
     }
   };

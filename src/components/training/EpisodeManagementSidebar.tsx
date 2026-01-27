@@ -1,9 +1,7 @@
 import {
-  Activity,
   ArrowLeft,
   ArrowRight,
   Brain,
-  Layers,
   Loader2,
   Zap,
 } from "lucide-react";
@@ -209,7 +207,7 @@ export const EpisodeManagementContent = ({
         onRequestDelete={onRequestDeleteDataset}
       />
 
-      <div className="overflow-y-auto  h-[62%] p-2 dark:bg-muted/30">
+      <div className="overflow-y-auto  h-[52%] p-2 dark:bg-muted/30">
         <EpisodeList
           selectedDataset={selectedDataset}
           episodes={episodes}
@@ -256,28 +254,24 @@ export const EpisodeManagementContent = ({
           {startedAtLabel ? ` • Started ${startedAtLabel}` : ""}
         </p>
 
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary ">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
-                Current Step
-              </span>
-              <Layers className="h-3.5 w-3.5 text-primary" />
-              <span className="text-sm font-bold text-foreground">
-                {trainingJob ? trainingJob.current_step : 0}
-              </span>
-            </div>
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              Training Progress
+            </span>
+            <span className="text-xs font-mono text-foreground">
+              {trainingJob ? trainingJob.current_step : 0} / {trainingJob ? trainingJob.requested_steps : 0} steps
+            </span>
           </div>
-          <div className="flex flex-col rounded-md border border-border bg-muted/60 p-2 dark:bg-secondary">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-medium text-muted-foreground">
-                Requested Steps
-              </span>
-              <Activity className="h-3.5 w-3.5 text-accent" />
-              <span className="text-sm font-bold text-foreground">
-                {trainingJob ? trainingJob.requested_steps : 0}
-              </span>
-            </div>
+          <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-300"
+              style={{
+                width: `${trainingJob && trainingJob.requested_steps > 0
+                  ? Math.min((trainingJob.current_step / trainingJob.requested_steps) * 100, 100)
+                  : 0}%`,
+              }}
+            />
           </div>
         </div>
 

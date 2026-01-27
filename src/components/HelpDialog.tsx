@@ -53,7 +53,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
         className={cn(
           "absolute bottom-0 left-1/2 -translate-x-1/2 w-auto transition-all duration-300 ease-in-out",
           isOpen
-            ? "translate-y-0 opacity-50"
+            ? "translate-y-0 opacity-70"
             : "translate-y-full opacity-0 pointer-events-none"
         )}
       >

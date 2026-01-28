@@ -587,6 +587,86 @@ export const TrainingInterface = ({
 
       const record = payload as Record<string, unknown>;
       const type = typeof record.type === "string" ? record.type : null;
+
+      // Handle dataset collection responses
+      if (type === "dataset") {
+        console.log(payload, "obtained from the robot backend");
+        const rawPayload = record.payload;
+        if (!rawPayload || typeof rawPayload !== "object") {
+          return;
+        }
+        const datasetPayload = rawPayload as Record<string, unknown>;
+        const action =
+          typeof datasetPayload.action === "string"
+            ? datasetPayload.action.toLowerCase()
+            : null;
+        const status =
+          typeof datasetPayload.status === "string"
+            ? datasetPayload.status
+            : null;
+        const message =
+          typeof datasetPayload.message === "string"
+            ? datasetPayload.message
+            : null;
+        const datasetId =
+          typeof datasetPayload.datasetId === "string"
+            ? datasetPayload.datasetId
+            : typeof datasetPayload.dataset_id === "string"
+              ? datasetPayload.dataset_id
+              : null;
+
+        if (action === "collection_start_ack") {
+          toast({
+            title: "Recording started",
+            description: datasetId
+              ? `Recording episode for dataset "${datasetId}"`
+              : "Episode recording has started",
+          });
+          return;
+        }
+
+        if (action === "collection_start_nack") {
+          setIsRecording(false);
+          setCurrentEpisodeId(null);
+          toast({
+            title: "Failed to start recording",
+            description: message
+              ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+              : datasetId
+                ? `Could not start recording for dataset "${datasetId}"`
+                : "Could not start recording. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (action === "collection_stop_ack") {
+          toast({
+            title: "Recording stopped",
+            description: datasetId
+              ? `Episode saved for dataset "${datasetId}"`
+              : "Episode recording has been saved",
+          });
+          return;
+        }
+
+        if (action === "collection_stop_nack") {
+          toast({
+            title: "Failed to stop recording",
+            description: message
+              ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+              : datasetId
+                ? `Could not stop recording for dataset "${datasetId}"`
+                : "Could not stop recording. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        return;
+      }
+
+      // Handle deploy responses
       if (type !== "deploy") {
         return;
       }

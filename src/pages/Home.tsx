@@ -14,7 +14,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Header } from "@/components/Header";
-import InlineSvg from "@/components/InlineSvg";
 import {
   ControlDeviceSkeleton,
   EmptyControlDeviceState,
@@ -263,31 +262,7 @@ export default function Home() {
                         >
                           <div className="flex items-center">
                             <div className="bg-muted rounded-lg w-12 h-12 flex items-center justify-center overflow-hidden">
-                              {/* Control device SVG or fallback image */}
-                              {device.svgContent ? (
-                                <InlineSvg
-                                  content={device.svgContent}
-                                  className="w-full h-full"
-                                  alt={`${device.name} icon`}
-                                  fallback={
-                                    device.image ? (
-                                      <img
-                                        src={device.image}
-                                        alt={device.name}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                          e.currentTarget.src =
-                                            "/placeholder.svg";
-                                        }}
-                                      />
-                                    ) : (
-                                      <span className="text-xl text-muted-foreground">
-                                        {device.name[0]}
-                                      </span>
-                                    )
-                                  }
-                                />
-                              ) : device.image ? (
+                             : device.image ? (
                                 <img
                                   src={device.image}
                                   alt={device.name}
@@ -404,13 +379,7 @@ export default function Home() {
                         <div className="bg-muted/60 rounded-lg p-3">
                           <div className="flex items-center">
                             <div className="bg-muted rounded-md w-10 h-10 flex items-center justify-center">
-                              {getSelectedControlData()?.svgContent ? (
-                                <InlineSvg
-                                  content={getSelectedControlData()?.svgContent}
-                                  className="w-8 h-8"
-                                  alt={`${getSelectedControlData()?.name} icon`}
-                                />
-                              ) : getSelectedControlData()?.image ? (
+                              { getSelectedControlData()?.image ? (
                                 <img
                                   src={getSelectedControlData()?.image}
                                   alt={getSelectedControlData()?.name}

@@ -163,6 +163,11 @@ function EpisodeViewerInner({
       setIsPlaying((prev: boolean) => !prev);
     } else if (key === "ArrowDown" || key === "ArrowUp") {
       e.preventDefault();
+      e.stopPropagation();
+      // Remove focus from any active element to prevent button focus ring
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       const nextEpisodeId = key === "ArrowUp" ? episodeId + 1 : episodeId - 1;
       const lowestEpisodeId = episodes[0];
       const highestEpisodeId = episodes[episodes.length - 1];

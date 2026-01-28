@@ -51,7 +51,7 @@ export const RecordingControls = ({
       }`}
     >
       <div
-        className={`pointer-events-auto flex items-center ${gap} rounded-full border border-border bg-card ${containerPadding} shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]`}
+        className={`pointer-events-auto  flex items-center ${gap} rounded-xl border border-border bg-card ${containerPadding} shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]`}
       >
         <Button
           onClick={isRecording ? onStop : onStart}

@@ -84,7 +84,7 @@ export const EpisodeCard = ({
         <Button
           size="icon"
           variant="ghost"
-          className="h-2 w-2 text-muted-foreground hover:text-primary"
+          className="h-2 w-2 text-muted-foreground hover:text-primary focus-visible:outline-none"
           aria-label="Review episode"
           disabled={!Number.isFinite(safeEpisodeNumber)}
           onClick={handleReview}

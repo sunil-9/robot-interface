@@ -118,12 +118,12 @@ const PlaybackBar: React.FC = () => {
           </span>{" "}
           to pause/unpause
         </p>
-        {/* <p>
+        <p>
           <span className="inline-flex items-center gap-1 font-mono align-middle">
             <FaArrowUp size={14} />/<FaArrowDown size={14} />
           </span>{" "}
           to previous/next episode
-        </p> */}
+        </p>
       </div>
     </div>
   );

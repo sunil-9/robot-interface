@@ -42,6 +42,10 @@ export const TrainingInterface = ({
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
+    null,
+  );
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Initialize sidebarTab from URL params, default to "secondary"
@@ -111,6 +115,38 @@ export const TrainingInterface = ({
   useEffect(() => {
     selectedDatasetRef.current = selectedDataset;
   }, [selectedDataset]);
+
+  // Recording timer effect
+  useEffect(() => {
+    if (isRecording) {
+      setRecordingStartTime(Date.now());
+      setElapsedTime(0);
+    } else {
+      setRecordingStartTime(null);
+    }
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (!recordingStartTime) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - recordingStartTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [recordingStartTime]);
+
+  const formatElapsedTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     deployDatasetRef.current = deployDatasetId;
@@ -719,8 +755,7 @@ export const TrainingInterface = ({
       }
 
       if (action === "deploy_nack" || status === "error") {
-        setIsDeploying(false);
-        setDeployDatasetId(null);
+        // Don't change isDeploying state on error - keep button in current state
         toast({
           title: "Deployment failed",
           description:
@@ -857,7 +892,22 @@ export const TrainingInterface = ({
               />
             </div>
 
-            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
+            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs transition-opacity hover:opacity-100">
+              {/* Recording Timer */}
+              {isRecording && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-2 shadow-lg backdrop-blur animate-in fade-in slide-in-from-right-2 duration-300">
+                  <span className="relative flex h-3 w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
+                  </span>
+                  <span className="font-mono text-lg font-semibold text-red-500">
+                    {formatElapsedTime(elapsedTime)}
+                  </span>
+                  <span className="text-xs uppercase tracking-wide text-red-400">
+                    REC
+                  </span>
+                </div>
+              )}
               {/* 
               todo: add session status indicators back
               <div className="rounded-xl border border-border bg-card/85 px-3 py-2 text-muted-foreground shadow-lg backdrop-blur">

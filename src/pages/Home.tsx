@@ -262,7 +262,7 @@ export default function Home() {
                         >
                           <div className="flex items-center">
                             <div className="bg-muted rounded-lg w-12 h-12 flex items-center justify-center overflow-hidden">
-                             : device.image ? (
+                              {device.image ? (
                                 <img
                                   src={device.image}
                                   alt={device.name}
@@ -379,7 +379,7 @@ export default function Home() {
                         <div className="bg-muted/60 rounded-lg p-3">
                           <div className="flex items-center">
                             <div className="bg-muted rounded-md w-10 h-10 flex items-center justify-center">
-                              { getSelectedControlData()?.image ? (
+                              {getSelectedControlData()?.image ? (
                                 <img
                                   src={getSelectedControlData()?.image}
                                   alt={getSelectedControlData()?.name}

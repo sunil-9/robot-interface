@@ -6,7 +6,6 @@ import { BridgeProvider } from "@/context/BridgeContext";
 import { ModeProvider } from "@/context/ModeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Deploy from "./pages/Deploy";
 import Home from "./pages/Home";
 import Index from "./pages/Index"; // Keep as legacy entry point
 import NotFound from "./pages/NotFound";
@@ -31,7 +30,7 @@ const App = () => (
                 <Route path="/legacy" element={<Index />} />
                 <Route path="/train" element={<Train />} />
                 <Route path="/test" element={<Test />} />
-                <Route path="/deploy" element={<Deploy />} />
+                
                 <Route path="/webrtc-debug" element={<WebRTCDebug />} />
                 <Route
                   path="/visualization/:robotid/:datasetid"

@@ -46,6 +46,7 @@ export const TrainingInterface = ({
     null,
   );
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [isSavingEpisode, setIsSavingEpisode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Initialize sidebarTab from URL params, default to "secondary"
@@ -542,11 +543,8 @@ export const TrainingInterface = ({
       }
 
       setIsRecording(false);
+      setIsSavingEpisode(true);
       setCurrentEpisodeId(null);
-      // Update episodes list if episode management UI is visible
-      if (episodePanelActive) {
-        fetchEpisodes();
-      }
     } catch (error) {
       console.error("Failed to end episode:", error);
     } finally {
@@ -664,10 +662,11 @@ export const TrainingInterface = ({
         if (action === "collection_start_nack") {
           setIsRecording(false);
           setCurrentEpisodeId(null);
+          setMode(AppMode.TRAINING);
           toast({
             title: "Failed to start recording",
             description: message
-              ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+              ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
               : datasetId
                 ? `Could not start recording for dataset "${datasetId}"`
                 : "Could not start recording. Please try again.",
@@ -677,6 +676,8 @@ export const TrainingInterface = ({
         }
 
         if (action === "collection_stop_ack") {
+          setIsSavingEpisode(false);
+          fetchEpisodes();
           toast({
             title: "Recording stopped",
             description: datasetId
@@ -687,6 +688,7 @@ export const TrainingInterface = ({
         }
 
         if (action === "collection_stop_nack") {
+          setIsSavingEpisode(false);
           toast({
             title: "Failed to stop recording",
             description: message
@@ -1035,6 +1037,9 @@ export const TrainingInterface = ({
                 onPromptDeleteEpisode: promptDeleteEpisode,
                 accentColor: "accent",
                 robotId,
+                isRecording,
+                recordingElapsedTime: elapsedTime,
+                isSavingEpisode,
               }}
             />
           </div>

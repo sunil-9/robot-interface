@@ -64,6 +64,9 @@ interface EpisodeManagementSidebarProps {
   onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
   accentColor?: AccentColor;
   robotId?: string | null;
+  isRecording?: boolean;
+  recordingElapsedTime?: number;
+  isSavingEpisode?: boolean;
 }
 
 interface EpisodeManagementContentProps extends Omit<
@@ -89,6 +92,9 @@ export const EpisodeManagementContent = ({
   accentColor = "accent",
   className,
   robotId,
+  isRecording = false,
+  recordingElapsedTime = 0,
+  isSavingEpisode = false,
 }: EpisodeManagementContentProps) => {
   const [interval, setInterval] = useState<number[]>([25]);
   const [trainingJob, setTrainingJob] =
@@ -118,8 +124,11 @@ export const EpisodeManagementContent = ({
     }
 
     let cancelled = false;
-    const loadTrainingStatus = async () => {
-      setIsTrainingLoading(true);
+    const loadTrainingStatus = async (isInitialLoad = false) => {
+      // Only show loading state on initial load, not on polling updates
+      if (isInitialLoad) {
+        setIsTrainingLoading(true);
+      }
       setTrainingError(null);
       try {
         const result =
@@ -141,16 +150,23 @@ export const EpisodeManagementContent = ({
             : "Failed to load training status",
         );
       } finally {
-        if (!cancelled) {
+        if (!cancelled && isInitialLoad) {
           setIsTrainingLoading(false);
         }
       }
     };
 
-    void loadTrainingStatus();
+    // Initial load
+    void loadTrainingStatus(true);
+
+    // Poll every 5 seconds
+    const pollInterval = window.setInterval(() => {
+      void loadTrainingStatus(false);
+    }, 5000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(pollInterval);
     };
   }, [isActive, selectedDataset]);
 
@@ -201,7 +217,7 @@ export const EpisodeManagementContent = ({
         onRequestDelete={onRequestDeleteDataset}
       />
 
-      <div className="overflow-y-auto  h-[52%] p-2 dark:bg-muted/30">
+      <div className="overflow-y-auto  h-[44%] p-2 dark:bg-muted/30">
         <EpisodeList
           selectedDataset={selectedDataset}
           episodes={episodes}
@@ -215,6 +231,9 @@ export const EpisodeManagementContent = ({
               ? viewerState.episodeIndex
               : null
           }
+          isRecording={isRecording}
+          recordingElapsedTime={recordingElapsedTime}
+          isSavingEpisode={isSavingEpisode}
         />
       </div>
       <div className=" fixed bottom-5 border-t border-border bg-card pt-3 w-[330px]">

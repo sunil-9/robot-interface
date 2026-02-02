@@ -32,6 +32,7 @@ interface TrainingInterfaceProps {
 
 export const TrainingInterface = ({
   robotId,
+  controllerId,
   session,
 }: TrainingInterfaceProps) => {
   const navigate = useNavigate();
@@ -474,10 +475,32 @@ export const TrainingInterface = ({
   };
 
   const startEpisode = async () => {
+    // console.log(
+    //   selectedDataset,
+    //   controllerId,
+    //   robotId,
+    //   "sending data to robot backend",
+    // );
     if (!selectedDataset) {
       toast({
         title: "Error",
         description: "Select a dataset before starting an episode",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!controllerId) {
+      toast({
+        title: "Error",
+        description: "Select a control device before starting an episode",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!robotId) {
+      toast({
+        title: "Error",
+        description: "Select a robot before starting an episode",
         variant: "destructive",
       });
       return;
@@ -626,7 +649,7 @@ export const TrainingInterface = ({
 
       // Handle dataset collection responses
       if (type === "dataset") {
-        console.log(payload, "obtained from the robot backend");
+        // console.log(payload, "obtained from the robot backend");
         const rawPayload = record.payload;
         if (!rawPayload || typeof rawPayload !== "object") {
           return;
@@ -711,7 +734,7 @@ export const TrainingInterface = ({
         return;
       }
       //println!("Deploy payload: {:?}", payload);
-      console.log(payload, "obtained from the robot backend");
+      // console.log(payload, "obtained from the robot backend");
 
       const rawPayload = record.payload;
       if (!rawPayload || typeof rawPayload !== "object") {

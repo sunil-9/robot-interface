@@ -72,50 +72,50 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   );
 
   // Track mouse movements and clicks
-  useEffect(() => {
-    if (!canTrackMouse) return;
+  // useEffect(() => {
+  //   if (!canTrackMouse) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      // Only track significant movements to avoid flooding
-      if (lastInput && lastInput.type === "mouse" && lastInput.position) {
-        const dx = Math.abs(e.clientX - lastInput.position.x);
-        const dy = Math.abs(e.clientY - lastInput.position.y);
-        // Only update if moved more than 50px
-        if (dx < 50 && dy < 50) return;
-      }
+  //   const handleMouseMove = (e: MouseEvent) => {
+  //     // Only track significant movements to avoid flooding
+  //     if (lastInput && lastInput.type === "mouse" && lastInput.position) {
+  //       const dx = Math.abs(e.clientX - lastInput.position.x);
+  //       const dy = Math.abs(e.clientY - lastInput.position.y);
+  //       // Only update if moved more than 50px
+  //       if (dx < 50 && dy < 50) return;
+  //     }
 
-      setLastInput({
-        type: "mouse",
-        position: { x: e.clientX, y: e.clientY },
-        timestamp: Date.now(),
-      });
-    };
+  //     setLastInput({
+  //       type: "mouse",
+  //       position: { x: e.clientX, y: e.clientY },
+  //       timestamp: Date.now(),
+  //     });
+  //   };
 
-    const handleMouseClick = (e: MouseEvent) => {
-      setLastInput({
-        type: "mouse",
-        button: e.button,
-        position: { x: e.clientX, y: e.clientY },
-        timestamp: Date.now(),
-      });
+    // const handleMouseClick = (e: MouseEvent) => {
+      // setLastInput({
+      //   type: "mouse",
+      //   button: e.button,
+      //   position: { x: e.clientX, y: e.clientY },
+      //   timestamp: Date.now(),
+      // });
 
-      toast({
-        title: "Mouse Input",
-        description: `Button: ${
-          e.button === 0 ? "Left" : e.button === 1 ? "Middle" : "Right"
-        } at X: ${e.clientX}, Y: ${e.clientY}`,
-        duration: 1500,
-      });
-    };
+      // toast({
+      //   title: "Mouse Input",
+      //   description: `Button: ${
+      //     e.button === 0 ? "Left" : e.button === 1 ? "Middle" : "Right"
+      //   } at X: ${e.clientX}, Y: ${e.clientY}`,
+      //   duration: 1500,
+      // });
+    // };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mousedown", handleMouseClick);
+    // window.addEventListener("mousemove", handleMouseMove);
+    // window.addEventListener("mousedown", handleMouseClick);
 
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mousedown", handleMouseClick);
-    };
-  }, [canTrackMouse, lastInput]);
+    // return () => {
+    //   window.removeEventListener("mousemove", handleMouseMove);
+    //   window.removeEventListener("mousedown", handleMouseClick);
+    // };
+  // }, [canTrackMouse, lastInput]);
 
   // Track keyboard input
   useEffect(() => {

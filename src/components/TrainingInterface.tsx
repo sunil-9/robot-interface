@@ -452,13 +452,15 @@ export const TrainingInterface = ({
   };
 
   // Fetch episodes
-  const fetchEpisodes = async () => {
-    if (!selectedDataset) {
+  const fetchEpisodes = async (datasetIdOverride?: string) => {
+    const datasetId =
+      datasetIdOverride ?? selectedDatasetRef.current ?? selectedDataset;
+    if (!datasetId) {
       return;
     }
 
     try {
-      const response = await episodeApi.listEpisodes(selectedDataset);
+      const response = await episodeApi.listEpisodes(datasetId);
       setEpisodes(response.episodes);
     } catch (error) {
       console.error("Failed to fetch episodes:", error);
@@ -677,7 +679,7 @@ export const TrainingInterface = ({
 
         if (action === "collection_stop_ack") {
           setIsSavingEpisode(false);
-          fetchEpisodes();
+          fetchEpisodes(datasetId ?? undefined);
           toast({
             title: "Recording stopped",
             description: datasetId
@@ -708,6 +710,8 @@ export const TrainingInterface = ({
       if (type !== "deploy") {
         return;
       }
+      //println!("Deploy payload: {:?}", payload);
+      console.log(payload, "obtained from the robot backend");
 
       const rawPayload = record.payload;
       if (!rawPayload || typeof rawPayload !== "object") {
@@ -792,7 +796,7 @@ export const TrainingInterface = ({
         title: "Success",
         description: "Episode deleted successfully",
       });
-      fetchEpisodes();
+      fetchEpisodes(datasetId);
       setDeleteConfirmOpen(false);
       setEpisodeToDelete(null);
     } catch (error) {

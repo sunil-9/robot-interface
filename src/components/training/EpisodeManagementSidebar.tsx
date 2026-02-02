@@ -64,6 +64,9 @@ interface EpisodeManagementSidebarProps {
   onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
   accentColor?: AccentColor;
   robotId?: string | null;
+  isRecording?: boolean;
+  recordingElapsedTime?: number;
+  isSavingEpisode?: boolean;
 }
 
 interface EpisodeManagementContentProps extends Omit<
@@ -89,6 +92,9 @@ export const EpisodeManagementContent = ({
   accentColor = "accent",
   className,
   robotId,
+  isRecording = false,
+  recordingElapsedTime = 0,
+  isSavingEpisode = false,
 }: EpisodeManagementContentProps) => {
   const [interval, setInterval] = useState<number[]>([25]);
   const [trainingJob, setTrainingJob] =
@@ -118,8 +124,11 @@ export const EpisodeManagementContent = ({
     }
 
     let cancelled = false;
-    const loadTrainingStatus = async () => {
-      setIsTrainingLoading(true);
+    const loadTrainingStatus = async (isInitialLoad = false) => {
+      // Only show loading state on initial load, not on polling updates
+      if (isInitialLoad) {
+        setIsTrainingLoading(true);
+      }
       setTrainingError(null);
       try {
         const result =
@@ -141,16 +150,23 @@ export const EpisodeManagementContent = ({
             : "Failed to load training status",
         );
       } finally {
-        if (!cancelled) {
+        if (!cancelled && isInitialLoad) {
           setIsTrainingLoading(false);
         }
       }
     };
 
-    void loadTrainingStatus();
+    // Initial load
+    void loadTrainingStatus(true);
+
+    // Poll every 5 seconds
+    const pollInterval = window.setInterval(() => {
+      void loadTrainingStatus(false);
+    }, 5000);
 
     return () => {
       cancelled = true;
+      window.clearInterval(pollInterval);
     };
   }, [isActive, selectedDataset]);
 
@@ -168,20 +184,46 @@ export const EpisodeManagementContent = ({
         ? "Checking"
         : "Not Running";
 
-  const trainingStatusDescription =
+  const trainingStatusText =
     trainingError ??
     trainingMessage ??
     (!selectedDataset
       ? "Select a dataset to check training status"
-      : trainingJob
-        ? `Policy: ${trainingJob.policy_type || "N/A"} </br>• Mode: ${
-            trainingJob.mode || "N/A"
-          }`
-        : "No active training job");
+      : !trainingJob
+        ? "No active training job"
+        : null);
+
+  const formatStartedAt = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    const timeStr = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    if (isToday) {
+      return `Today at ${timeStr}`;
+    } else if (isYesterday) {
+      return `Yesterday at ${timeStr}`;
+    } else {
+      const dateStr = date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+      });
+      return `${dateStr} at ${timeStr}`;
+    }
+  };
 
   const startedAtLabel =
     trainingJob?.started_at && trainingJob.started_at !== ""
-      ? new Date(trainingJob.started_at).toLocaleString()
+      ? formatStartedAt(trainingJob.started_at)
       : null;
 
   return (
@@ -201,7 +243,7 @@ export const EpisodeManagementContent = ({
         onRequestDelete={onRequestDeleteDataset}
       />
 
-      <div className="overflow-y-auto  h-[52%] p-2 dark:bg-muted/30">
+      <div className="overflow-y-auto  min-h-[44%] h-[44%] p-2 dark:bg-muted/30">
         <EpisodeList
           selectedDataset={selectedDataset}
           episodes={episodes}
@@ -215,6 +257,9 @@ export const EpisodeManagementContent = ({
               ? viewerState.episodeIndex
               : null
           }
+          isRecording={isRecording}
+          recordingElapsedTime={recordingElapsedTime}
+          isSavingEpisode={isSavingEpisode}
         />
       </div>
       <div className=" fixed bottom-5 border-t border-border bg-card pt-3 w-[330px]">
@@ -245,13 +290,20 @@ export const EpisodeManagementContent = ({
           </Badge>
         </div>
 
-        <p
-          className="text-sm text-muted-foreground mb-3 truncate"
-          title={trainingStatusDescription}
-        >
-          {trainingStatusDescription}
-          {startedAtLabel ? ` • Started ${startedAtLabel}` : ""}
-        </p>
+        <div className="text-sm text-muted-foreground mb-3">
+          {trainingStatusText ? (
+            <span className="truncate block">{trainingStatusText}</span>
+          ) : trainingJob ? (
+            <div className="flex flex-col gap-0.5">
+              <span>Policy: {trainingJob.policy_type || "N/A"}</span>
+              <span>Mode: {trainingJob.mode || "N/A"}</span>
+              {startedAtLabel && <span>Started: {startedAtLabel}</span>}
+            </div>
+          ) : null}
+          {trainingStatusText && startedAtLabel && (
+            <span className="truncate block">Started: {startedAtLabel}</span>
+          )}
+        </div>
 
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1.5">

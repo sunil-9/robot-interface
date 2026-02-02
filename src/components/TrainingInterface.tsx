@@ -42,6 +42,11 @@ export const TrainingInterface = ({
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
+    null,
+  );
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [isSavingEpisode, setIsSavingEpisode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Initialize sidebarTab from URL params, default to "secondary"
@@ -111,6 +116,38 @@ export const TrainingInterface = ({
   useEffect(() => {
     selectedDatasetRef.current = selectedDataset;
   }, [selectedDataset]);
+
+  // Recording timer effect
+  useEffect(() => {
+    if (isRecording) {
+      setRecordingStartTime(Date.now());
+      setElapsedTime(0);
+    } else {
+      setRecordingStartTime(null);
+    }
+  }, [isRecording]);
+
+  useEffect(() => {
+    if (!recordingStartTime) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setElapsedTime(Math.floor((Date.now() - recordingStartTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [recordingStartTime]);
+
+  const formatElapsedTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   useEffect(() => {
     deployDatasetRef.current = deployDatasetId;
@@ -415,13 +452,15 @@ export const TrainingInterface = ({
   };
 
   // Fetch episodes
-  const fetchEpisodes = async () => {
-    if (!selectedDataset) {
+  const fetchEpisodes = async (datasetIdOverride?: string) => {
+    const datasetId =
+      datasetIdOverride ?? selectedDatasetRef.current ?? selectedDataset;
+    if (!datasetId) {
       return;
     }
 
     try {
-      const response = await episodeApi.listEpisodes(selectedDataset);
+      const response = await episodeApi.listEpisodes(datasetId);
       setEpisodes(response.episodes);
     } catch (error) {
       console.error("Failed to fetch episodes:", error);
@@ -506,11 +545,8 @@ export const TrainingInterface = ({
       }
 
       setIsRecording(false);
+      setIsSavingEpisode(true);
       setCurrentEpisodeId(null);
-      // Update episodes list if episode management UI is visible
-      if (episodePanelActive) {
-        fetchEpisodes();
-      }
     } catch (error) {
       console.error("Failed to end episode:", error);
     } finally {
@@ -587,9 +623,95 @@ export const TrainingInterface = ({
 
       const record = payload as Record<string, unknown>;
       const type = typeof record.type === "string" ? record.type : null;
+
+      // Handle dataset collection responses
+      if (type === "dataset") {
+        console.log(payload, "obtained from the robot backend");
+        const rawPayload = record.payload;
+        if (!rawPayload || typeof rawPayload !== "object") {
+          return;
+        }
+        const datasetPayload = rawPayload as Record<string, unknown>;
+        const action =
+          typeof datasetPayload.action === "string"
+            ? datasetPayload.action.toLowerCase()
+            : null;
+        const status =
+          typeof datasetPayload.status === "string"
+            ? datasetPayload.status
+            : null;
+        const message =
+          typeof datasetPayload.message === "string"
+            ? datasetPayload.message
+            : null;
+        const datasetId =
+          typeof datasetPayload.datasetId === "string"
+            ? datasetPayload.datasetId
+            : typeof datasetPayload.dataset_id === "string"
+              ? datasetPayload.dataset_id
+              : null;
+
+        if (action === "collection_start_ack") {
+          toast({
+            title: "Recording started",
+            description: datasetId
+              ? `Recording episode for dataset "${datasetId}"`
+              : "Episode recording has started",
+          });
+          return;
+        }
+
+        if (action === "collection_start_nack") {
+          setIsRecording(false);
+          setCurrentEpisodeId(null);
+          setMode(AppMode.TRAINING);
+          toast({
+            title: "Failed to start recording",
+            description: message
+              ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+              : datasetId
+                ? `Could not start recording for dataset "${datasetId}"`
+                : "Could not start recording. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (action === "collection_stop_ack") {
+          setIsSavingEpisode(false);
+          fetchEpisodes(datasetId ?? undefined);
+          toast({
+            title: "Recording stopped",
+            description: datasetId
+              ? `Episode saved for dataset "${datasetId}"`
+              : "Episode recording has been saved",
+          });
+          return;
+        }
+
+        if (action === "collection_stop_nack") {
+          setIsSavingEpisode(false);
+          toast({
+            title: "Failed to stop recording",
+            description: message
+              ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+              : datasetId
+                ? `Could not stop recording for dataset "${datasetId}"`
+                : "Could not stop recording. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        return;
+      }
+
+      // Handle deploy responses
       if (type !== "deploy") {
         return;
       }
+      //println!("Deploy payload: {:?}", payload);
+      console.log(payload, "obtained from the robot backend");
 
       const rawPayload = record.payload;
       if (!rawPayload || typeof rawPayload !== "object") {
@@ -639,8 +761,7 @@ export const TrainingInterface = ({
       }
 
       if (action === "deploy_nack" || status === "error") {
-        setIsDeploying(false);
-        setDeployDatasetId(null);
+        // Don't change isDeploying state on error - keep button in current state
         toast({
           title: "Deployment failed",
           description:
@@ -675,7 +796,7 @@ export const TrainingInterface = ({
         title: "Success",
         description: "Episode deleted successfully",
       });
-      fetchEpisodes();
+      fetchEpisodes(datasetId);
       setDeleteConfirmOpen(false);
       setEpisodeToDelete(null);
     } catch (error) {
@@ -777,7 +898,22 @@ export const TrainingInterface = ({
               />
             </div>
 
-            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs opacity-50 transition-opacity hover:opacity-100">
+            <div className="absolute right-5 top-5 z-20 flex flex-col items-end gap-2 bg-transparent text-xs transition-opacity hover:opacity-100">
+              {/* Recording Timer */}
+              {isRecording && (
+                <div className="flex items-center gap-2 rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-2 shadow-lg backdrop-blur animate-in fade-in slide-in-from-right-2 duration-300">
+                  <span className="relative flex h-3 w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
+                  </span>
+                  <span className="font-mono text-lg font-semibold text-red-500">
+                    {formatElapsedTime(elapsedTime)}
+                  </span>
+                  <span className="text-xs uppercase tracking-wide text-red-400">
+                    REC
+                  </span>
+                </div>
+              )}
               {/* 
               todo: add session status indicators back
               <div className="rounded-xl border border-border bg-card/85 px-3 py-2 text-muted-foreground shadow-lg backdrop-blur">
@@ -905,6 +1041,9 @@ export const TrainingInterface = ({
                 onPromptDeleteEpisode: promptDeleteEpisode,
                 accentColor: "accent",
                 robotId,
+                isRecording,
+                recordingElapsedTime: elapsedTime,
+                isSavingEpisode,
               }}
             />
           </div>

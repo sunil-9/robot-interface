@@ -44,13 +44,12 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   const canTrackKeyboard = !controlType
     ? true
     : controlType.toLowerCase().includes("keyboard");
-  const canTrackMouse = !controlType
-    ? true
-    : controlType.toLowerCase().includes("mouse");
+  // const canTrackMouse = !controlType
+  //   ? true
+  //   : controlType.toLowerCase().includes("mouse");
   const canTrackGamepad = !controlType
     ? true
-    : controlType.toLowerCase().includes("gamepad") ||
-      controlType.toLowerCase().includes("joystick");
+    : controlType.toLowerCase() === "ps5joystick";
 
   const sendTelemetry = useCallback(
     (payload: Record<string, unknown>) => {
@@ -68,7 +67,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         console.warn("Failed to send input telemetry", envelope);
       }
     },
-    [session, controlType]
+    [session, controlType],
   );
 
   // Track mouse movements and clicks
@@ -91,40 +90,41 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   //     });
   //   };
 
-    // const handleMouseClick = (e: MouseEvent) => {
-      // setLastInput({
-      //   type: "mouse",
-      //   button: e.button,
-      //   position: { x: e.clientX, y: e.clientY },
-      //   timestamp: Date.now(),
-      // });
+  // const handleMouseClick = (e: MouseEvent) => {
+  // setLastInput({
+  //   type: "mouse",
+  //   button: e.button,
+  //   position: { x: e.clientX, y: e.clientY },
+  //   timestamp: Date.now(),
+  // });
 
-      // toast({
-      //   title: "Mouse Input",
-      //   description: `Button: ${
-      //     e.button === 0 ? "Left" : e.button === 1 ? "Middle" : "Right"
-      //   } at X: ${e.clientX}, Y: ${e.clientY}`,
-      //   duration: 1500,
-      // });
-    // };
+  // toast({
+  //   title: "Mouse Input",
+  //   description: `Button: ${
+  //     e.button === 0 ? "Left" : e.button === 1 ? "Middle" : "Right"
+  //   } at X: ${e.clientX}, Y: ${e.clientY}`,
+  //   duration: 1500,
+  // });
+  // };
 
-    // window.addEventListener("mousemove", handleMouseMove);
-    // window.addEventListener("mousedown", handleMouseClick);
+  // window.addEventListener("mousemove", handleMouseMove);
+  // window.addEventListener("mousedown", handleMouseClick);
 
-    // return () => {
-    //   window.removeEventListener("mousemove", handleMouseMove);
-    //   window.removeEventListener("mousedown", handleMouseClick);
-    // };
+  // return () => {
+  //   window.removeEventListener("mousemove", handleMouseMove);
+  //   window.removeEventListener("mousedown", handleMouseClick);
+  // };
   // }, [canTrackMouse, lastInput]);
 
   // Track keyboard input
-  
+
   useEffect(() => {
     if (!canTrackKeyboard) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't capture F5, browser shortcuts etc.
       if (e.metaKey || e.ctrlKey || e.altKey) return;
+      console.log("key pressed: ", e.key);
 
       setLastInput({
         type: "keyboard",
@@ -162,7 +162,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
     const pollGamepads = () => {
       const rawGamepads = navigator.getGamepads ? navigator.getGamepads() : [];
       const connected = Array.from(rawGamepads).filter(
-        (item): item is Gamepad => Boolean(item)
+        (item): item is Gamepad => Boolean(item),
       );
 
       setGamepads(connected);
@@ -199,22 +199,22 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
         // Apply deadzone to axes
         const normalizedAxes = gamepad.axes.map((value) =>
-          Math.abs(value) < AXIS_DEADZONE ? 0 : value
+          Math.abs(value) < AXIS_DEADZONE ? 0 : value,
         );
 
         // Check if any axes or buttons have changed
         const axesChanged = normalizedAxes.some(
-          (value, idx) => Math.abs(value - (state.axes[idx] || 0)) > 0.01
+          (value, idx) => Math.abs(value - (state.axes[idx] || 0)) > 0.01,
         );
         const buttonsChanged = gamepad.buttons.some(
           (button, idx) =>
             button.pressed !== state.buttons[idx]?.pressed ||
-            Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01
+            Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01,
         );
 
         const axesActive = normalizedAxes.some((value) => value !== 0);
         const buttonsActive = gamepad.buttons.some(
-          (button) => button.pressed || button.value > BUTTON_ACTIVE_THRESHOLD
+          (button) => button.pressed || button.value > BUTTON_ACTIVE_THRESHOLD,
         );
         const shouldRepeat =
           !axesChanged &&
@@ -315,7 +315,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
       window.removeEventListener("gamepadconnected", handleGamepadConnected);
       window.removeEventListener(
         "gamepaddisconnected",
-        handleGamepadDisconnected
+        handleGamepadDisconnected,
       );
     };
   }, [canTrackGamepad, session]);

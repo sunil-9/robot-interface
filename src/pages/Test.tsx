@@ -1,13 +1,14 @@
 import { InputTracker } from "@/components/InputTracker";
 import { Button } from "@/components/ui/button";
+import { getSelectedController, getSelectedRobot } from "@/lib/sessionStore";
 import { ArrowLeft } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function TestPage() {
   const navigate = useNavigate();
-  const selectedRobot = sessionStorage.getItem("selectedRobot");
-  const selectedControl = sessionStorage.getItem("selectedControl");
+  const selectedRobot = getSelectedRobot();
+  const selectedControl = getSelectedController();
 
   // Redirect to home if no selections are made
   useEffect(() => {

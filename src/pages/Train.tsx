@@ -7,6 +7,13 @@ import { useModeContext } from "@/hooks/useModeContext";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 import { fetchSignalingConfig } from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
+import {
+  getSessionRobotData,
+  getSignalingConfig,
+  setConnectionReady,
+  setSessionRobotData,
+  setSignalingConfig,
+} from "@/lib/sessionStore";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -24,24 +31,16 @@ export default function TrainPage() {
   const [currentRobot, setCurrentRobot] = useState<string | null>(null);
   const [currentControl, setCurrentControl] = useState<string | null>(null);
 
-  // Get session data from URL params or from session storage
-  const sessionData = (() => {
-    try {
-      const storedData = sessionStorage.getItem("sessionData");
-      return storedData ? JSON.parse(storedData) : null;
-    } catch (e) {
-      console.error("Failed to parse session data", e);
-      return null;
-    }
-  })();
+  // Get robot session data from URL params or from session storage
+  const sessionRobotData = getSessionRobotData();
 
   // Prioritize URL params over session storage, then local state for better user experience
   const selectedRobot: string | null =
-    currentRobot || params.get("robot") || sessionData?.robot || null;
+    currentRobot || params.get("robot") || sessionRobotData?.robot || null;
   const selectedControl: string | null =
     currentControl ||
     params.get("controller") ||
-    sessionData?.controller ||
+    sessionRobotData?.controller ||
     null;
 
   const session = useWebRTCSession({
@@ -62,15 +61,11 @@ export default function TrainPage() {
       navigate(`/?${newParams.toString()}`, { replace: true });
 
       // Update session storage
-      const sessionData = {
+      setSessionRobotData({
         robot: robotId,
         controller: controllerId,
         mode: "train",
-        timestamp: new Date().toISOString(),
-      };
-      sessionStorage.setItem("sessionData", JSON.stringify(sessionData));
-      sessionStorage.setItem("selectedRobot", robotId);
-      sessionStorage.setItem("selectedControl", controllerId);
+      });
 
       toast({
         title: "Session started",
@@ -165,50 +160,21 @@ export default function TrainPage() {
     };
 
     const parseStoredConfig = (): { baseUrl: string; wsUrl: string } | null => {
-      const stored = sessionStorage.getItem("signalingConfig");
+      const stored = getSignalingConfig();
       if (!stored) {
         return null;
       }
-      try {
-        const parsed = JSON.parse(stored);
-        if (!parsed || typeof parsed !== "object") {
-          return null;
-        }
-        const record = parsed as Record<string, unknown>;
-        const baseCandidate =
-          typeof record.webrtc_base_url === "string"
-            ? record.webrtc_base_url
-            : typeof record.signaling_base_url === "string"
-              ? record.signaling_base_url
-              : null;
-        const wsCandidate =
-          typeof record.signaling_ws_url === "string"
-            ? record.signaling_ws_url
-            : null;
-        if (!baseCandidate && !wsCandidate) {
-          return null;
-        }
-        const baseUrl = toHttpBase(baseCandidate);
-        const wsUrl = trimTrailingSlash(
-          wsCandidate ? toWebSocketUrl(wsCandidate) : toWebSocketUrl(baseUrl),
-        );
-        return { baseUrl, wsUrl };
-      } catch (error) {
-        console.warn("Failed to parse stored signaling config", error);
-        return null;
-      }
+      const baseUrl = toHttpBase(stored.webrtc_base_url);
+      const wsUrl = trimTrailingSlash(
+        stored.signaling_ws_url
+          ? toWebSocketUrl(stored.signaling_ws_url)
+          : toWebSocketUrl(baseUrl),
+      );
+      return { baseUrl, wsUrl };
     };
 
     const persistConfig = (config: { baseUrl: string; wsUrl: string }) => {
-      sessionStorage.setItem(
-        "signalingConfig",
-        JSON.stringify({
-          signaling_base_url: config.baseUrl,
-          webrtc_base_url: config.baseUrl,
-          signaling_ws_url: config.wsUrl,
-        }),
-      );
-      sessionStorage.setItem("connection_ready", "1");
+      setSignalingConfig(config);
     };
 
     const ensureSignalingConfig = async (): Promise<{
@@ -217,7 +183,7 @@ export default function TrainPage() {
     }> => {
       const fromStorage = parseStoredConfig();
       if (fromStorage) {
-        sessionStorage.setItem("connection_ready", "1");
+        setConnectionReady(true);
         return fromStorage;
       }
 
@@ -248,22 +214,13 @@ export default function TrainPage() {
         return;
       }
 
-      // Support legacy components with individual session storage items
-      // while maintaining our new structured approach
       try {
-        // Update session storage with current values for backward compatibility
-        if (sessionData) {
-          console.log("Storing session data for training session", sessionData);
-          Object.entries(sessionData).forEach(([key, value]) => {
-            if (typeof value === "string") {
-              sessionStorage.setItem(key, value);
-            }
-          });
-        }
-
-        // Fallback for direct session storage access in legacy components
-        sessionStorage.setItem("selectedRobot", selectedRobot);
-        sessionStorage.setItem("selectedControl", selectedControl);
+        // Update session storage with current values
+        setSessionRobotData({
+          robot: selectedRobot,
+          controller: selectedControl,
+          mode: "train",
+        });
 
         const config = await ensureSignalingConfig();
         if (disposed) {
@@ -285,7 +242,7 @@ export default function TrainPage() {
     return () => {
       disposed = true;
     };
-  }, [selectedRobot, selectedControl, sessionData, navigate]);
+  }, [selectedRobot, selectedControl, sessionRobotData, navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">

@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { cloudConfig } from "@/lib/config";
+import { getSelectedRobot, getSignalingConfig } from "@/lib/sessionStore";
 
 type CameraId = "head" | "left" | "right";
 
@@ -23,21 +24,9 @@ const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, "");
 
 const getSignalingEndpoints = () => {
   let baseUrl = cloudConfig.signalingBaseUrl;
-  const storedConfig = sessionStorage.getItem("signalingConfig");
+  const storedConfig = getSignalingConfig();
   if (storedConfig) {
-    try {
-      const parsed = JSON.parse(storedConfig);
-      if (typeof parsed.webrtc_base_url === "string") {
-        baseUrl = parsed.webrtc_base_url;
-      } else if (typeof parsed.signaling_base_url === "string") {
-        baseUrl = parsed.signaling_base_url;
-      }
-    } catch (error) {
-      console.warn(
-        "Failed to parse signalingConfig from session storage:",
-        error
-      );
-    }
+    baseUrl = storedConfig.webrtc_base_url || storedConfig.signaling_base_url;
   }
 
   const normalized = trimTrailingSlash(baseUrl);
@@ -72,7 +61,7 @@ export async function connectWebRTC() {
 
   const endpoints = getSignalingEndpoints();
 
-  const roomId = sessionStorage.getItem("selectedRobot") ?? undefined;
+  const roomId = getSelectedRobot() ?? undefined;
   peerId = null;
   connected = false;
 
@@ -248,7 +237,7 @@ export function useWebRTCClient() {
         };
       },
     }),
-    [tick]
+    [tick],
   );
 
   return api;

@@ -1047,7 +1047,6 @@ export const TrainingInterface = ({
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
                 onPromptDeleteEpisode: promptDeleteEpisode,
-                accentColor: "accent",
                 robotId,
                 isRecording,
                 recordingElapsedTime: elapsedTime,

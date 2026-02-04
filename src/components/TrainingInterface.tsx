@@ -1,6 +1,7 @@
 import { API_CONFIG } from "@/config/api";
 import { AppMode } from "@/context/ModeContextDef";
 import { useBridgeData } from "@/hooks/useBridgeData";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
@@ -48,16 +49,45 @@ export const TrainingInterface = ({
   const location = useLocation();
   const { viewerState: episodeViewerState } = useEpisodeViewer();
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Use shared episode control context
+  const episodeControl = useEpisodeControlContext();
+  const {
+    isRecording,
+    currentEpisodeId,
+    isLoading: episodeLoading,
+    isSavingEpisode,
+    selectedDataset,
+    startEpisode: contextStartEpisode,
+    endEpisode: contextEndEpisode,
+    setSelectedDataset,
+    setSession,
+    setRobotId,
+    setControllerId,
+    setIsSavingEpisode,
+    setIsRecording,
+    setCurrentEpisodeId,
+  } = episodeControl;
+
+  // Sync session, robotId, controllerId to context
+  useEffect(() => {
+    setSession(session);
+  }, [session, setSession]);
+
+  useEffect(() => {
+    setRobotId(robotId);
+  }, [robotId, setRobotId]);
+
+  useEffect(() => {
+    setControllerId(controllerId);
+  }, [controllerId, setControllerId]);
+
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
     null,
   );
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isSavingEpisode, setIsSavingEpisode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize sidebarTab from URL params, default to "secondary"
   const params = useMemo(
@@ -82,7 +112,7 @@ export const TrainingInterface = ({
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
-  const [selectedDataset, setSelectedDataset] = useState<string>("");
+  // selectedDataset and setSelectedDataset come from episodeControl context
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
@@ -125,6 +155,7 @@ export const TrainingInterface = ({
     if (tabFromUrl && tabFromUrl !== sidebarTab) {
       setSidebarTab(tabFromUrl);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabFromUrl]);
 
   useEffect(() => {
@@ -418,7 +449,7 @@ export const TrainingInterface = ({
     } finally {
       setIsLoadingDatasets(false);
     }
-  }, [selectedDataset]);
+  }, [selectedDataset, setSelectedDataset]);
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
@@ -488,106 +519,19 @@ export const TrainingInterface = ({
   };
 
   const startEpisode = async () => {
-    // console.log(
-    //   selectedDataset,
-    //   controllerId,
-    //   robotId,
-    //   "sending data to robot backend",
-    // );
-    if (!selectedDataset) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!robotId) {
-      toast({
-        title: "Error",
-        description: "Select a robot before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!controllerId) {
-      toast({
-        title: "Error",
-        description: "Select a control device before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const sent = session.sendControl({
-        type: "dataset",
-        payload: {
-          action: "start",
-          datasetId: selectedDataset,
-        },
-      });
-
-      if (!sent) {
-        toast({
-          title: "Error",
-          description: "Failed to send start request to robot",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setCurrentEpisodeId((prev) => prev ?? "pending");
-      setIsRecording(true);
+    const success = await contextStartEpisode();
+    if (success) {
+      setMode(AppMode.RECORDING);
       // Update episodes list if episode management UI is visible
       if (episodePanelActive) {
         fetchEpisodes();
       }
-    } catch (error) {
-      console.error("Failed to start episode:", error);
-    } finally {
-      setMode(AppMode.RECORDING);
-      setIsLoading(false);
     }
   };
 
   const endEpisode = async () => {
-    if (!selectedDataset) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
     setMode(AppMode.TRAINING);
-    try {
-      const sent = session.sendControl({
-        type: "dataset",
-        payload: {
-          action: "stop",
-          datasetId: selectedDataset,
-        },
-      });
-
-      if (!sent) {
-        toast({
-          title: "Error",
-          description: "Failed to send stop request to robot",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsRecording(false);
-      setIsSavingEpisode(true);
-      setCurrentEpisodeId(null);
-    } catch (error) {
-      console.error("Failed to end episode:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    await contextEndEpisode();
   };
 
   const rewindEpisode = async () => {
@@ -863,20 +807,17 @@ export const TrainingInterface = ({
         return;
       }
       if (action === "deploy_stop_ack" || status === "stopped") {
-          setIsDeploying(false);
-          setDeployDatasetId(null);
-        
+        setIsDeploying(false);
+        setDeployDatasetId(null);
+
         toast({
           title: "Deployment stopped",
-          description:
-            message ??
-            "Deployment has been stopped successfully.",
+          description: message ?? "Deployment has been stopped successfully.",
           variant: "default",
         });
 
         return;
       }
-
 
       if (action === "deploy_status") {
         const deployingDataset =
@@ -913,7 +854,8 @@ export const TrainingInterface = ({
     return () => {
       unsubscribe();
     };
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, setIsRecording, setCurrentEpisodeId, setIsSavingEpisode]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string, episodeId: string) => {

@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { toast } from "@/components/ui/use-toast";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import { Gamepad, Keyboard, MousePointer, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -24,6 +25,7 @@ interface InputTrackerProps {
 }
 
 export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
+  const episodeControl = useEpisodeControlContext();
   const [lastInput, setLastInput] = useState<{
     type: "mouse" | "keyboard" | "gamepad" | null;
     key?: string;
@@ -262,6 +264,18 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
           return;
         }
 
+        // Button 0 = stop/end episode, Button 3 = start episode
+        if (buttonsRecord[0] === 1) {
+          episodeControl.endEpisode();
+          return;
+        }
+
+        if (buttonsRecord[3] === 1) {
+          episodeControl.startEpisode();
+          return;
+        }
+
+        // Send control commands for all other inputs
         const payload = {
           type: "control",
           timestamp: now,
@@ -318,7 +332,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         handleGamepadDisconnected,
       );
     };
-  }, [canTrackGamepad, session]);
+  }, [canTrackGamepad, session, episodeControl]);
 
   if (!isVisible) return null;
 

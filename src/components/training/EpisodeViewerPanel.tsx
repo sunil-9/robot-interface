@@ -9,7 +9,6 @@ import { getEpisodeDataSafe } from "@/visualization/pages/fetch-data";
 import { useEpisodeViewer } from "./EpisodeViewerContext";
 
 interface EpisodeViewerPanelProps {
-  p;
   className?: string;
 }
 

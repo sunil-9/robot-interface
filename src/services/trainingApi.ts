@@ -12,6 +12,7 @@ export interface TrainingJob {
   started_at: string;
   resume_from: string;
   current_step: number;
+  target_step: number;
 }
 
 export interface TrainingJobDetail {

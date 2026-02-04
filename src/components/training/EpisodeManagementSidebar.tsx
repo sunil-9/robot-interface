@@ -312,7 +312,7 @@ export const EpisodeManagementContent = ({
             </span>
             <span className="text-xs font-mono text-foreground">
               {trainingJob ? trainingJob.current_step : 0} /{" "}
-              {trainingJob ? trainingJob.requested_steps : 0} steps
+              {trainingJob ? trainingJob.target_step : 0} steps
             </span>
           </div>
           <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
@@ -320,10 +320,10 @@ export const EpisodeManagementContent = ({
               className="h-full rounded-full bg-primary transition-all duration-300"
               style={{
                 width: `${
-                  trainingJob && trainingJob.requested_steps > 0
+                  trainingJob && trainingJob.target_step > 0
                     ? Math.min(
                         (trainingJob.current_step /
-                          trainingJob.requested_steps) *
+                          trainingJob.target_step) *
                           100,
                         100,
                       )

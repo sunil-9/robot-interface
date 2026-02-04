@@ -44,7 +44,7 @@ export const RecordingControls = ({
 
   return (
     <div
-      className={`pointer-events-none ${
+      className={`pointer-events-none  ${
         isCompact
           ? "px-3 py-2"
           : "fixed bottom-6 left-1/2 z-40 -translate-x-1/2"

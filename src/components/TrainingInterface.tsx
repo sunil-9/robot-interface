@@ -443,8 +443,11 @@ export const TrainingInterface = ({
     try {
       const datasetList = await fetchDatasets();
       setDatasets(datasetList);
-      // Set first dataset as default if none selected
-      if (datasetList.length > 0 && !selectedDataset) {
+      // Set first dataset as default if none selected OR if selected dataset doesn't exist
+      if (
+        datasetList.length > 0 &&
+        (!selectedDataset || !datasetList.includes(selectedDataset))
+      ) {
         setSelectedDataset(datasetList[0]);
       }
     } catch (error) {

@@ -14,6 +14,8 @@ import {
   type ReactNode,
 } from "react";
 
+const SELECTED_DATASET_STORAGE_KEY = "im-selected-dataset";
+
 export interface EpisodeControlState {
   isRecording: boolean;
   currentEpisodeId: string | null;
@@ -73,7 +75,29 @@ export function EpisodeControlProvider({
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingEpisode, setIsSavingEpisode] = useState(false);
-  const [selectedDataset, setSelectedDataset] = useState("");
+
+  // Initialize selectedDataset from localStorage
+  const [selectedDataset, setSelectedDatasetState] = useState(() => {
+    try {
+      return localStorage.getItem(SELECTED_DATASET_STORAGE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
+
+  // Persist selectedDataset to localStorage when it changes
+  const setSelectedDataset = useCallback((datasetId: string) => {
+    setSelectedDatasetState(datasetId);
+    try {
+      if (datasetId) {
+        localStorage.setItem(SELECTED_DATASET_STORAGE_KEY, datasetId);
+      } else {
+        localStorage.removeItem(SELECTED_DATASET_STORAGE_KEY);
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, []);
 
   // Deploy state
   const [isDeploying, setIsDeploying] = useState(false);

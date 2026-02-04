@@ -1,4 +1,4 @@
-import { Brain, Loader2, Zap } from "lucide-react";
+import { Brain, Eye, Loader2, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -26,11 +26,14 @@ export const ModelTrainingSection = ({
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
   const [isTrainingLoading, setIsTrainingLoading] = useState(false);
   const [trainingError, setTrainingError] = useState<string | null>(null);
+  const [checkpointStatus, setCheckpointStatus] =
+    useState<trainingApi.CheckpointStatus | null>(null);
 
   useEffect(() => {
     if (!isActive || !selectedDataset) {
       setTrainingJob(null);
       setTrainingMessage(null);
+      setCheckpointStatus(null);
       return;
     }
 
@@ -42,19 +45,23 @@ export const ModelTrainingSection = ({
       }
       setTrainingError(null);
       try {
-        const result =
-          await trainingApi.fetchTrainingJobStatus(selectedDataset);
+        const [trainingResult, checkpointResult] = await Promise.all([
+          trainingApi.fetchTrainingJobStatus(selectedDataset),
+          trainingApi.fetchCheckpointStatus(selectedDataset),
+        ]);
         if (cancelled) {
           return;
         }
-        setTrainingJob(result.job);
-        setTrainingMessage(result.message ?? null);
+        setTrainingJob(trainingResult.job);
+        setTrainingMessage(trainingResult.message ?? null);
+        setCheckpointStatus(checkpointResult.status);
       } catch (error) {
         if (cancelled) {
           return;
         }
         setTrainingJob(null);
         setTrainingMessage(null);
+        setCheckpointStatus(null);
         setTrainingError(
           error instanceof Error
             ? error.message
@@ -163,6 +170,7 @@ export const ModelTrainingSection = ({
           </span>
         </Badge>
       </div>
+      {/* // Training status text or details */}
 
       <div className="text-sm text-muted-foreground mb-3">
         {trainingStatusText ? (
@@ -178,6 +186,36 @@ export const ModelTrainingSection = ({
           <span className="truncate block">Started: {startedAtLabel}</span>
         )}
       </div>
+
+      {checkpointStatus && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3 p-2 rounded-md bg-muted/50">
+          <span>
+            Checkpoint:{" "}
+            {checkpointStatus.available ? (
+              <span className="text-green-600 dark:text-green-400">
+                Available (Step {checkpointStatus.latest_step.toLocaleString()})
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Not available</span>
+            )}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={() => {
+              // TODO: Open details popup
+              console.log(
+                "View checkpoint details for:",
+                checkpointStatus.dataset_id,
+              );
+            }}
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            View Details
+          </Button>
+        </div>
+      )}
 
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1.5">

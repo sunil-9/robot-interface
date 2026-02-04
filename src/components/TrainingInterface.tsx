@@ -57,8 +57,15 @@ export const TrainingInterface = ({
     isLoading: episodeLoading,
     isSavingEpisode,
     selectedDataset,
+    isDeploying,
+    deployRequestPending,
+    deployDatasetId,
+    deployStatusPopupOpen,
+    deployStatusMessage,
     startEpisode: contextStartEpisode,
     endEpisode: contextEndEpisode,
+    handleDeploy: contextHandleDeploy,
+    handleForceStopDeploy: contextHandleForceStopDeploy,
     setSelectedDataset,
     setSession,
     setRobotId,
@@ -66,6 +73,11 @@ export const TrainingInterface = ({
     setIsSavingEpisode,
     setIsRecording,
     setCurrentEpisodeId,
+    setIsDeploying,
+    setDeployRequestPending,
+    setDeployDatasetId,
+    setDeployStatusPopupOpen,
+    setDeployStatusMessage,
   } = episodeControl;
 
   // Sync session, robotId, controllerId to context
@@ -123,13 +135,8 @@ export const TrainingInterface = ({
   const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
     episodeApi.Episode[]
   >([]);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployRequestPending, setDeployRequestPending] = useState(false);
-  const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
-  const [deployStatusPopupOpen, setDeployStatusPopupOpen] = useState(false);
-  const [deployStatusMessage, setDeployStatusMessage] = useState<string | null>(
-    null,
-  );
+  // isDeploying, deployRequestPending, deployDatasetId, deployStatusPopupOpen, deployStatusMessage
+  // come from episodeControl context
   const { setMode } = useModeContext();
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
@@ -554,94 +561,14 @@ export const TrainingInterface = ({
     }
   };
 
-  const handleDeploy = () => {
-    if (!selectedDataset) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before deploying",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!robotId) {
-      toast({
-        title: "Error",
-        description: "Select a robot before deploying",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!controllerId) {
-      toast({
-        title: "Error",
-        description: "Select a control device before deploying",
-        variant: "destructive",
-      });
-      return;
-    }
-    const action = isDeploying ? "stop" : "start";
-    setDeployRequestPending(true);
-    setDeployDatasetId(selectedDataset);
-
-    const sent = session.sendControl({
-      type: "deploy",
-      payload: {
-        action,
-        datasetId: selectedDataset,
-      },
-    });
-
-    if (!sent) {
-      setDeployRequestPending(false);
-      toast({
-        title: "Error",
-        description: "Failed to send deploy request to robot",
-        variant: "destructive",
-      });
-      return;
-    }
-    console.log("response of sent", sent);
-
-    toast({
-      title: "Deployment request sent",
-      description:
-        action === "start"
-          ? `Deploying dataset "${selectedDataset}".`
-          : `Stopping deployment for dataset "${selectedDataset}".`,
-    });
+  // handleDeploy and handleForceStopDeploy are now provided by episodeControl context
+  // Wrap them for the UI handlers
+  const onDeploy = () => {
+    contextHandleDeploy();
   };
 
-  const handleForceStopDeploy = () => {
-    const datasetToStop = deployDatasetId ?? selectedDataset;
-
-    const sent = session.sendControl({
-      type: "deploy",
-      payload: {
-        action: "stop",
-        datasetId: datasetToStop,
-      },
-    });
-
-    if (!sent) {
-      toast({
-        title: "Error",
-        description: "Failed to send stop request to robot",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Close popup and reset state
-    setDeployStatusPopupOpen(false);
-    setDeployStatusMessage(null);
-    setIsDeploying(false);
-    setDeployDatasetId(null);
-    setDeployRequestPending(false);
-
-    toast({
-      title: "Force stop sent",
-      description: `Stopping deployment for dataset "${datasetToStop}".`,
-    });
+  const onForceStopDeploy = () => {
+    contextHandleForceStopDeploy();
   };
 
   useEffect(() => {
@@ -1101,7 +1028,7 @@ export const TrainingInterface = ({
               onStart={startEpisode}
               onStop={endEpisode}
               onRewind={rewindEpisode}
-              onDeploy={handleDeploy}
+              onDeploy={onDeploy}
               style={RecordingControlStyle.COMPACT}
             />
             <SidebarTabs
@@ -1191,7 +1118,7 @@ export const TrainingInterface = ({
           <AlertDialogFooter>
             <Button
               variant="destructive"
-              onClick={handleForceStopDeploy}
+              onClick={onForceStopDeploy}
               className="w-full sm:w-auto"
             >
               Force Stop

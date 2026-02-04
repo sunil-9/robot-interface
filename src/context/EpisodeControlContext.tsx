@@ -19,6 +19,12 @@ export interface EpisodeControlState {
   isLoading: boolean;
   isSavingEpisode: boolean;
   selectedDataset: string;
+  // Deploy state
+  isDeploying: boolean;
+  deployRequestPending: boolean;
+  deployDatasetId: string | null;
+  deployStatusPopupOpen: boolean;
+  deployStatusMessage: string | null;
 }
 
 export interface EpisodeControlActions {
@@ -32,6 +38,14 @@ export interface EpisodeControlActions {
   // For ACK/NACK handlers
   setIsRecording: (recording: boolean) => void;
   setCurrentEpisodeId: (episodeId: string | null) => void;
+  // Deploy actions
+  handleDeploy: () => Promise<boolean>;
+  handleForceStopDeploy: () => Promise<boolean>;
+  setIsDeploying: (deploying: boolean) => void;
+  setDeployRequestPending: (pending: boolean) => void;
+  setDeployDatasetId: (datasetId: string | null) => void;
+  setDeployStatusPopupOpen: (open: boolean) => void;
+  setDeployStatusMessage: (message: string | null) => void;
 }
 
 export type EpisodeControlContextValue = EpisodeControlState &
@@ -58,12 +72,23 @@ export function EpisodeControlProvider({
   const [isSavingEpisode, setIsSavingEpisode] = useState(false);
   const [selectedDataset, setSelectedDataset] = useState("");
 
+  // Deploy state
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployRequestPending, setDeployRequestPending] = useState(false);
+  const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
+  const [deployStatusPopupOpen, setDeployStatusPopupOpen] = useState(false);
+  const [deployStatusMessage, setDeployStatusMessage] = useState<string | null>(
+    null,
+  );
+
   // Store session and IDs in refs so they're always current in callbacks
   const sessionRef = useRef<WebRTCSession | null>(null);
   const robotIdRef = useRef<string | null>(null);
   const controllerIdRef = useRef<string | null>(null);
   const selectedDatasetRef = useRef(selectedDataset);
   selectedDatasetRef.current = selectedDataset;
+  const deployDatasetRef = useRef(deployDatasetId);
+  deployDatasetRef.current = deployDatasetId;
 
   const setSession = useCallback((session: WebRTCSession | null) => {
     sessionRef.current = session;
@@ -206,6 +231,127 @@ export function EpisodeControlProvider({
     }
   }, [onRecordingEnd]);
 
+  const handleDeploy = useCallback(async (): Promise<boolean> => {
+    const datasetId = selectedDatasetRef.current;
+    const session = sessionRef.current;
+    const robotId = robotIdRef.current;
+    const controllerId = controllerIdRef.current;
+
+    if (!datasetId) {
+      toast({
+        title: "Error",
+        description: "Select a dataset before deploying",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!robotId) {
+      toast({
+        title: "Error",
+        description: "Select a robot before deploying",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!controllerId) {
+      toast({
+        title: "Error",
+        description: "Select a control device before deploying",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!session) {
+      toast({
+        title: "Error",
+        description: "No active session",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const action = isDeploying ? "stop" : "start";
+    setDeployRequestPending(true);
+    setDeployDatasetId(datasetId);
+
+    const sent = session.sendControl({
+      type: "deploy",
+      payload: {
+        action,
+        datasetId,
+      },
+    });
+
+    if (!sent) {
+      setDeployRequestPending(false);
+      toast({
+        title: "Error",
+        description: "Failed to send deploy request to robot",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    toast({
+      title: "Deployment request sent",
+      description:
+        action === "start"
+          ? `Deploying dataset "${datasetId}".`
+          : `Stopping deployment for dataset "${datasetId}".`,
+    });
+
+    return true;
+  }, [isDeploying]);
+
+  const handleForceStopDeploy = useCallback(async (): Promise<boolean> => {
+    const session = sessionRef.current;
+    const datasetToStop =
+      deployDatasetRef.current ?? selectedDatasetRef.current;
+
+    if (!session) {
+      toast({
+        title: "Error",
+        description: "No active session",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    const sent = session.sendControl({
+      type: "deploy",
+      payload: {
+        action: "stop",
+        datasetId: datasetToStop,
+      },
+    });
+
+    if (!sent) {
+      toast({
+        title: "Error",
+        description: "Failed to send stop request to robot",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // Close popup and reset state
+    setDeployStatusPopupOpen(false);
+    setDeployStatusMessage(null);
+    setIsDeploying(false);
+    setDeployDatasetId(null);
+    setDeployRequestPending(false);
+
+    toast({
+      title: "Force stop sent",
+      description: `Stopping deployment for dataset "${datasetToStop}".`,
+    });
+
+    return true;
+  }, []);
+
   const value: EpisodeControlContextValue = {
     // State
     isRecording,
@@ -213,6 +359,11 @@ export function EpisodeControlProvider({
     isLoading,
     isSavingEpisode,
     selectedDataset,
+    isDeploying,
+    deployRequestPending,
+    deployDatasetId,
+    deployStatusPopupOpen,
+    deployStatusMessage,
     // Actions
     startEpisode,
     endEpisode,
@@ -223,6 +374,13 @@ export function EpisodeControlProvider({
     setIsSavingEpisode,
     setIsRecording,
     setCurrentEpisodeId,
+    handleDeploy,
+    handleForceStopDeploy,
+    setIsDeploying,
+    setDeployRequestPending,
+    setDeployDatasetId,
+    setDeployStatusPopupOpen,
+    setDeployStatusMessage,
   };
 
   return (

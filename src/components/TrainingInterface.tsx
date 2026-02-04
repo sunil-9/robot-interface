@@ -528,7 +528,7 @@ export const TrainingInterface = ({
   const startEpisode = async () => {
     const success = await contextStartEpisode();
     if (success) {
-      setMode(AppMode.RECORDING);
+      // Mode is now set by EpisodeControlContext
       // Update episodes list if episode management UI is visible
       if (episodePanelActive) {
         fetchEpisodes();
@@ -537,7 +537,7 @@ export const TrainingInterface = ({
   };
 
   const endEpisode = async () => {
-    setMode(AppMode.TRAINING);
+    // Mode is now set by EpisodeControlContext
     await contextEndEpisode();
   };
 

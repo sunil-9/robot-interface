@@ -4,6 +4,7 @@
  */
 
 import { toast } from "@/components/ui/use-toast";
+import { AppMode } from "@/context/ModeContextDef";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
   createContext,
@@ -57,12 +58,14 @@ export const EpisodeControlContext =
 
 interface EpisodeControlProviderProps {
   children: ReactNode;
+  setMode?: (mode: AppMode) => void;
   onRecordingStart?: () => void;
   onRecordingEnd?: () => void;
 }
 
 export function EpisodeControlProvider({
   children,
+  setMode,
   onRecordingStart,
   onRecordingEnd,
 }: EpisodeControlProviderProps) {
@@ -166,6 +169,7 @@ export function EpisodeControlProvider({
 
       setCurrentEpisodeId((prev) => prev ?? "pending");
       setIsRecording(true);
+      setMode?.(AppMode.RECORDING);
       onRecordingStart?.();
       return true;
     } catch (error) {
@@ -174,7 +178,7 @@ export function EpisodeControlProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [onRecordingStart]);
+  }, [setMode, onRecordingStart]);
 
   const endEpisode = useCallback(async (): Promise<boolean> => {
     const datasetId = selectedDatasetRef.current;
@@ -221,6 +225,7 @@ export function EpisodeControlProvider({
       setIsRecording(false);
       setIsSavingEpisode(true);
       setCurrentEpisodeId(null);
+      setMode?.(AppMode.TRAINING);
       onRecordingEnd?.();
       return true;
     } catch (error) {
@@ -229,7 +234,7 @@ export function EpisodeControlProvider({
     } finally {
       setIsLoading(false);
     }
-  }, [onRecordingEnd]);
+  }, [setMode, onRecordingEnd]);
 
   const handleDeploy = useCallback(async (): Promise<boolean> => {
     const datasetId = selectedDatasetRef.current;

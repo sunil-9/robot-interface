@@ -5,7 +5,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BridgeProvider } from "@/context/BridgeContext";
 import { EpisodeControlProvider } from "@/context/EpisodeControlContext";
 import { ModeProvider } from "@/context/ModeContext";
+import { useModeContext } from "@/hooks/useModeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 // import Home from "./pages/Home";
 import Index from "./pages/Index"; // Keep as legacy entry point
@@ -17,11 +19,21 @@ import WebRTCDebug from "./pages/WebRTCDebug";
 
 const queryClient = new QueryClient();
 
+// Wrapper to connect EpisodeControlProvider with ModeContext
+function EpisodeControlWithMode({ children }: { children: ReactNode }) {
+  const { setMode } = useModeContext();
+  return (
+    <EpisodeControlProvider setMode={setMode}>
+      {children}
+    </EpisodeControlProvider>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ModeProvider>
       <BridgeProvider>
-        <EpisodeControlProvider>
+        <EpisodeControlWithMode>
           <EpisodeViewerProvider>
             <TooltipProvider>
               <Toaster />
@@ -45,7 +57,7 @@ const App = () => (
               </BrowserRouter>
             </TooltipProvider>
           </EpisodeViewerProvider>
-        </EpisodeControlProvider>
+        </EpisodeControlWithMode>
       </BridgeProvider>
     </ModeProvider>
   </QueryClientProvider>

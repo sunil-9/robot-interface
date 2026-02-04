@@ -34,12 +34,10 @@ interface EpisodeManagementContentProps extends Omit<
   EpisodeManagementSidebarProps,
   "isOpen" | "onOpenChange"
 > {
-  isActive: boolean;
   className?: string;
 }
 
 export const EpisodeManagementContent = ({
-  isActive,
   datasets,
   isLoadingDatasets,
   episodes,
@@ -48,7 +46,6 @@ export const EpisodeManagementContent = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
-  className,
   robotId,
   isRecording = false,
   recordingElapsedTime = 0,
@@ -60,7 +57,6 @@ export const EpisodeManagementContent = ({
   const handleReviewEpisode = useCallback(
     (episodeIndex: number) => {
       if (selectedDataset) {
-        // Use "local" as the org and selectedDataset as the dataset identifier
         openViewer("local", selectedDataset, episodeIndex);
       }
     },
@@ -68,7 +64,7 @@ export const EpisodeManagementContent = ({
   );
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden", className)}>
+    <div className={cn("flex h-full flex-col overflow-hidden")}>
       {/* Dataset Selector - fixed at top */}
       <div className="flex-shrink-0">
         <DatasetSelector
@@ -99,10 +95,7 @@ export const EpisodeManagementContent = ({
         />
       </div>
 
-      {/* Model Training Section - fixed at bottom */}
-      <div className="flex-shrink-0">
-        <ModelTrainingSection isActive={isActive} />
-      </div>
+     
     </div>
   );
 };
@@ -138,7 +131,6 @@ export const EpisodeManagementSidebar = ({
         </SheetTrigger>
         <SheetContent className="flex h-full w-[400px] flex-col overflow-hidden border-l border-border bg-background p-0 text-foreground shadow-2xl sm:w-[540px]">
           <EpisodeManagementContent
-            isActive={isOpen}
             className="h-full overflow-hidden"
             datasets={datasets}
             isLoadingDatasets={isLoadingDatasets}

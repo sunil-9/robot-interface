@@ -2,6 +2,7 @@ import { Camera, FileVideo } from "lucide-react";
 import React from "react";
 import { EpisodeManagementContent } from "./training/EpisodeManagementSidebar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+import { ModelTrainingSection } from "./training/ModelTrainingSection";
 
 interface SidebarTabsProps {
   tab: "secondary" | "episodes";
@@ -60,10 +61,12 @@ export function SidebarTabs({
       >
         <EpisodeManagementContent
           {...episodeManagementProps}
-          isActive={tab === "episodes"}
           className="flex-1"
         />
         {/* add model training related data here not inside EpisodeManagementContent */}
+         <div className="flex-shrink-0">
+        <ModelTrainingSection isActive={tab === "episodes"} />
+      </div>
       </TabsContent>
     </Tabs>
   );

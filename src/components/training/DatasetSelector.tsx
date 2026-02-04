@@ -81,19 +81,19 @@ export const DatasetSelector = ({
 
                     onRequestDelete(dataset);
                   }}
-                  className="h-8 w-8 p-0 text-destructive opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                  className="group cursor-pointer rounded-md px-3 py-2 transition-all  duration-200   text-primary  bg-transparent   hover:bg-primary/10  hover:text-primary   focus:bg-primary/15  focus:text-primary  focus:outline-none   data-[state=checked]:bg-primary/15  data-[state=checked]:text-primary   dark:hover:bg-primary/20  dark:focus:bg-primary/25  dark:data-[state=checked]:bg-primary/25 "
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 group-hover:scale-110" />
                 </Button>
               </div>
             ))}
             <SelectItem
               value={CREATE_NEW_VALUE}
-              className="text-accent focus:bg-accent/10"
+              className=" group cursor-pointer rounded-md px-3 py-2 transition-all  duration-200   text-primary  bg-transparent   hover:bg-primary/10  hover:text-primary   focus:bg-primary/15  focus:text-primary  focus:outline-none   data-[state=checked]:bg-primary/15  data-[state=checked]:text-primary   dark:hover:bg-primary/20  dark:focus:bg-primary/25  dark:data-[state=checked]:bg-primary/25"
             >
               <div className="flex items-center gap-2">
-                <FolderPlus className="h-4 w-4" />
-                <span>Create New Dataset</span>
+                <FolderPlus className="h-4 w-4 text-primary transition-transform duration-200 group-hover:scale-110" />
+                <span className="font-medium">Create New Dataset</span>
               </div>
             </SelectItem>
           </SelectContent>

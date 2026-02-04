@@ -67,7 +67,7 @@ export const EpisodeCard = ({
 
   return (
     <Card
-      className={`flex items-center justify-between p-1 shadow-sm hover:shadow-md transition-all ${isViewing ? "bg-primary/15 border-primary/50 ring-1 ring-primary/30" : "bg-card"}`}
+      className={`flex items-center justify-between p-1 pr-2 pl-2 mb-1 shadow-sm hover:shadow-md transition-all ${isViewing ? "bg-primary/15 border-primary/50 ring-1 ring-primary/30" : "bg-card"}`}
     >
       <div className="flex flex-1 items-center overflow-hidden text-xs text-foreground sm:text-sm">
         <span

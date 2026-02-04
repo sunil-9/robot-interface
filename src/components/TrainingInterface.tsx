@@ -22,6 +22,15 @@ import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { useEpisodeViewer } from "./training/EpisodeViewerContext";
 import { EpisodeViewerPanel } from "./training/EpisodeViewerPanel";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -87,6 +96,10 @@ export const TrainingInterface = ({
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployRequestPending, setDeployRequestPending] = useState(false);
   const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
+  const [deployStatusPopupOpen, setDeployStatusPopupOpen] = useState(false);
+  const [deployStatusMessage, setDeployStatusMessage] = useState<string | null>(
+    null,
+  );
   const { setMode } = useModeContext();
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
@@ -489,18 +502,18 @@ export const TrainingInterface = ({
       });
       return;
     }
-    if (!controllerId) {
-      toast({
-        title: "Error",
-        description: "Select a control device before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
     if (!robotId) {
       toast({
         title: "Error",
         description: "Select a robot before starting an episode",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!controllerId) {
+      toast({
+        title: "Error",
+        description: "Select a control device before starting an episode",
         variant: "destructive",
       });
       return;
@@ -606,7 +619,22 @@ export const TrainingInterface = ({
       });
       return;
     }
-
+    if (!robotId) {
+      toast({
+        title: "Error",
+        description: "Select a robot before deploying",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!controllerId) {
+      toast({
+        title: "Error",
+        description: "Select a control device before deploying",
+        variant: "destructive",
+      });
+      return;
+    }
     const action = isDeploying ? "stop" : "start";
     setDeployRequestPending(true);
     setDeployDatasetId(selectedDataset);
@@ -628,6 +656,7 @@ export const TrainingInterface = ({
       });
       return;
     }
+    console.log("response of sent", sent);
 
     toast({
       title: "Deployment request sent",
@@ -635,6 +664,39 @@ export const TrainingInterface = ({
         action === "start"
           ? `Deploying dataset "${selectedDataset}".`
           : `Stopping deployment for dataset "${selectedDataset}".`,
+    });
+  };
+
+  const handleForceStopDeploy = () => {
+    const datasetToStop = deployDatasetId ?? selectedDataset;
+
+    const sent = session.sendControl({
+      type: "deploy",
+      payload: {
+        action: "stop",
+        datasetId: datasetToStop,
+      },
+    });
+
+    if (!sent) {
+      toast({
+        title: "Error",
+        description: "Failed to send stop request to robot",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Close popup and reset state
+    setDeployStatusPopupOpen(false);
+    setDeployStatusMessage(null);
+    setIsDeploying(false);
+    setDeployDatasetId(null);
+    setDeployRequestPending(false);
+
+    toast({
+      title: "Force stop sent",
+      description: `Stopping deployment for dataset "${datasetToStop}".`,
     });
   };
 
@@ -734,7 +796,7 @@ export const TrainingInterface = ({
         return;
       }
       //println!("Deploy payload: {:?}", payload);
-      // console.log(payload, "obtained from the robot backend");
+      console.log(payload, "obtained from the robot backend");
 
       const rawPayload = record.payload;
       if (!rawPayload || typeof rawPayload !== "object") {
@@ -769,6 +831,7 @@ export const TrainingInterface = ({
       setDeployRequestPending(false);
 
       if (action === "deploy_ack") {
+        console.log("Response deployment webrtc", deployPayload);
         const active = status === "deploying";
         setIsDeploying(active);
         setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
@@ -784,7 +847,11 @@ export const TrainingInterface = ({
       }
 
       if (action === "deploy_nack" || status === "error") {
-        // Don't change isDeploying state on error - keep button in current state
+        //if message is "no active deployment" then set isDeploying to false else  Don't change isDeploying state on error - keep button in current state
+        if (message?.toLowerCase() === "no active deployment") {
+          setIsDeploying(false);
+          setDeployDatasetId(null);
+        }
         toast({
           title: "Deployment failed",
           description:
@@ -792,6 +859,54 @@ export const TrainingInterface = ({
             "Deployment request was rejected. Check deployment services and try again.",
           variant: "destructive",
         });
+
+        return;
+      }
+      if (action === "deploy_stop_ack" || status === "stopped") {
+          setIsDeploying(false);
+          setDeployDatasetId(null);
+        
+        toast({
+          title: "Deployment stopped",
+          description:
+            message ??
+            "Deployment has been stopped successfully.",
+          variant: "default",
+        });
+
+        return;
+      }
+
+
+      if (action === "deploy_status") {
+        const deployingDataset =
+          datasetId ??
+          deployDatasetRef.current ??
+          selectedDatasetRef.current ??
+          undefined;
+
+        if (status === "deploying") {
+          setIsDeploying(true);
+          setDeployDatasetId(deployingDataset ?? null);
+          setDeployStatusMessage(message ?? "Waiting for checkpoint...");
+          setDeployStatusPopupOpen(true);
+          toast({
+            title: "Deployment in progress",
+            description:
+              message ?? `Deploying dataset "${deployingDataset}"...`,
+          });
+        } else if (status === "deployed") {
+          setDeployStatusPopupOpen(false);
+          setDeployStatusMessage(null);
+          setIsDeploying(true);
+          setDeployDatasetId(deployingDataset ?? null);
+          toast({
+            title: "Deployment complete",
+            description:
+              message ?? `Dataset "${deployingDataset}" deployed successfully.`,
+          });
+        }
+        return;
       }
     });
 
@@ -1106,6 +1221,42 @@ export const TrainingInterface = ({
         onConfirm={confirmDeleteDataset}
         isDeleting={isDeleting}
       />
+
+      {/* Deploy Status Popup - Unclosable while deploying */}
+      <AlertDialog open={deployStatusPopupOpen}>
+        <AlertDialogContent
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          className="sm:max-w-md"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500"></span>
+              </span>
+              Deploying...
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {deployStatusMessage ?? "Waiting for checkpoint..."}
+              {deployDatasetId && (
+                <span className="mt-2 block text-sm text-muted-foreground">
+                  Dataset:{" "}
+                  <span className="font-medium">{deployDatasetId}</span>
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="destructive"
+              onClick={handleForceStopDeploy}
+              className="w-full sm:w-auto"
+            >
+              Force Stop
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

@@ -118,6 +118,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   // }, [canTrackMouse, lastInput]);
 
   // Track keyboard input
+  
   useEffect(() => {
     if (!canTrackKeyboard) return;
 

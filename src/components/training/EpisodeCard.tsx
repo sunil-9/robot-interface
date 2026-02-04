@@ -2,6 +2,7 @@ import { Play, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import type * as episodeApi from "@/services/episodeApi";
 
 interface EpisodeCardProps {
@@ -9,7 +10,6 @@ interface EpisodeCardProps {
   index: number;
   isDeleting: boolean;
   formatDuration: (seconds?: number) => string;
-  selectedDataset: string;
   onDelete: (datasetId: string, episodeId: string) => void;
   onReview: (episodeIndex: number) => void;
   robotId?: string | null;
@@ -28,12 +28,12 @@ export const EpisodeCard = ({
   index,
   isDeleting,
   formatDuration,
-  selectedDataset,
   onDelete,
   onReview,
   robotId,
   isViewing = false,
 }: EpisodeCardProps) => {
+  const { selectedDataset } = useEpisodeControlContext();
   const episodeIndex = episode.episode_index;
   const displayIndex =
     episodeIndex !== undefined && !isNaN(Number(episodeIndex))

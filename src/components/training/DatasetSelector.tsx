@@ -9,12 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 
 interface DatasetSelectorProps {
   datasets: string[];
-  selectedDataset: string;
   isLoading: boolean;
-  onSelect: (dataset: string) => void;
   onRequestCreate: () => void;
   onRequestDelete: (dataset: string) => void;
 }
@@ -23,18 +22,17 @@ const CREATE_NEW_VALUE = "__create_new__";
 
 export const DatasetSelector = ({
   datasets,
-  selectedDataset,
   isLoading,
-  onSelect,
   onRequestCreate,
   onRequestDelete,
 }: DatasetSelectorProps) => {
+  const { selectedDataset, setSelectedDataset } = useEpisodeControlContext();
   const handleValueChange = (value: string) => {
     if (value === CREATE_NEW_VALUE) {
       onRequestCreate();
       return;
     }
-    onSelect(value);
+    setSelectedDataset(value);
   };
 
   return (

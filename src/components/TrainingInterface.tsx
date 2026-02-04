@@ -1040,12 +1040,10 @@ export const TrainingInterface = ({
               secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
               episodeManagementProps={{
                 datasets,
-                selectedDataset,
                 isLoadingDatasets,
                 episodes,
                 isDeleting,
                 formatDuration,
-                onSelectDataset: setSelectedDataset,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
                 onPromptDeleteEpisode: promptDeleteEpisode,

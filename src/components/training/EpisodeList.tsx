@@ -1,10 +1,10 @@
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import type * as episodeApi from "@/services/episodeApi";
 import { useMemo } from "react";
 
 import { EpisodeCard } from "./EpisodeCard";
 
 interface EpisodeListProps {
-  selectedDataset: string;
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
   formatDuration: (seconds?: number) => string;
@@ -18,7 +18,6 @@ interface EpisodeListProps {
 }
 
 export const EpisodeList = ({
-  selectedDataset,
   episodes,
   isDeleting,
   formatDuration,
@@ -30,6 +29,7 @@ export const EpisodeList = ({
   recordingElapsedTime = 0,
   isSavingEpisode = false,
 }: EpisodeListProps) => {
+  const { selectedDataset } = useEpisodeControlContext();
   const reversedEpisodes = useMemo(
     () => [...(episodes || [])].reverse(),
     [episodes],
@@ -128,7 +128,6 @@ export const EpisodeList = ({
           index={index}
           isDeleting={isDeleting}
           formatDuration={formatDuration}
-          selectedDataset={selectedDataset}
           onDelete={onPromptDeleteEpisode}
           onReview={onReviewEpisode}
           robotId={robotId}

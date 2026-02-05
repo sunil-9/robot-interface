@@ -117,6 +117,19 @@ export const TrainingInterface = ({
     selectedDatasetRef.current = selectedDataset;
   }, [selectedDataset]);
 
+  useEffect(() => {
+    if (!selectedDataset || !session.telemetryOpen) {
+      return;
+    }
+    session.sendControl({
+      type: "dataset",
+      payload: {
+        action: "activate",
+        datasetId: selectedDataset,
+      },
+    });
+  }, [selectedDataset, session.telemetryOpen, session]);
+
   // Recording timer effect
   useEffect(() => {
     if (isRecording) {

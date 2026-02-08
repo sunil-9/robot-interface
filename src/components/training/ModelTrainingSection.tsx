@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
+import { CheckpointDetailsDialog } from "./CheckpointDetailsDialog";
 
 interface ModelTrainingSectionProps {
   isActive: boolean;
@@ -22,12 +23,13 @@ export const ModelTrainingSection = ({
   const { selectedDataset } = useEpisodeControlContext();
   const [interval, setInterval] = useState<number[]>([25]);
   const [trainingJob, setTrainingJob] =
-    useState<trainingApi.TrainingJob | null>(null);
+    useState<trainingApi.pTrainingJob | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
   const [isTrainingLoading, setIsTrainingLoading] = useState(false);
   const [trainingError, setTrainingError] = useState<string | null>(null);
   const [checkpointStatus, setCheckpointStatus] =
     useState<trainingApi.CheckpointStatus | null>(null);
+  const [isCheckpointDialogOpen, setIsCheckpointDialogOpen] = useState(false);
 
   useEffect(() => {
     if (!isActive || !selectedDataset) {
@@ -188,12 +190,12 @@ export const ModelTrainingSection = ({
       </div>
 
       {checkpointStatus && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3 p-2 rounded-md bg-muted/50">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3 rounded-md bg-muted/50">
           <span>
             Checkpoint:{" "}
             {checkpointStatus.available ? (
               <span className="text-green-600 dark:text-green-400">
-                Available (Step {checkpointStatus.latest_step.toLocaleString()})
+                Available Steps {checkpointStatus.latest_step.toLocaleString()}
               </span>
             ) : (
               <span className="text-muted-foreground">Not available</span>
@@ -202,20 +204,20 @@ export const ModelTrainingSection = ({
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => {
-              // TODO: Open details popup
-              console.log(
-                "View checkpoint details for:",
-                checkpointStatus.dataset_id,
-              );
-            }}
+            className="h-6 px-2 text-xs gap-0"
+            onClick={() => setIsCheckpointDialogOpen(true)}
           >
             <Eye className="h-3 w-3 mr-1" />
             View Details
           </Button>
         </div>
       )}
+
+      <CheckpointDetailsDialog
+        open={isCheckpointDialogOpen}
+        onOpenChange={setIsCheckpointDialogOpen}
+        datasetId={selectedDataset}
+      />
 
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1.5">

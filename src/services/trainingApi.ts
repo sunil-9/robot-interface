@@ -41,6 +41,29 @@ export interface CheckpointStatusFetchResult {
   message?: string;
 }
 
+export interface CheckpointFile {
+  name: string;
+  size: number;
+}
+
+export interface Checkpoint {
+  step: number;
+  path: string;
+  modified_at: string;
+  total_size: number;
+  files: CheckpointFile[];
+}
+
+export interface CheckpointDetails {
+  dataset_id: string;
+  checkpoints: Checkpoint[];
+}
+
+export interface CheckpointDetailsFetchResult {
+  details: CheckpointDetails | null;
+  message?: string;
+}
+
 /**
  * Fetch checkpoint status for a dataset.
  */
@@ -62,7 +85,9 @@ export const fetchCheckpointStatus = async (
 
   // parseCloudApiResponse automatically unwraps ApiEnvelope { status, code, detail }
   // so we get CheckpointStatus directly
-  const data = await parseCloudApiResponse<CheckpointStatus | string | null>(response);
+  const data = await parseCloudApiResponse<CheckpointStatus | string | null>(
+    response,
+  );
 
   if (!response.ok) {
     return {
@@ -76,6 +101,43 @@ export const fetchCheckpointStatus = async (
   }
 
   return { status: data };
+};
+
+/**
+ * Fetch checkpoint details for a dataset.
+ */
+export const fetchCheckpointDetails = async (
+  datasetId: string,
+): Promise<CheckpointDetailsFetchResult> => {
+  if (!datasetId) {
+    return { details: null };
+  }
+
+  const response = await fetch(
+    `${TRAINING_BASE_URL}/${encodeURIComponent(datasetId)}/checkpoints`,
+    {
+      method: "GET",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
+    },
+  );
+
+  const data = await parseCloudApiResponse<CheckpointDetails | string | null>(
+    response,
+  );
+
+  if (!response.ok) {
+    return {
+      details: null,
+      message: formatApiError(data, "Failed to fetch checkpoint details"),
+    };
+  }
+
+  if (!data || typeof data !== "object" || !("dataset_id" in data)) {
+    return { details: null, message: "Unexpected checkpoint details response" };
+  }
+
+  return { details: data };
 };
 
 export const fetchTrainingJobStatus = async (

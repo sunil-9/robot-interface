@@ -66,61 +66,38 @@ export const EpisodeCard = ({
   };
 
   return (
-    <Card
-      className={`flex items-center justify-between p-1 pr-2 pl-2 mb-1 shadow-sm hover:shadow-md transition-all ${isViewing ? "bg-primary/15 border-primary/50 ring-1 ring-primary/30" : "bg-card"}`}
+    <div
+      className={`group flex items-start gap-3 py-1.5 px-2 hover:bg-muted/40 rounded transition-colors cursor-pointer ${isViewing ? "bg-primary/10" : ""}`}
     >
-      <div className="flex flex-1 items-center overflow-hidden text-xs text-foreground sm:text-sm">
-        <span
-          className={`shrink-0 font-semibold ${isViewing ? "text-primary" : "text-primary"}`}
-        >{`#${displayIndex}`}</span>
-        <div className="ml-3 flex flex-wrap items-center gap-2 text-muted-foreground">
-          <span>{formattedTimestamp}</span>
-          <span className="text-border">•</span>
-          <span>{formatDuration(episode.duration)}</span>
-        </div>
+      <span
+        className={`text-xs font-medium shrink-0 ${isViewing ? "text-primary" : "text-muted-foreground"}`}
+      >{`#${displayIndex}`}</span>
+      <div className="flex flex-col min-w-0 flex-1">
+        <span className="text-xs font-medium text-foreground">{formattedTimestamp}</span>
+        <span className="text-[10px] text-muted-foreground">Duration: {formatDuration(episode.duration)}</span>
       </div>
-      <div className="flex items-center gap-5">
-        {/* Open viewer in the side panel */}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
         <Button
           size="icon"
           variant="ghost"
-          className="h-2 w-2 text-muted-foreground hover:text-primary focus-visible:outline-none"
+          className="h-5 w-5 rounded text-muted-foreground hover:text-primary hover:bg-primary/10 focus-visible:outline-none transition-colors"
           aria-label="Review episode"
           disabled={!Number.isFinite(safeEpisodeNumber)}
           onClick={handleReview}
         >
-          <Play className="h-2 w-2" />
+          <Play className="h-3 w-3" />
         </Button>
-        {/* Open viewer in a new tab */}
-        {/* {viewerUrl && (
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-2 w-2 text-muted-foreground hover:text-foreground"
-            aria-label="Open episode viewer in new tab"
-            asChild
-          >
-            <a
-              href={viewerUrl}
-              target="_blank"
-              rel="noreferrer"
-              aria-label="Open episode viewer in new tab"
-            >
-              <ExternalLink className="h-2 w-2" />
-            </a>
-          </Button>
-        )} */}
         <Button
           size="icon"
           variant="ghost"
           onClick={() => onDelete(selectedDataset, episode.episode_index)}
           disabled={isDeleting}
-          className="h-2 w-2 text-muted-foreground hover:text-destructive"
+          className="h-5 w-5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           aria-label="Delete episode"
         >
-          <Trash2 className="h-2 w-2" />
+          <Trash2 className="h-3 w-3" />
         </Button>
       </div>
-    </Card>
+    </div>
   );
 };

@@ -1,8 +1,8 @@
 import { Camera, FileVideo } from "lucide-react";
 import React from "react";
 import { EpisodeManagementContent } from "./training/EpisodeManagementSidebar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { ModelTrainingSection } from "./training/ModelTrainingSection";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 interface SidebarTabsProps {
   tab: "secondary" | "episodes";
@@ -26,18 +26,18 @@ export function SidebarTabs({
       onValueChange={(value) => onTabChange(value as "secondary" | "episodes")}
       className="flex-1 min-h-0 flex flex-col"
     >
-      <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted/60 p-1">
+      <TabsList className="grid w-full grid-cols-2 rounded-full bg-muted/40 p-1 h-10">
         <TabsTrigger
           value="secondary"
-          className="rounded-xl text-[11px] font-semibold uppercase tracking-wide gap-1"
+          className="rounded-full text-[11px] font-semibold uppercase tracking-wide gap-1.5 h-full data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:text-muted-foreground transition-all duration-200"
         >
-          <Camera className="h-4" /> Other Cameras
+          <Camera className="h-4 w-4" /> Other Cameras
         </TabsTrigger>
         <TabsTrigger
           value="episodes"
-          className="rounded-xl text-[11px] font-semibold uppercase tracking-wide"
+          className="rounded-full text-[11px] font-semibold uppercase tracking-wide gap-1.5 h-full data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:text-muted-foreground transition-all duration-200"
         >
-          <FileVideo className="h-4" /> Episodes
+          <FileVideo className="h-4 w-4" /> Episodes
         </TabsTrigger>
       </TabsList>
 
@@ -64,9 +64,9 @@ export function SidebarTabs({
           className="flex-1"
         />
         {/* add model training related data here not inside EpisodeManagementContent */}
-         <div className="flex-shrink-0">
-        <ModelTrainingSection isActive={tab === "episodes"} />
-      </div>
+        <div className="flex-shrink-0">
+          <ModelTrainingSection isActive={tab === "episodes"} />
+        </div>
       </TabsContent>
     </Tabs>
   );

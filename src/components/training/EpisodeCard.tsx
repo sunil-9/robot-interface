@@ -1,7 +1,6 @@
 import { Play, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import type * as episodeApi from "@/services/episodeApi";
 
@@ -67,14 +66,18 @@ export const EpisodeCard = ({
 
   return (
     <div
-      className={`group flex items-start gap-3 py-1.5 px-2 hover:bg-muted/40 rounded transition-colors cursor-pointer ${isViewing ? "bg-primary/10" : ""}`}
+      className={`group flex items-start gap-3 py-1.5 border-b-2 px-2 hover:bg-muted/40 rounded transition-colors cursor-pointer ${isViewing ? "bg-primary/10" : ""}`}
     >
       <span
         className={`text-xs font-medium shrink-0 ${isViewing ? "text-primary" : "text-muted-foreground"}`}
       >{`#${displayIndex}`}</span>
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-xs font-medium text-foreground">{formattedTimestamp}</span>
-        <span className="text-[10px] text-muted-foreground">Duration: {formatDuration(episode.duration)}</span>
+        <span className="text-xs font-medium text-foreground">
+          {formattedTimestamp}
+        </span>
+        <span className="text-[10px] text-muted-foreground">
+          Duration: {formatDuration(episode.duration)}
+        </span>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
         <Button

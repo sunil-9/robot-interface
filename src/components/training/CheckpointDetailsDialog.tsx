@@ -1,4 +1,11 @@
-import { FileText, FolderOpen, HardDrive, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Download,
+  FileText,
+  FolderOpen,
+  HardDrive,
+  Loader2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -138,25 +145,43 @@ export const CheckpointDetailsDialog = ({
                     <AccordionItem
                       key={checkpoint.step}
                       value={`step-${checkpoint.step}`}
+                      className="mb-2 border rounded-lg overflow-hidden"
                     >
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center justify-between w-full pr-4">
-                          <div className="flex items-center gap-3">
-                            <Badge
-                              variant="outline"
-                              className="font-mono text-xs"
-                            >
-                              Step {checkpoint.step.toLocaleString()}
-                            </Badge>
-                            <span className="text-sm text-muted-foreground">
-                              {formatDateTime(checkpoint.modified_at)}
-                            </span>
-                          </div>
-                          <span className="text-sm font-medium text-primary">
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-3">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs"
+                          >
+                            Step {checkpoint.step.toLocaleString()}
+                          </Badge>
+                          <span className="text-sm text-muted-foreground">
+                            {formatDateTime(checkpoint.modified_at)}
+                          </span>
+                         
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <span className="text-sm font-medium text-primary">
                             {formatFileSize(checkpoint.total_size)}
                           </span>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(
+                                `http://localhost:8100/training/${datasetId}/checkpoints/${checkpoint.step}`,
+                                "_blank",
+                              );
+                            }}
+                            title="Download checkpoint"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                          <AccordionTrigger className="hover:no-underline p-0 h-7 w-7 flex items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-muted-foreground [&>svg]:transition-transform [&>svg]:duration-200" />
                         </div>
-                      </AccordionTrigger>
+                      </div>
                       <AccordionContent>
                         <div className="space-y-3 pt-2">
                           <div className="text-xs text-muted-foreground font-mono break-all bg-muted/50 p-2 rounded">

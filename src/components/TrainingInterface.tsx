@@ -759,7 +759,7 @@ export const TrainingInterface = ({
         if (status === "deploying") {
           setIsDeploying(true);
           setDeployDatasetId(deployingDataset ?? null);
-          setDeployStatusMessage(message ?? "Waiting for checkpoint...");
+          setDeployStatusMessage(message ?? "Downloading checkpoint...");
           setDeployStatusPopupOpen(true);
           toast({
             title: "Deployment in progress",

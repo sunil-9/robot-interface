@@ -207,9 +207,7 @@ export const ModelTrainingSection = ({
             className="h-6 px-2 text-xs gap-0"
             onClick={() => setIsCheckpointDialogOpen(true)}
           >
-            <Eye className="h-3 w-3 mr-1" />
-            View Details
-          </Button>
+            <Eye className="h-3 w-3 mr-1" />          </Button>
         </div>
       )}
 

@@ -73,10 +73,10 @@ export const EpisodeCard = ({
       >{`#${displayIndex}`}</span>
       <div className="flex flex-col min-w-0 flex-1">
         <span className="text-xs font-medium text-foreground">
-          {formattedTimestamp}
-        </span>
-        <span className="text-[10px] text-muted-foreground">
-          Duration: {formatDuration(episode.duration)}
+          {formattedTimestamp}{" "}
+          <span className=" text-muted-foreground">
+            ( Duration: {formatDuration(episode.duration)})
+          </span>
         </span>
       </div>
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">

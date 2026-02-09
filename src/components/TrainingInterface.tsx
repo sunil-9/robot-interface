@@ -1,6 +1,7 @@
 import { API_CONFIG } from "@/config/api";
 import { AppMode } from "@/context/ModeContextDef";
 import { useBridgeData } from "@/hooks/useBridgeData";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
@@ -22,6 +23,15 @@ import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { useEpisodeViewer } from "./training/EpisodeViewerContext";
 import { EpisodeViewerPanel } from "./training/EpisodeViewerPanel";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "./ui/alert-dialog";
+import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -32,22 +42,64 @@ interface TrainingInterfaceProps {
 
 export const TrainingInterface = ({
   robotId,
+  controllerId,
   session,
 }: TrainingInterfaceProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { viewerState: episodeViewerState } = useEpisodeViewer();
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Use shared episode control context
+  const episodeControl = useEpisodeControlContext();
+  const {
+    isRecording,
+    currentEpisodeId,
+    isLoading: episodeLoading,
+    isSavingEpisode,
+    selectedDataset,
+    isDeploying,
+    deployRequestPending,
+    deployDatasetId,
+    deployStatusPopupOpen,
+    deployStatusMessage,
+    startEpisode: contextStartEpisode,
+    endEpisode: contextEndEpisode,
+    handleDeploy: contextHandleDeploy,
+    handleForceStopDeploy: contextHandleForceStopDeploy,
+    setSelectedDataset,
+    setSession,
+    setRobotId,
+    setControllerId,
+    setIsSavingEpisode,
+    setIsRecording,
+    setCurrentEpisodeId,
+    setIsDeploying,
+    setDeployRequestPending,
+    setDeployDatasetId,
+    setDeployStatusPopupOpen,
+    setDeployStatusMessage,
+  } = episodeControl;
+
+  // Sync session, robotId, controllerId to context
+  useEffect(() => {
+    setSession(session);
+  }, [session, setSession]);
+
+  useEffect(() => {
+    setRobotId(robotId);
+  }, [robotId, setRobotId]);
+
+  useEffect(() => {
+    setControllerId(controllerId);
+  }, [controllerId, setControllerId]);
+
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
     null,
   );
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isSavingEpisode, setIsSavingEpisode] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Initialize sidebarTab from URL params, default to "secondary"
   const params = useMemo(
@@ -72,7 +124,7 @@ export const TrainingInterface = ({
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
-  const [selectedDataset, setSelectedDataset] = useState<string>("");
+  // selectedDataset and setSelectedDataset come from episodeControl context
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
@@ -83,9 +135,8 @@ export const TrainingInterface = ({
   const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
     episodeApi.Episode[]
   >([]);
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployRequestPending, setDeployRequestPending] = useState(false);
-  const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
+  // isDeploying, deployRequestPending, deployDatasetId, deployStatusPopupOpen, deployStatusMessage
+  // come from episodeControl context
   const { setMode } = useModeContext();
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
@@ -111,6 +162,7 @@ export const TrainingInterface = ({
     if (tabFromUrl && tabFromUrl !== sidebarTab) {
       setSidebarTab(tabFromUrl);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabFromUrl]);
 
   useEffect(() => {
@@ -404,8 +456,11 @@ export const TrainingInterface = ({
     try {
       const datasetList = await fetchDatasets();
       setDatasets(datasetList);
-      // Set first dataset as default if none selected
-      if (datasetList.length > 0 && !selectedDataset) {
+      // Set first dataset as default if none selected OR if selected dataset doesn't exist
+      if (
+        datasetList.length > 0 &&
+        (!selectedDataset || !datasetList.includes(selectedDataset))
+      ) {
         setSelectedDataset(datasetList[0]);
       }
     } catch (error) {
@@ -417,7 +472,7 @@ export const TrainingInterface = ({
     } finally {
       setIsLoadingDatasets(false);
     }
-  }, [selectedDataset]);
+  }, [selectedDataset, setSelectedDataset]);
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
@@ -487,84 +542,19 @@ export const TrainingInterface = ({
   };
 
   const startEpisode = async () => {
-    if (!selectedDataset) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const sent = session.sendControl({
-        type: "dataset",
-        payload: {
-          action: "start",
-          datasetId: selectedDataset,
-        },
-      });
-
-      if (!sent) {
-        toast({
-          title: "Error",
-          description: "Failed to send start request to robot",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setCurrentEpisodeId((prev) => prev ?? "pending");
-      setIsRecording(true);
+    const success = await contextStartEpisode();
+    if (success) {
+      // Mode is now set by EpisodeControlContext
       // Update episodes list if episode management UI is visible
       if (episodePanelActive) {
         fetchEpisodes();
       }
-    } catch (error) {
-      console.error("Failed to start episode:", error);
-    } finally {
-      setMode(AppMode.RECORDING);
-      setIsLoading(false);
     }
   };
 
   const endEpisode = async () => {
-    if (!selectedDataset) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before starting an episode",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
-    setMode(AppMode.TRAINING);
-    try {
-      const sent = session.sendControl({
-        type: "dataset",
-        payload: {
-          action: "stop",
-          datasetId: selectedDataset,
-        },
-      });
-
-      if (!sent) {
-        toast({
-          title: "Error",
-          description: "Failed to send stop request to robot",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsRecording(false);
-      setIsSavingEpisode(true);
-      setCurrentEpisodeId(null);
-    } catch (error) {
-      console.error("Failed to end episode:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    // Mode is now set by EpisodeControlContext
+    await contextEndEpisode();
   };
 
   const rewindEpisode = async () => {
@@ -587,45 +577,14 @@ export const TrainingInterface = ({
     }
   };
 
-  const handleDeploy = () => {
-    if (!selectedDataset) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before deploying",
-        variant: "destructive",
-      });
-      return;
-    }
+  // handleDeploy and handleForceStopDeploy are now provided by episodeControl context
+  // Wrap them for the UI handlers
+  const onDeploy = () => {
+    contextHandleDeploy();
+  };
 
-    const action = isDeploying ? "stop" : "start";
-    setDeployRequestPending(true);
-    setDeployDatasetId(selectedDataset);
-
-    const sent = session.sendControl({
-      type: "deploy",
-      payload: {
-        action,
-        datasetId: selectedDataset,
-      },
-    });
-
-    if (!sent) {
-      setDeployRequestPending(false);
-      toast({
-        title: "Error",
-        description: "Failed to send deploy request to robot",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Deployment request sent",
-      description:
-        action === "start"
-          ? `Deploying dataset "${selectedDataset}".`
-          : `Stopping deployment for dataset "${selectedDataset}".`,
-    });
+  const onForceStopDeploy = () => {
+    contextHandleForceStopDeploy();
   };
 
   useEffect(() => {
@@ -639,7 +598,7 @@ export const TrainingInterface = ({
 
       // Handle dataset collection responses
       if (type === "dataset") {
-        console.log(payload, "obtained from the robot backend");
+        // console.log(payload, "obtained from the robot backend");
         const rawPayload = record.payload;
         if (!rawPayload || typeof rawPayload !== "object") {
           return;
@@ -759,6 +718,7 @@ export const TrainingInterface = ({
       setDeployRequestPending(false);
 
       if (action === "deploy_ack") {
+        console.log("Response deployment webrtc", deployPayload);
         const active = status === "deploying";
         setIsDeploying(active);
         setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
@@ -774,7 +734,11 @@ export const TrainingInterface = ({
       }
 
       if (action === "deploy_nack" || status === "error") {
-        // Don't change isDeploying state on error - keep button in current state
+        //if message is "no active deployment" then set isDeploying to false else  Don't change isDeploying state on error - keep button in current state
+        if (message?.toLowerCase() === "no active deployment") {
+          setIsDeploying(false);
+          setDeployDatasetId(null);
+        }
         toast({
           title: "Deployment failed",
           description:
@@ -782,13 +746,59 @@ export const TrainingInterface = ({
             "Deployment request was rejected. Check deployment services and try again.",
           variant: "destructive",
         });
+
+        return;
+      }
+      if (action === "deploy_stop_ack" || status === "stopped") {
+        setIsDeploying(false);
+        setDeployDatasetId(null);
+
+        toast({
+          title: "Deployment stopped",
+          description: message ?? "Deployment has been stopped successfully.",
+          variant: "default",
+        });
+
+        return;
+      }
+
+      if (action === "deploy_status") {
+        const deployingDataset =
+          datasetId ??
+          deployDatasetRef.current ??
+          selectedDatasetRef.current ??
+          undefined;
+
+        if (status === "deploying") {
+          setIsDeploying(true);
+          setDeployDatasetId(deployingDataset ?? null);
+          setDeployStatusMessage(message ?? "Downloading checkpoint...");
+          setDeployStatusPopupOpen(true);
+          toast({
+            title: "Deployment in progress",
+            description:
+              message ?? `Deploying dataset "${deployingDataset}"...`,
+          });
+        } else if (status === "deployed") {
+          setDeployStatusPopupOpen(false);
+          setDeployStatusMessage(null);
+          setIsDeploying(true);
+          setDeployDatasetId(deployingDataset ?? null);
+          toast({
+            title: "Deployment complete",
+            description:
+              message ?? `Dataset "${deployingDataset}" deployed successfully.`,
+          });
+        }
+        return;
       }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [session]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, setIsRecording, setCurrentEpisodeId, setIsSavingEpisode]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
@@ -1024,7 +1034,7 @@ export const TrainingInterface = ({
             )}
           </div>
 
-          <div className="flex  w-[360px] h-[calc(100vh_-_10px)] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+          <div className="flex  w-[360px] h-[calc(100vh_-_10px)] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-1 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
             <RecordingControls
               isRecording={isRecording}
               isLoading={isLoading}
@@ -1034,7 +1044,7 @@ export const TrainingInterface = ({
               onStart={startEpisode}
               onStop={endEpisode}
               onRewind={rewindEpisode}
-              onDeploy={handleDeploy}
+              onDeploy={onDeploy}
               style={RecordingControlStyle.COMPACT}
             />
             <SidebarTabs
@@ -1043,16 +1053,13 @@ export const TrainingInterface = ({
               secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
               episodeManagementProps={{
                 datasets,
-                selectedDataset,
                 isLoadingDatasets,
                 episodes,
                 isDeleting,
                 formatDuration,
-                onSelectDataset: setSelectedDataset,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
                 onPromptDeleteEpisode: promptDeleteEpisode,
-                accentColor: "accent",
                 robotId,
                 isRecording,
                 recordingElapsedTime: elapsedTime,
@@ -1096,6 +1103,42 @@ export const TrainingInterface = ({
         onConfirm={confirmDeleteDataset}
         isDeleting={isDeleting}
       />
+
+      {/* Deploy Status Popup - Unclosable while deploying */}
+      <AlertDialog open={deployStatusPopupOpen}>
+        <AlertDialogContent
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          className="sm:max-w-md"
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500"></span>
+              </span>
+              Deploying...
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              {deployStatusMessage ?? "Waiting for checkpoint..."}
+              {deployDatasetId && (
+                <span className="mt-2 block text-sm text-muted-foreground">
+                  Dataset:{" "}
+                  <span className="font-medium">{deployDatasetId}</span>
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button
+              variant="destructive"
+              onClick={onForceStopDeploy}
+              className="w-full sm:w-auto"
+            >
+              Force Stop
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

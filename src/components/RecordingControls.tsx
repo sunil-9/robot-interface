@@ -44,9 +44,9 @@ export const RecordingControls = ({
 
   return (
     <div
-      className={`pointer-events-none ${
+      className={`pointer-events-none  ${
         isCompact
-          ? "px-3 py-2"
+          ? "px-2 py-2"
           : "fixed bottom-6 left-1/2 z-40 -translate-x-1/2"
       }`}
     >
@@ -56,45 +56,41 @@ export const RecordingControls = ({
         <Button
           onClick={isRecording ? onStop : onStart}
           disabled={isLoading}
-          className={`rounded-full ${buttonPadding} ${
+          className={`rounded-full font-semibold uppercase tracking-wide transition-all duration-200 ${
             isRecording
-              ? "bg-destructive hover:bg-destructive/90"
-              : "bg-emerald-500 hover:bg-emerald-600"
-          } text-white shadow-sm ${textSize} ${
-            isCompact ? " px-3  gap-0 h-6 rounded-sm" : "rounded-full"
-          }`}
+              ? "bg-destructive hover:bg-destructive/80 hover:shadow-lg hover:shadow-destructive/25 hover:scale-105"
+              : "bg-emerald-500 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105"
+          } text-white ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
         >
           {isRecording ? (
-            <Square className={`${iconMargin} ${iconSize}`} />
+            <Square className="h-4 w-4" />
           ) : (
-            <Play className={`${iconMargin}  ${iconSize}`} />
+            <Play className="h-4 w-4" />
           )}
-          {isRecording ? "End" : "Start"}
+          {isRecording ? "Stop" : "Start"}
         </Button>
 
         <Button
           onClick={onRewind}
-          // disabled={isLoading || !currentEpisodeId}
-          variant="outline"
-          className={`rounded-full border-border bg-muted text-foreground hover:bg-muted/80 ${textSize} ${
-            isCompact ? " px-3 gap-0 h-6 rounded-sm" : "rounded-full"
+          variant="ghost"
+          className={`rounded-full font-semibold uppercase tracking-wide bg-slate-600 text-slate-200 border-0 transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105 ${
+            isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"
           }`}
         >
-          <RotateCcw className={`${iconMargin} ${iconSize}`} />
+          <RotateCcw className="h-4 w-4" />
           Rewind
         </Button>
         <Button
           onClick={onDeploy}
-          variant="outline"
           disabled={isLoading || isDeployingRequest}
-          className={`border-primary/40 ${
+          className={`rounded-full font-semibold uppercase tracking-wide border-0 transition-all duration-200 ${
             isDeploying
-              ? "bg-amber-500 text-amber-50 hover:bg-amber-500/90"
-              : "bg-primary text-primary-foreground  hover:bg-primary/90"
-          } ${textSize} ${isCompact ? "px-3 gap-0 h-6 rounded-sm" : "rounded-full"}`}
+              ? "bg-amber-500 text-white hover:bg-amber-400 hover:shadow-lg hover:shadow-amber-500/30 hover:scale-105"
+              : "bg-primary text-primary-foreground hover:bg-primary/80 hover:shadow-lg hover:shadow-primary/30 hover:scale-105"
+          } ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
         >
-          <Rocket className={`${iconMargin} ${iconSize}`} />
-          {isDeploying ? "Stop Deploy" : "Deploy"}
+          <Rocket className="h-4 w-4" />
+          {isDeploying ? "Stop" : "Deploy"}
         </Button>
         {children}
       </div>

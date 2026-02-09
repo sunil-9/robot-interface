@@ -1,4 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { AppRobot, ControlDevice } from "@/types/robot";
+import { CheckCircle2 } from "lucide-react";
 
 interface RobotSkeletonProps {
   count?: number;
@@ -115,6 +118,160 @@ export function EmptyControlDeviceState() {
           <br />
           Please check your system configuration.
         </p>
+      </div>
+    </div>
+  );
+}
+
+// Reusable Robot Card Component
+interface RobotCardProps {
+  robot: AppRobot;
+  selected: boolean;
+  onClick: () => void;
+  size?: "default" | "compact";
+}
+
+export function RobotCard({
+  robot,
+  selected,
+  onClick,
+  size = "default",
+}: RobotCardProps) {
+  const isCompact = size === "compact";
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "relative cursor-pointer rounded-lg border transition-all",
+        isCompact ? "p-3" : "p-4",
+        selected
+          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+          : "border-border bg-muted/60 hover:border-primary/40",
+      )}
+    >
+      {/* Status indicator - positioned at top right of card */}
+      <div
+        className={cn(
+          "absolute h-2 w-2 rounded-full top-2 right-2",
+          robot.status === "online" ? "bg-green-500" : "bg-red-500",
+        )}
+      />
+
+      <div className="flex items-center">
+        <div
+          className={cn(
+            "bg-muted rounded-lg flex items-center justify-center overflow-hidden",
+            isCompact ? "w-12 h-12" : "w-16 h-16",
+          )}
+        >
+          {/* Robot image */}
+          {robot.image ? (
+            <img
+              src={robot.image}
+              alt={robot.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
+            />
+          ) : (
+            <span
+              className={cn(
+                "text-muted-foreground",
+                isCompact ? "text-xl" : "text-2xl",
+              )}
+            >
+              {robot.name[0]}
+            </span>
+          )}
+        </div>
+        <div className={cn("flex-grow", isCompact ? "ml-3" : "ml-4")}>
+          <h3 className={cn("font-medium", isCompact ? "text-sm" : "text-lg")}>
+            {robot.name}
+          </h3>
+          <p
+            className={cn(
+              "text-muted-foreground line-clamp-1",
+              isCompact ? "text-xs" : "text-sm",
+            )}
+          >
+            {robot.description}
+          </p>
+        </div>
+        {selected && (
+          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Reusable Control Device Card Component
+interface ControlDeviceCardProps {
+  device: ControlDevice;
+  selected: boolean;
+  onClick: () => void;
+  size?: "default" | "compact";
+}
+
+export function ControlDeviceCard({
+  device,
+  selected,
+  onClick,
+  size = "default",
+}: ControlDeviceCardProps) {
+  const isCompact = size === "compact";
+
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "relative cursor-pointer rounded-lg border transition-all",
+        isCompact ? "p-3" : "p-4",
+        selected
+          ? "border-primary bg-primary/10 ring-2 ring-primary/30"
+          : "border-border bg-muted/60 hover:border-primary/40",
+      )}
+    >
+      <div className="flex items-center">
+        <div
+          className={cn(
+            "bg-muted rounded-lg flex items-center justify-center overflow-hidden",
+            isCompact ? "w-10 h-10" : "w-12 h-12",
+          )}
+        >
+          {device.image ? (
+            <img
+              src={device.image}
+              alt={device.name}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = "/placeholder.svg";
+              }}
+            />
+          ) : (
+            <span
+              className={cn(
+                "text-muted-foreground",
+                isCompact ? "text-lg" : "text-xl",
+              )}
+            >
+              {device.name[0]}
+            </span>
+          )}
+        </div>
+        <div className="ml-3 flex-grow">
+          <h3 className={cn("font-medium", isCompact ? "text-sm" : "")}>
+            {device.name}
+          </h3>
+          <p className="text-xs text-muted-foreground line-clamp-1">
+            {device.description}
+          </p>
+        </div>
+        {selected && (
+          <CheckCircle2 className="h-5 w-5 text-primary flex-shrink-0" />
+        )}
       </div>
     </div>
   );

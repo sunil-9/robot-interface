@@ -1,6 +1,6 @@
 import { AppMode } from "@/context/ModeContextDef";
 import { useModeContext } from "@/hooks/useModeContext";
-import { ArrowLeft, Circle, Moon, Sun } from "lucide-react";
+import { ArrowLeft, Circle, Moon, Settings, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -9,11 +9,13 @@ interface HeaderProps {
   page: string;
   selectedRobot?: string;
   selectedControl?: string;
+  onOpenSettings?: () => void;
 }
 export const Header = ({
   page,
   selectedRobot,
   selectedControl,
+  onOpenSettings,
 }: HeaderProps) => {
   const navigate = useNavigate();
   const { getModeLabel, mode } = useModeContext();
@@ -111,6 +113,17 @@ export const Header = ({
           </p>
         </div>
 
+        {onOpenSettings && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenSettings}
+            aria-label="Open settings"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        )}
         <ThemeToggle />
       </div>
     </header>

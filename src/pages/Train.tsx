@@ -1,14 +1,20 @@
 import { Header } from "@/components/Header";
 import { InputTracker } from "@/components/InputTracker";
+import { RobotSelectionDialog } from "@/components/RobotSelectionDialog";
 import { TrainingInterface } from "@/components/TrainingInterface";
-import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 import { fetchSignalingConfig } from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
-import { ArrowLeft } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import {
+  getSessionRobotData,
+  getSignalingConfig,
+  setConnectionReady,
+  setSessionRobotData,
+  setSignalingConfig,
+} from "@/lib/sessionStore";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function TrainPage() {
@@ -17,25 +23,57 @@ export default function TrainPage() {
   const { getModeLabel } = useModeContext();
   const params = useMemo(
     () => new URLSearchParams(location.search),
-    [location.search]
+    [location.search],
   );
-  // Get session data from URL params or from session storage
-  const sessionData = (() => {
-    try {
-      const storedData = sessionStorage.getItem("sessionData");
-      return storedData ? JSON.parse(storedData) : null;
-    } catch (e) {
-      console.error("Failed to parse session data", e);
-      return null;
-    }
-  })();
 
-  // Prioritize URL params over session storage for better user experience
-  const selectedRobot: string | null = params.get("robot") || sessionData?.robot || null;
+  // State for robot selection dialog
+  const [showSelectionDialog, setShowSelectionDialog] = useState(false);
+  const [currentRobot, setCurrentRobot] = useState<string | null>(null);
+  const [currentControl, setCurrentControl] = useState<string | null>(null);
+
+  // Get robot session data from URL params or from session storage
+  const sessionRobotData = getSessionRobotData();
+
+  // Prioritize URL params over session storage, then local state for better user experience
+  const selectedRobot: string | null =
+    currentRobot || params.get("robot") || sessionRobotData?.robot || null;
   const selectedControl: string | null =
-    params.get("controller") || sessionData?.controller || null;
+    currentControl ||
+    params.get("controller") ||
+    sessionRobotData?.controller ||
+    null;
 
-  const session = useWebRTCSession({robotId: selectedRobot || "unknown", controllerId: selectedControl || "unknown"});
+  const session = useWebRTCSession({
+    robotId: selectedRobot || "unknown",
+    controllerId: selectedControl || "unknown",
+  });
+
+  // Handle selection from dialog
+  const handleSelectionConfirm = useCallback(
+    (robotId: string, controllerId: string) => {
+      setCurrentRobot(robotId);
+      setCurrentControl(controllerId);
+
+      // Update URL params without navigation
+      const newParams = new URLSearchParams(location.search);
+      newParams.set("robot", robotId);
+      newParams.set("controller", controllerId);
+      navigate(`/?${newParams.toString()}`, { replace: true });
+
+      // Update session storage
+      setSessionRobotData({
+        robot: robotId,
+        controller: controllerId,
+        mode: "train",
+      });
+
+      toast({
+        title: "Session started",
+        description: `Training with robot and controller selected.`,
+      });
+    },
+    [navigate, location.search],
+  );
 
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
@@ -94,7 +132,7 @@ export default function TrainPage() {
       protocol: "http" | "https" | "ws" | "wss",
       host: string,
       port: string,
-      path: string
+      path: string,
     ) => {
       const normalizedPath = path.startsWith("/") ? path : `/${path}`;
       const portSegment = port ? `:${port}` : "";
@@ -122,50 +160,21 @@ export default function TrainPage() {
     };
 
     const parseStoredConfig = (): { baseUrl: string; wsUrl: string } | null => {
-      const stored = sessionStorage.getItem("signalingConfig");
+      const stored = getSignalingConfig();
       if (!stored) {
         return null;
       }
-      try {
-        const parsed = JSON.parse(stored);
-        if (!parsed || typeof parsed !== "object") {
-          return null;
-        }
-        const record = parsed as Record<string, unknown>;
-        const baseCandidate =
-          typeof record.webrtc_base_url === "string"
-            ? record.webrtc_base_url
-            : typeof record.signaling_base_url === "string"
-            ? record.signaling_base_url
-            : null;
-        const wsCandidate =
-          typeof record.signaling_ws_url === "string"
-            ? record.signaling_ws_url
-            : null;
-        if (!baseCandidate && !wsCandidate) {
-          return null;
-        }
-        const baseUrl = toHttpBase(baseCandidate);
-        const wsUrl = trimTrailingSlash(
-          wsCandidate ? toWebSocketUrl(wsCandidate) : toWebSocketUrl(baseUrl)
-        );
-        return { baseUrl, wsUrl };
-      } catch (error) {
-        console.warn("Failed to parse stored signaling config", error);
-        return null;
-      }
+      const baseUrl = toHttpBase(stored.webrtc_base_url);
+      const wsUrl = trimTrailingSlash(
+        stored.signaling_ws_url
+          ? toWebSocketUrl(stored.signaling_ws_url)
+          : toWebSocketUrl(baseUrl),
+      );
+      return { baseUrl, wsUrl };
     };
 
     const persistConfig = (config: { baseUrl: string; wsUrl: string }) => {
-      sessionStorage.setItem(
-        "signalingConfig",
-        JSON.stringify({
-          signaling_base_url: config.baseUrl,
-          webrtc_base_url: config.baseUrl,
-          signaling_ws_url: config.wsUrl,
-        })
-      );
-      sessionStorage.setItem("connection_ready", "1");
+      setSignalingConfig(config);
     };
 
     const ensureSignalingConfig = async (): Promise<{
@@ -174,14 +183,14 @@ export default function TrainPage() {
     }> => {
       const fromStorage = parseStoredConfig();
       if (fromStorage) {
-        sessionStorage.setItem("connection_ready", "1");
+        setConnectionReady(true);
         return fromStorage;
       }
 
       const discovered = await fetchSignalingConfig();
       const baseUrl = toHttpBase(discovered?.baseUrl);
       const wsUrl = trimTrailingSlash(
-        discovered?.wsUrl ? discovered.wsUrl : toWebSocketUrl(baseUrl)
+        discovered?.wsUrl ? discovered.wsUrl : toWebSocketUrl(baseUrl),
       );
       const normalized = { baseUrl, wsUrl };
       persistConfig(normalized);
@@ -197,30 +206,21 @@ export default function TrainPage() {
     };
 
     (async () => {
+      // Show selection dialog if robot or controller is missing instead of redirecting
       if (!selectedRobot || !selectedControl) {
-        failAndRedirect(
-          "Missing info",
-          "Robot or controller missing. Please choose from home."
-        );
+        if (!disposed) {
+          setShowSelectionDialog(true);
+        }
         return;
       }
 
-      // Support legacy components with individual session storage items
-      // while maintaining our new structured approach
       try {
-        // Update session storage with current values for backward compatibility
-        if (sessionData) {
-          console.log("Storing session data for training session", sessionData);
-          Object.entries(sessionData).forEach(([key, value]) => {
-            if (typeof value === "string") {
-              sessionStorage.setItem(key, value);
-            }
-          });
-        }
-
-        // Fallback for direct session storage access in legacy components
-        sessionStorage.setItem("selectedRobot", selectedRobot);
-        sessionStorage.setItem("selectedControl", selectedControl);
+        // Update session storage with current values
+        setSessionRobotData({
+          robot: selectedRobot,
+          controller: selectedControl,
+          mode: "train",
+        });
 
         const config = await ensureSignalingConfig();
         if (disposed) {
@@ -228,13 +228,13 @@ export default function TrainPage() {
         }
         console.info(
           "Training session initialized with signaling endpoints",
-          config
+          config,
         );
       } catch (e) {
         console.error("Error initializing session data", e);
         failAndRedirect(
           "Session initialization failed",
-          "Could not initialize session data. Please try again."
+          "Could not initialize session data. Please try again.",
         );
       }
     })();
@@ -242,15 +242,25 @@ export default function TrainPage() {
     return () => {
       disposed = true;
     };
-  }, [selectedRobot, selectedControl, sessionData, navigate]);
+  }, [selectedRobot, selectedControl, sessionRobotData, navigate]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Robot Selection Dialog */}
+      <RobotSelectionDialog
+        open={showSelectionDialog}
+        onOpenChange={setShowSelectionDialog}
+        initialRobot={selectedRobot}
+        initialController={selectedControl}
+        onConfirm={handleSelectionConfirm}
+      />
+
       {/* Transparent overlay header */}
       <Header
         page={"train"}
-        selectedRobot={selectedRobot||"unknown"}
-        selectedControl={selectedControl||"unknown"}
+        selectedRobot={selectedRobot || "unknown"}
+        selectedControl={selectedControl || "unknown"}
+        onOpenSettings={() => setShowSelectionDialog(true)}
       />
 
       {/* Main content takes full height */}

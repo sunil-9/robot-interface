@@ -643,213 +643,228 @@ export const TrainingInterface = ({
   };
 
   useEffect(() => {
-    const unsubscribe = session.onTelemetry((payload) => {
-      if (!payload || typeof payload !== "object") {
-        return;
-      }
+    const unsubscribe = session.onTelemetry(
+      (payload) => {
+        if (!payload || typeof payload !== "object") {
+          return;
+        }
 
-      const record = payload as Record<string, unknown>;
-      const type = typeof record.type === "string" ? record.type : null;
+        const record = payload as Record<string, unknown>;
+        const type = typeof record.type === "string" ? record.type : null;
 
-      // Handle dataset collection responses
-      if (type === "dataset") {
-        // console.log(payload, "obtained from the robot backend");
+        // Handle dataset collection responses
+        if (type === "dataset") {
+          // console.log(payload, "obtained from the robot backend");
+          const rawPayload = record.payload;
+          if (!rawPayload || typeof rawPayload !== "object") {
+            return;
+          }
+          const datasetPayload = rawPayload as Record<string, unknown>;
+          const action =
+            typeof datasetPayload.action === "string"
+              ? datasetPayload.action.toLowerCase()
+              : null;
+          const status =
+            typeof datasetPayload.status === "string"
+              ? datasetPayload.status
+              : null;
+          const message =
+            typeof datasetPayload.message === "string"
+              ? datasetPayload.message
+              : null;
+          const datasetId =
+            typeof datasetPayload.datasetId === "string"
+              ? datasetPayload.datasetId
+              : typeof datasetPayload.dataset_id === "string"
+                ? datasetPayload.dataset_id
+                : null;
+
+          if (datasetId && selectedDatasetRef.current !== datasetId) {
+            setSelectedDataset(datasetId);
+            selectedDatasetRef.current = datasetId;
+          }
+
+          if (action === "collection_start_ack") {
+            if (!isRecording) {
+              setIsRecording(true);
+              if (!currentEpisodeId) {
+                setCurrentEpisodeId("pending");
+              }
+              setMode(AppMode.RECORDING);
+            }
+            toast({
+              title: "Recording started",
+              description: datasetId
+                ? `Recording episode for dataset "${datasetId}"`
+                : "Episode recording has started",
+            });
+            return;
+          }
+
+          if (action === "collection_start_nack") {
+            setIsRecording(false);
+            setCurrentEpisodeId(null);
+            setMode(AppMode.TRAINING);
+            toast({
+              title: "Failed to start recording",
+              description: message
+                ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+                : datasetId
+                  ? `Could not start recording for dataset "${datasetId}"`
+                  : "Could not start recording. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          if (action === "collection_stop_ack") {
+            if (!episodesWsEnabled) {
+              setIsSavingEpisode(false);
+              fetchEpisodes(datasetId ?? undefined);
+            }
+            toast({
+              title: "Recording stopped",
+              description: datasetId
+                ? `Episode will be saved for dataset "${datasetId}"`
+                : "Episode recording will be saved",
+            });
+            return;
+          }
+
+          if (action === "collection_stop_nack") {
+            setIsSavingEpisode(false);
+            toast({
+              title: "Failed to stop recording",
+              description: message
+                ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
+                : datasetId
+                  ? `Could not stop recording for dataset "${datasetId}"`
+                  : "Could not stop recording. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          return;
+        }
+
+        // Handle deploy responses
+        if (type !== "deploy") {
+          return;
+        }
+        //println!("Deploy payload: {:?}", payload);
+        console.log(payload, "obtained from the robot backend");
+
         const rawPayload = record.payload;
         if (!rawPayload || typeof rawPayload !== "object") {
           return;
         }
-        const datasetPayload = rawPayload as Record<string, unknown>;
+        const deployPayload = rawPayload as Record<string, unknown>;
         const action =
-          typeof datasetPayload.action === "string"
-            ? datasetPayload.action.toLowerCase()
+          typeof deployPayload.action === "string"
+            ? deployPayload.action.toLowerCase()
             : null;
         const status =
-          typeof datasetPayload.status === "string"
-            ? datasetPayload.status
+          typeof deployPayload.status === "string"
+            ? deployPayload.status.toLowerCase()
             : null;
         const message =
-          typeof datasetPayload.message === "string"
-            ? datasetPayload.message
+          typeof deployPayload.message === "string"
+            ? deployPayload.message
             : null;
         const datasetId =
-          typeof datasetPayload.datasetId === "string"
-            ? datasetPayload.datasetId
-            : typeof datasetPayload.dataset_id === "string"
-              ? datasetPayload.dataset_id
+          typeof deployPayload.datasetId === "string"
+            ? deployPayload.datasetId
+            : typeof deployPayload.dataset_id === "string"
+              ? deployPayload.dataset_id
               : null;
 
-        if (action === "collection_start_ack") {
-          toast({
-            title: "Recording started",
-            description: datasetId
-              ? `Recording episode for dataset "${datasetId}"`
-              : "Episode recording has started",
-          });
-          return;
-        }
-
-        if (action === "collection_start_nack") {
-          setIsRecording(false);
-          setCurrentEpisodeId(null);
-          setMode(AppMode.TRAINING);
-          toast({
-            title: "Failed to start recording",
-            description: message
-              ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
-              : datasetId
-                ? `Could not start recording for dataset "${datasetId}"`
-                : "Could not start recording. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        if (action === "collection_stop_ack") {
-          if (!episodesWsEnabled) {
-            setIsSavingEpisode(false);
-            fetchEpisodes(datasetId ?? undefined);
-          }
-          toast({
-            title: "Recording stopped",
-            description: datasetId
-              ? `Episode will be saved for dataset "${datasetId}"`
-              : "Episode recording will be saved",
-          });
-          return;
-        }
-
-        if (action === "collection_stop_nack") {
-          setIsSavingEpisode(false);
-          toast({
-            title: "Failed to stop recording",
-            description: message
-              ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
-              : datasetId
-                ? `Could not stop recording for dataset "${datasetId}"`
-                : "Could not stop recording. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        return;
-      }
-
-      // Handle deploy responses
-      if (type !== "deploy") {
-        return;
-      }
-      //println!("Deploy payload: {:?}", payload);
-      console.log(payload, "obtained from the robot backend");
-
-      const rawPayload = record.payload;
-      if (!rawPayload || typeof rawPayload !== "object") {
-        return;
-      }
-      const deployPayload = rawPayload as Record<string, unknown>;
-      const action =
-        typeof deployPayload.action === "string"
-          ? deployPayload.action.toLowerCase()
-          : null;
-      const status =
-        typeof deployPayload.status === "string"
-          ? deployPayload.status.toLowerCase()
-          : null;
-      const message =
-        typeof deployPayload.message === "string"
-          ? deployPayload.message
-          : null;
-      const datasetId =
-        typeof deployPayload.datasetId === "string"
-          ? deployPayload.datasetId
-          : typeof deployPayload.dataset_id === "string"
-            ? deployPayload.dataset_id
-            : null;
-
-      const resolvedDataset =
-        datasetId ??
-        deployDatasetRef.current ??
-        selectedDatasetRef.current ??
-        undefined;
-
-      setDeployRequestPending(false);
-
-      if (action === "deploy_ack") {
-        console.log("Response deployment webrtc", deployPayload);
-        const active = status === "deploying";
-        setIsDeploying(active);
-        setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
-        toast({
-          title: active ? "Deployment accepted" : "Deployment updated",
-          description:
-            message ??
-            (resolvedDataset
-              ? `Dataset "${resolvedDataset}" status: ${status ?? "updated"}.`
-              : `Deployment status: ${status ?? "updated"}.`),
-        });
-        return;
-      }
-
-      if (action === "deploy_nack" || status === "error") {
-        //if message is "no active deployment" then set isDeploying to false else  Don't change isDeploying state on error - keep button in current state
-        if (message?.toLowerCase() === "no active deployment") {
-          setIsDeploying(false);
-          setDeployDatasetId(null);
-        }
-        toast({
-          title: "Deployment failed",
-          description:
-            message ??
-            "Deployment request was rejected. Check deployment services and try again.",
-          variant: "destructive",
-        });
-
-        return;
-      }
-      if (action === "deploy_stop_ack" || status === "stopped") {
-        setIsDeploying(false);
-        setDeployDatasetId(null);
-
-        toast({
-          title: "Deployment stopped",
-          description: message ?? "Deployment has been stopped successfully.",
-          variant: "default",
-        });
-
-        return;
-      }
-
-      if (action === "deploy_status") {
-        const deployingDataset =
+        const resolvedDataset =
           datasetId ??
           deployDatasetRef.current ??
           selectedDatasetRef.current ??
           undefined;
 
-        if (status === "deploying") {
-          setIsDeploying(true);
-          setDeployDatasetId(deployingDataset ?? null);
-          setDeployStatusMessage(message ?? "Downloading checkpoint...");
-          setDeployStatusPopupOpen(true);
+        setDeployRequestPending(false);
+
+        if (action === "deploy_ack") {
+          console.log("Response deployment webrtc", deployPayload);
+          const active = status === "deploying";
+          setIsDeploying(active);
+          setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
           toast({
-            title: "Deployment in progress",
+            title: active ? "Deployment accepted" : "Deployment updated",
             description:
-              message ?? `Deploying dataset "${deployingDataset}"...`,
+              message ??
+              (resolvedDataset
+                ? `Dataset "${resolvedDataset}" status: ${status ?? "updated"}.`
+                : `Deployment status: ${status ?? "updated"}.`),
           });
-        } else if (status === "deployed") {
-          setDeployStatusPopupOpen(false);
-          setDeployStatusMessage(null);
-          setIsDeploying(true);
-          setDeployDatasetId(deployingDataset ?? null);
-          toast({
-            title: "Deployment complete",
-            description:
-              message ?? `Dataset "${deployingDataset}" deployed successfully.`,
-          });
+          return;
         }
-        return;
-      }
-    });
+
+        if (action === "deploy_nack" || status === "error") {
+          //if message is "no active deployment" then set isDeploying to false else  Don't change isDeploying state on error - keep button in current state
+          if (message?.toLowerCase() === "no active deployment") {
+            setIsDeploying(false);
+            setDeployDatasetId(null);
+          }
+          toast({
+            title: "Deployment failed",
+            description:
+              message ??
+              "Deployment request was rejected. Check deployment services and try again.",
+            variant: "destructive",
+          });
+
+          return;
+        }
+        if (action === "deploy_stop_ack" || status === "stopped") {
+          setIsDeploying(false);
+          setDeployDatasetId(null);
+
+          toast({
+            title: "Deployment stopped",
+            description: message ?? "Deployment has been stopped successfully.",
+            variant: "default",
+          });
+
+          return;
+        }
+
+        if (action === "deploy_status") {
+          const deployingDataset =
+            datasetId ??
+            deployDatasetRef.current ??
+            selectedDatasetRef.current ??
+            undefined;
+
+          if (status === "deploying") {
+            setIsDeploying(true);
+            setDeployDatasetId(deployingDataset ?? null);
+            setDeployStatusMessage(message ?? "Downloading checkpoint...");
+            setDeployStatusPopupOpen(true);
+            toast({
+              title: "Deployment in progress",
+              description:
+                message ?? `Deploying dataset "${deployingDataset}"...`,
+            });
+          } else if (status === "deployed") {
+            setDeployStatusPopupOpen(false);
+            setDeployStatusMessage(null);
+            setIsDeploying(true);
+            setDeployDatasetId(deployingDataset ?? null);
+            toast({
+              title: "Deployment complete",
+              description:
+                message ??
+                `Dataset "${deployingDataset}" deployed successfully.`,
+            });
+          }
+          return;
+        }
+      },
+    );
 
     return () => {
       unsubscribe();

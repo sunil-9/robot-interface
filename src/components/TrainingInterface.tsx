@@ -2,6 +2,7 @@ import { API_CONFIG } from "@/config/api";
 import { AppMode } from "@/context/ModeContextDef";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
+import { useEpisodesWebSocket } from "@/hooks/useEpisodesWebSocket";
 import { useModeContext } from "@/hooks/useModeContext";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
@@ -141,6 +142,7 @@ export const TrainingInterface = ({
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
   const deployDatasetRef = useRef<string | null>(deployDatasetId);
+  const episodesTotalRef = useRef<number | null>(null);
 
   // Handle tab changes and update URL
   const handleTabChange = useCallback(
@@ -167,7 +169,73 @@ export const TrainingInterface = ({
 
   useEffect(() => {
     selectedDatasetRef.current = selectedDataset;
+    episodesTotalRef.current = null;
   }, [selectedDataset]);
+
+  const episodesWsEnabled = episodePanelActive && Boolean(selectedDataset);
+
+  const handleEpisodesSnapshot = useCallback(
+    (message: {
+      dataset_id: string;
+      episodes: episodeApi.Episode[];
+      total_count: number;
+    }) => {
+      const activeDataset = selectedDatasetRef.current ?? selectedDataset ?? "";
+      if (!activeDataset || message.dataset_id !== activeDataset) {
+        return;
+      }
+
+      const normalizedEpisodes = message.episodes.map((episode) => ({
+        ...episode,
+        episode_index: `${episode.episode_index}`,
+      }));
+      setEpisodes(normalizedEpisodes);
+
+      const previousTotal = episodesTotalRef.current;
+      episodesTotalRef.current = message.total_count;
+      if (
+        typeof previousTotal === "number" &&
+        message.total_count > previousTotal &&
+        isSavingEpisode
+      ) {
+        setIsSavingEpisode(false);
+      }
+    },
+    [isSavingEpisode, selectedDataset, setIsSavingEpisode],
+  );
+
+  const handleDatasetDeleted = useCallback(
+    (message: { dataset_id: string }) => {
+      const activeDataset = selectedDatasetRef.current ?? selectedDataset ?? "";
+      if (message.dataset_id !== activeDataset) {
+        return;
+      }
+      setEpisodes([]);
+      toast({
+        title: "Dataset removed",
+        description: `Dataset "${message.dataset_id}" was deleted.`,
+      });
+    },
+    [selectedDataset],
+  );
+
+  const handleEpisodeSaveError = useCallback(
+    (message: { dataset_id: string; message?: string }) => {
+      const activeDataset = selectedDatasetRef.current ?? selectedDataset ?? "";
+      if (!activeDataset || message.dataset_id !== activeDataset) {
+        return;
+      }
+      setIsSavingEpisode(false);
+      toast({
+        title: "Episode save failed",
+        description:
+          message.message ??
+          `Episode save failed for dataset: ${message.dataset_id}".`,
+        variant: "destructive",
+      });
+    },
+    [selectedDataset, setIsSavingEpisode],
+  );
 
   // Recording timer effect
   useEffect(() => {
@@ -463,7 +531,7 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    if (episodePanelActive && selectedDataset) {
+    if (episodePanelActive && selectedDataset && !episodesWsEnabled) {
       fetchEpisodes();
     }
     if (episodePanelActive) {
@@ -471,6 +539,14 @@ export const TrainingInterface = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodePanelActive, selectedDataset]);
+
+  const { isConnected: episodesWsConnected } = useEpisodesWebSocket({
+    datasetId: selectedDataset,
+    enabled: episodesWsEnabled,
+    onSnapshot: handleEpisodesSnapshot,
+    onDatasetDeleted: handleDatasetDeleted,
+    onEpisodeSaveError: handleEpisodeSaveError,
+  });
 
   // Create new dataset
   const handleCreateDataset = async () => {
@@ -496,9 +572,10 @@ export const TrainingInterface = ({
       await loadDatasets();
       setSelectedDataset(newDatasetName.trim());
     } catch (error) {
+      console.log(error.message);
       toast({
         title: "Error",
-        description: "Failed to create dataset",
+        description: `Failed to create dataset: ${error instanceof Error ? error.message : "Unknown error"}`,
         variant: "destructive",
       });
     } finally {
@@ -533,7 +610,7 @@ export const TrainingInterface = ({
     if (success) {
       // Mode is now set by EpisodeControlContext
       // Update episodes list if episode management UI is visible
-      if (episodePanelActive) {
+      if (episodePanelActive && !episodesWsEnabled) {
         fetchEpisodes();
       }
     }
@@ -637,13 +714,15 @@ export const TrainingInterface = ({
         }
 
         if (action === "collection_stop_ack") {
-          setIsSavingEpisode(false);
-          fetchEpisodes(datasetId ?? undefined);
+          if (!episodesWsEnabled) {
+            setIsSavingEpisode(false);
+            fetchEpisodes(datasetId ?? undefined);
+          }
           toast({
             title: "Recording stopped",
             description: datasetId
-              ? `Episode saved for dataset "${datasetId}"`
-              : "Episode recording has been saved",
+              ? `Episode will be saved for dataset "${datasetId}"`
+              : "Episode recording will be saved",
           });
           return;
         }
@@ -806,7 +885,9 @@ export const TrainingInterface = ({
         title: "Success",
         description: "Episode deleted successfully",
       });
-      fetchEpisodes(datasetId);
+      if (!episodesWsEnabled && !episodesWsConnected) {
+        fetchEpisodes(datasetId);
+      }
       setDeleteConfirmOpen(false);
       setEpisodeToDelete(null);
     } catch (error) {

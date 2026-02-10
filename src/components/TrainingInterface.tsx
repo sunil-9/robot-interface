@@ -425,10 +425,7 @@ export const TrainingInterface = ({
         });
       });
 
-    const mainSlot =
-      slots.find((slot) => slot.position === "main") ??
-      slots.find((slot) => slot.position === "extra") ??
-      null;
+    const mainSlot = slots.find((slot) => slot.position === "main") ?? null;
 
     const leftSlots = slots.filter((slot) => slot.position === "left");
     const rightSlots = slots.filter((slot) => slot.position === "right");
@@ -449,15 +446,9 @@ export const TrainingInterface = ({
     extras: extraSlots,
   } = cameraLayout;
 
-  const availableExtras = [...extraSlots, ...extraSlots];
-  // change key to extra in each availableExtras slot
-  availableExtras.forEach((slot) => {
-    slot.position = "extra";
-  });
-
   const fixedLeftSlot = leftSlots[0] ?? null;
   const fixedRightSlot = rightSlots[0] ?? null;
-  const sidebarSlots = availableExtras;
+  const sidebarSlots = extraSlots;
 
   const fallbackImageForPosition = (
     position: "main" | "left" | "right" | "extra",
@@ -1089,7 +1080,7 @@ export const TrainingInterface = ({
               <div className="absolute bottom-4 right-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
                 <CameraView
                   key={fixedRightSlot.key}
-                  title={fixedRightSlot.title}
+                  title={fixedRightSlot.title ?? "Right Camera"}
                   stream={fixedRightSlot.stream ?? mainSlot?.stream}
                   fallbackImage={fallbackImageForPosition("right")}
                   position="right"

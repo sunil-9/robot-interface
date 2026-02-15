@@ -117,6 +117,32 @@ const getStringField = (
   return typeof value === "string" ? value : null;
 };
 
+const createRuntimeSafeId = (prefix: string): string => {
+  if (
+    typeof globalThis.crypto !== "undefined" &&
+    typeof globalThis.crypto.randomUUID === "function"
+  ) {
+    return `${prefix}-${globalThis.crypto.randomUUID()}`;
+  }
+
+  if (
+    typeof globalThis.crypto !== "undefined" &&
+    typeof globalThis.crypto.getRandomValues === "function"
+  ) {
+    const bytes = new Uint8Array(16);
+    globalThis.crypto.getRandomValues(bytes);
+    const randomHex = Array.from(bytes, (byte) =>
+      byte.toString(16).padStart(2, "0")
+    ).join("");
+    return `${prefix}-${randomHex}`;
+  }
+
+  const fallback = `${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 12)}`;
+  return `${prefix}-${fallback}`;
+};
+
 export interface RemoteStreamEntry {
   id: string;
   camera: string | null;
@@ -319,7 +345,7 @@ export const useWebRTCSession = ({
     resetState();
 
     const currentRobotId = robotId;
-    const operatorPeerId = `operator-${crypto.randomUUID()}`;
+    const operatorPeerId = createRuntimeSafeId("operator");
     let cancelled = false;
 
     const pc = new RTCPeerConnection();
@@ -372,7 +398,7 @@ export const useWebRTCSession = ({
       if (!track) {
         return;
       }
-      const trackId = track.id ?? `track-${crypto.randomUUID()}`;
+      const trackId = track.id ?? createRuntimeSafeId("track");
       const requested = parseCameraLabel(trackId);
       let cameraLabel = assignedByTrack.get(trackId) ?? null;
       if (!cameraLabel) {

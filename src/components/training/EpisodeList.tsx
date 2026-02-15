@@ -121,19 +121,27 @@ export const EpisodeList = ({
           </div>
         </div>
       )}
-      {reversedEpisodes.map((episode, index) => (
-        <EpisodeCard
-          key={episode.episode_index}
-          episode={episode}
-          index={index}
-          isDeleting={isDeleting}
-          formatDuration={formatDuration}
-          onDelete={onPromptDeleteEpisode}
-          onReview={onReviewEpisode}
-          robotId={robotId}
-          isViewing={viewingEpisodeIndex === Number(episode.episode_index)}
-        />
-      ))}
+      {reversedEpisodes.length === 0 ? (
+        <div className="flex h-full items-center justify-center">
+          <p className="text-muted-foreground">
+            No episodes found in this dataset
+          </p>
+        </div>
+      ) : (
+        reversedEpisodes.map((episode, index) => (
+          <EpisodeCard
+            key={episode.episode_index}
+            episode={episode}
+            index={index}
+            isDeleting={isDeleting}
+            formatDuration={formatDuration}
+            onDelete={onPromptDeleteEpisode}
+            onReview={onReviewEpisode}
+            robotId={robotId}
+            isViewing={viewingEpisodeIndex === Number(episode.episode_index)}
+          />
+        ))
+      )}
     </>
   );
 };

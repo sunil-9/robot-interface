@@ -25,5 +25,5 @@ export interface ModeContextType {
 
 // Create the context with undefined default value
 export const ModeContext = createContext<ModeContextType | undefined>(
-  undefined
+  undefined,
 );

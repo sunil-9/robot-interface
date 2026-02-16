@@ -10,7 +10,6 @@ export enum RecordingControlStyle {
 interface RecordingControlsProps {
   isRecording: boolean;
   isLoading: boolean;
-  currentEpisodeId: string | null;
   isDeploying?: boolean;
   isDeployingRequest?: boolean;
   onStart: () => void;
@@ -24,7 +23,6 @@ interface RecordingControlsProps {
 export const RecordingControls = ({
   isRecording,
   isLoading,
-  currentEpisodeId,
   isDeploying = false,
   isDeployingRequest = false,
   onStart,
@@ -37,10 +35,6 @@ export const RecordingControls = ({
   const isCompact = style === RecordingControlStyle.COMPACT;
   const containerPadding = isCompact ? "px-3 py-1" : "px-4 py-2.5";
   const gap = isCompact ? "gap-3" : "gap-3";
-  const buttonPadding = isCompact ? "px-0.5" : "px-5";
-  const iconSize = isCompact ? "" : "h-4 w-4";
-  const textSize = isCompact ? "text-l" : "text-base";
-  const iconMargin = isCompact ? "mr-1" : "mr-2";
 
   return (
     <div

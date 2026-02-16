@@ -54,7 +54,6 @@ export const TrainingInterface = ({
   const episodeControl = useEpisodeControlContext();
   const {
     isRecording,
-    currentEpisodeId,
     isLoading: episodeLoading,
     isSavingEpisode,
     selectedDataset,
@@ -73,7 +72,6 @@ export const TrainingInterface = ({
     setControllerId,
     setIsSavingEpisode,
     setIsRecording,
-    setCurrentEpisodeId,
     setIsDeploying,
     setDeployRequestPending,
     setDeployDatasetId,
@@ -696,11 +694,9 @@ export const TrainingInterface = ({
         }
 
         if (action === "collection_start_ack") {
+          console.log("started with", datasetPayload.datasetId);
           if (!isRecording) {
             setIsRecording(true);
-            if (!currentEpisodeId) {
-              setCurrentEpisodeId("pending");
-            }
             setMode(AppMode.RECORDING);
           }
           toast({
@@ -714,7 +710,6 @@ export const TrainingInterface = ({
 
         if (action === "collection_start_nack") {
           setIsRecording(false);
-          setCurrentEpisodeId(null);
           setMode(AppMode.TRAINING);
           toast({
             title: "Failed to start recording",
@@ -729,10 +724,17 @@ export const TrainingInterface = ({
         }
 
         if (action === "collection_stop_ack") {
-          if (isRecording || currentEpisodeId) {
-            setIsRecording(false);
-            setMode(AppMode.TRAINING);
-          }
+          console.log(
+            "stoped traning",
+            datasetPayload,
+            "isRecording",
+            isRecording,
+          );
+          // if (isRecording) {
+          console.log("inside");
+          setIsRecording(false);
+          setMode(AppMode.TRAINING);
+          // }
 
           if (!isSavingEpisode) {
             setIsSavingEpisode(true);
@@ -888,7 +890,7 @@ export const TrainingInterface = ({
       unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, setIsRecording, setCurrentEpisodeId, setIsSavingEpisode]);
+  }, [session, setIsRecording, setIsSavingEpisode]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
@@ -1130,7 +1132,6 @@ export const TrainingInterface = ({
             <RecordingControls
               isRecording={isRecording}
               isLoading={isLoading}
-              currentEpisodeId={currentEpisodeId}
               isDeploying={isDeploying}
               isDeployingRequest={deployRequestPending}
               onStart={startEpisode}

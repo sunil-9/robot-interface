@@ -246,10 +246,6 @@ export function EpisodeControlProvider({
         return false;
       }
 
-      setIsRecording(false);
-      setIsSavingEpisode(true);
-      setCurrentEpisodeId(null);
-      setMode?.(AppMode.TRAINING);
       onRecordingEnd?.();
       return true;
     } catch (error) {

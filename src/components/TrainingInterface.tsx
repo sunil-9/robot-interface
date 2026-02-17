@@ -724,14 +724,9 @@ export const TrainingInterface = ({
         }
 
         if (action === "collection_stop_ack") {
-          console.log(
-            "stoped traning",
-            datasetPayload,
-            "isRecording",
-            isRecording,
-          );
+         
+
           // if (isRecording) {
-          console.log("inside");
           setIsRecording(false);
           setMode(AppMode.TRAINING);
           // }

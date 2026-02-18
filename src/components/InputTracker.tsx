@@ -59,7 +59,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         return;
       }
       const envelope = {
-        type: "command",
+        type: "control",
         controller: controlType ?? "unknown",
         timestamp: Date.now(),
         ...payload,

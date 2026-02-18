@@ -119,6 +119,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
 
   // Track keyboard input
   useEffect(() => {
+    console.log("[InputTracker] keyboard effect ran", { canTrackKeyboard, controlType });
     if (!canTrackKeyboard) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -131,6 +132,8 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         timestamp: Date.now(),
       });
 
+      console.log("[InputTracker] keydown", { key: e.key, code: e.code, repeat: e.repeat });
+
       sendTelemetry({
         source: "keyboard",
         key: e.key,
@@ -138,19 +141,48 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         repeat: e.repeat,
       });
 
+      const payload = {
+        type: "control",
+        timestamp: Date.now(),
+        device: { keyboard: true },
+        key: e.key,
+        code: e.code,
+        pressed: true,
+        repeat: e.repeat,
+      };
+
       toast({
         title: "Keyboard Input",
         description: `Key: ${e.key} (${e.code})`,
         duration: 1500,
       });
+
+      session?.sendControl(payload); 
     };
 
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const payload = {
+        type: "control",
+        timestamp: Date.now(),
+        device: { keyboard: true },
+        key: e.key,
+        code: e.code,
+        pressed: false,
+        repeat: false,
+      };
+      console.log("[InputTracker] keyup", { key: e.key, code: e.code });
+      session?.sendControl(payload);
+};
+
     window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [canTrackKeyboard, sendTelemetry]);
+  }, [canTrackKeyboard, sendTelemetry, session]);
 
   // Track gamepad/joystick input
   useEffect(() => {

@@ -2,9 +2,9 @@ import { Loader2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import EpisodeViewer from "@/components/visualization/pages/episode-viewer";
+import { getEpisodeDataSafe } from "@/components/visualization/pages/fetch-data";
 import { cn } from "@/lib/utils";
-import EpisodeViewer from "@/visualization/pages/episode-viewer";
-import { getEpisodeDataSafe } from "@/visualization/pages/fetch-data";
 
 import { useEpisodeViewer } from "./EpisodeViewerContext";
 

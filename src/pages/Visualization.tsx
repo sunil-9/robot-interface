@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import EpisodeViewer from "../visualization/pages/episode-viewer";
-import { getEpisodeDataSafe } from "../visualization/pages/fetch-data";
+import EpisodeViewer from "../components/visualization/pages/episode-viewer";
+import { getEpisodeDataSafe } from "../components/visualization/pages/fetch-data";
 
 type RouteParams = {
   robotid?: string;
@@ -58,7 +58,9 @@ const VisualizationPage = () => {
       <div className="flex h-screen items-center justify-center bg-slate-950 text-red-400">
         <div className="max-w-xl p-8 rounded bg-slate-900 border border-red-500 shadow-lg">
           <h2 className="text-2xl font-bold mb-4">Invalid URL</h2>
-          <p className="font-mono">Expected /visualization/&lt;robotid&gt;/&lt;datasetid&gt;</p>
+          <p className="font-mono">
+            Expected /visualization/&lt;robotid&gt;/&lt;datasetid&gt;
+          </p>
         </div>
       </div>
     );

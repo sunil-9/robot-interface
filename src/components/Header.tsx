@@ -1,6 +1,6 @@
 import { AppMode } from "@/context/ModeContextDef";
 import { useModeContext } from "@/hooks/useModeContext";
-import { ArrowLeft, Circle, Moon, Settings, Sun } from "lucide-react";
+import { CircleUserRound, Circle, Moon, Settings, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
@@ -90,10 +90,10 @@ export const Header = ({
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+          className="text-muted-foreground hover:text-foreground"
           onClick={() => navigate("/")}
         >
-          <ArrowLeft className="h-4 w-4" />
+          <CircleUserRound  />
         </Button>
 
         <div className="flex flex-col items-center text-center px-1">

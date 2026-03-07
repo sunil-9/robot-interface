@@ -160,9 +160,7 @@ export function RobotSelectionDialog({
       }
       toast({
         title: "Reset requested",
-        description: result.reset_token
-          ? "A reset token was returned for this development environment."
-          : result.message,
+        description:  result.message,
       });
     } catch (error) {
       toast({
@@ -240,9 +238,9 @@ export function RobotSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl overflow-hidden border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.12),_transparent_32%),linear-gradient(135deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.98))] p-0 text-slate-100">
-        <DialogHeader className="border-b border-slate-800/80 px-6 py-5 text-left">
-          <DialogTitle className="text-2xl font-semibold tracking-tight text-slate-50">
+      <DialogContent className="max-w-6xl overflow-hidden border-border bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.12),_transparent_30%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--card)))] p-0 text-foreground shadow-2xl">
+        <DialogHeader className="border-b border-border/80 px-6 py-5 text-left">
+          <DialogTitle className="text-2xl font-semibold tracking-tight text-foreground">
             Control Center
           </DialogTitle>
           <DialogDescription>
@@ -252,15 +250,15 @@ export function RobotSelectionDialog({
         </DialogHeader>
 
         <div className="flex max-h-[78vh] flex-col md:flex-row">
-          <aside className="border-b border-slate-800/80 bg-slate-950/30 p-4 md:w-72 md:border-b-0 md:border-r">
+          <aside className="border-b border-border/80 bg-muted/20 p-4 md:w-72 md:border-b-0 md:border-r">
             <div className="mb-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/70">
+              <p className="text-xs uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-200/70">
                 Operator Session
               </p>
-              <p className="mt-2 text-lg font-semibold text-white">
+              <p className="mt-2 text-lg font-semibold text-foreground">
                 {auth.user ? welcomeName : "Authentication required"}
               </p>
-              <p className="mt-1 text-sm text-slate-300">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {auth.user
                   ? "You are signed in and ready to manage devices."
                   : "Sign in to personalize your workspace and security settings."}
@@ -278,14 +276,14 @@ export function RobotSelectionDialog({
                     className={cn(
                       "flex w-full items-start gap-3 rounded-2xl border px-4 py-3 text-left transition-colors",
                       isActive
-                        ? "border-cyan-400/50 bg-cyan-400/10 text-white"
-                        : "border-slate-800 bg-slate-950/20 text-slate-300 hover:border-slate-700 hover:bg-slate-900/70 hover:text-white",
+                        ? "border-cyan-500/40 bg-cyan-500/10 text-foreground"
+                        : "border-border bg-background/40 text-muted-foreground hover:border-cyan-500/30 hover:bg-accent/60 hover:text-foreground",
                     )}
                   >
                     <Icon className="mt-0.5 h-4 w-4 shrink-0" />
                     <div>
                       <p className="text-sm font-medium">{item.label}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-muted-foreground">
                         {item.description}
                       </p>
                     </div>
@@ -299,9 +297,9 @@ export function RobotSelectionDialog({
             <ScrollArea className="h-[78vh]">
               <div className="space-y-6 p-6">
                 {activeTab === "account" && (
-                  <Card className="border-slate-800 bg-slate-950/35 text-slate-100 shadow-none">
+                  <Card className="border-border bg-card/70 text-card-foreground shadow-none backdrop-blur-sm">
                     <CardHeader>
-                      <CardTitle className="text-xl text-slate-50">
+                      <CardTitle className="text-xl text-foreground">
                         Account
                       </CardTitle>
                       <CardDescription>
@@ -312,19 +310,19 @@ export function RobotSelectionDialog({
                     </CardHeader>
                     <CardContent className="space-y-6">
                       {auth.isLoadingUser ? (
-                        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300">
+                        <div className="rounded-2xl border border-border bg-muted/40 p-6 text-sm text-muted-foreground">
                           Loading current session...
                         </div>
                       ) : auth.user ? (
                         <div className="space-y-4">
                           <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-5">
-                            <p className="text-xs uppercase tracking-[0.24em] text-emerald-200/70">
+                            <p className="text-xs uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-200/70">
                               Welcome
                             </p>
-                            <h3 className="mt-2 text-2xl font-semibold text-white">
+                            <h3 className="mt-2 text-2xl font-semibold text-foreground">
                               {welcomeName}
                             </h3>
-                            <p className="mt-2 text-sm text-slate-200">
+                            <p className="mt-2 text-sm text-muted-foreground">
                               Signed in as {auth.user.email}
                             </p>
                           </div>
@@ -334,7 +332,7 @@ export function RobotSelectionDialog({
                             </Button>
                             <Button
                               variant="outline"
-                              className="border-slate-700 bg-transparent text-slate-100 hover:bg-slate-800"
+                              className="border-border bg-transparent text-foreground hover:bg-accent"
                               onClick={() => {
                                 auth.logout();
                                 setActiveTab("account");
@@ -351,7 +349,7 @@ export function RobotSelectionDialog({
                         </div>
                       ) : (
                         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                          <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
+                          <div className="space-y-4 rounded-2xl border border-border bg-background/50 p-5">
                             <div className="flex gap-2">
                               <Button
                                 type="button"
@@ -360,7 +358,7 @@ export function RobotSelectionDialog({
                                 }
                                 className={cn(
                                   authMode !== "login" &&
-                                    "border-slate-700 bg-transparent text-slate-100 hover:bg-slate-800",
+                                    "border-border bg-transparent text-foreground hover:bg-accent",
                                 )}
                                 onClick={() => setAuthMode("login")}
                               >
@@ -373,7 +371,7 @@ export function RobotSelectionDialog({
                                 }
                                 className={cn(
                                   authMode !== "signup" &&
-                                    "border-slate-700 bg-transparent text-slate-100 hover:bg-slate-800",
+                                    "border-border bg-transparent text-foreground hover:bg-accent",
                                 )}
                                 onClick={() => setAuthMode("signup")}
                               >
@@ -393,7 +391,7 @@ export function RobotSelectionDialog({
                                     setAuthFullName(event.target.value)
                                   }
                                   placeholder="Full Name"
-                                  className="border-slate-700 bg-slate-950/60"
+                                  className="border-border bg-background"
                                 />
                               </div>
                             )}
@@ -408,7 +406,7 @@ export function RobotSelectionDialog({
                                   setAuthEmail(event.target.value)
                                 }
                                 placeholder="operator@example.com"
-                                className="border-slate-700 bg-slate-950/60"
+                                className="border-border bg-background"
                               />
                             </div>
 
@@ -422,7 +420,7 @@ export function RobotSelectionDialog({
                                   setAuthPassword(event.target.value)
                                 }
                                 placeholder="At least 8 characters"
-                                className="border-slate-700 bg-slate-950/60"
+                                className="border-border bg-background"
                               />
                             </div>
 
@@ -449,11 +447,11 @@ export function RobotSelectionDialog({
                             </div>
                           </div>
 
-                          <div className="rounded-2xl border border-slate-800 bg-slate-950/20 p-5">
-                            <p className="text-xs uppercase tracking-[0.24em] text-cyan-200/70">
+                          <div className="rounded-2xl border border-border bg-muted/20 p-5">
+                            <p className="text-xs uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-200/70">
                               Why sign in
                             </p>
-                            <ul className="mt-4 space-y-3 text-sm text-slate-300">
+                            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
                               <li>
                                 Keep your operator identity available across
                                 sessions.
@@ -477,10 +475,10 @@ export function RobotSelectionDialog({
                 {activeTab === "robots" && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-semibold text-slate-50">
+                      <h3 className="text-xl font-semibold text-foreground">
                         Select Robot & Control Device
                       </h3>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         Choose a robot and control device to start your training
                         session.
                       </p>
@@ -489,20 +487,20 @@ export function RobotSelectionDialog({
                     <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-slate-100">
+                          <h3 className="text-sm font-medium text-foreground">
                             Select Robot
                           </h3>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-white"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             onClick={() => refreshRobots()}
                             title="Refresh robots list"
                           >
                             <RefreshCcw className="h-4 w-4" />
                           </Button>
                         </div>
-                        <ScrollArea className="h-[320px] rounded-2xl border border-slate-800 bg-slate-950/30 p-3">
+                        <ScrollArea className="h-[320px] rounded-2xl border border-border bg-background/50 p-3">
                           <div className="space-y-2 pr-4">
                             {loading ? (
                               <RobotSkeleton count={3} />
@@ -546,13 +544,13 @@ export function RobotSelectionDialog({
 
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-slate-100">
+                          <h3 className="text-sm font-medium text-foreground">
                             Select Control Device
                           </h3>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-white"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             onClick={() => refreshRobots()}
                             title="Refresh control devices list"
                             disabled={!selectedRobot}
@@ -560,10 +558,10 @@ export function RobotSelectionDialog({
                             <RefreshCcw className="h-4 w-4" />
                           </Button>
                         </div>
-                        <ScrollArea className="h-[320px] rounded-2xl border border-slate-800 bg-slate-950/30 p-3">
+                        <ScrollArea className="h-[320px] rounded-2xl border border-border bg-background/50 p-3">
                           <div className="space-y-2 pr-4">
                             {!selectedRobot ? (
-                              <div className="rounded-xl border border-slate-700 bg-slate-900/60 p-4 text-slate-300">
+                              <div className="rounded-xl border border-border bg-muted/40 p-4 text-muted-foreground">
                                 <p className="text-sm font-medium">
                                   Please select a robot first to view available
                                   control devices.
@@ -605,10 +603,10 @@ export function RobotSelectionDialog({
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap justify-end gap-3 border-t border-slate-800 pt-4">
+                    <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-4">
                       <Button
                         variant="outline"
-                        className="border-slate-700 bg-transparent text-slate-100 hover:bg-slate-800"
+                        className="border-border bg-transparent text-foreground hover:bg-accent"
                         onClick={() => onOpenChange(false)}
                       >
                         Cancel
@@ -621,9 +619,9 @@ export function RobotSelectionDialog({
                 )}
 
                 {activeTab === "models" && (
-                  <Card className="border-slate-800 bg-slate-950/35 text-slate-100 shadow-none">
+                  <Card className="border-border bg-card/70 text-card-foreground shadow-none backdrop-blur-sm">
                     <CardHeader>
-                      <CardTitle className="text-xl text-slate-50">
+                      <CardTitle className="text-xl text-foreground">
                         Models
                       </CardTitle>
                       <CardDescription>
@@ -632,7 +630,7 @@ export function RobotSelectionDialog({
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/40 p-10 text-center text-slate-400">
+                      <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-10 text-center text-muted-foreground">
                         Coming soon
                       </div>
                     </CardContent>
@@ -640,9 +638,9 @@ export function RobotSelectionDialog({
                 )}
 
                 {activeTab === "training" && (
-                  <Card className="border-slate-800 bg-slate-950/35 text-slate-100 shadow-none">
+                  <Card className="border-border bg-card/70 text-card-foreground shadow-none backdrop-blur-sm">
                     <CardHeader>
-                      <CardTitle className="text-xl text-slate-50">
+                      <CardTitle className="text-xl text-foreground">
                         Active Training
                       </CardTitle>
                       <CardDescription>
@@ -651,7 +649,7 @@ export function RobotSelectionDialog({
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/40 p-10 text-center text-slate-400">
+                      <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-10 text-center text-muted-foreground">
                         Coming soon
                       </div>
                     </CardContent>
@@ -659,9 +657,9 @@ export function RobotSelectionDialog({
                 )}
 
                 {activeTab === "security" && (
-                  <Card className="border-slate-800 bg-slate-950/35 text-slate-100 shadow-none">
+                  <Card className="border-border bg-card/70 text-card-foreground shadow-none backdrop-blur-sm">
                     <CardHeader>
-                      <CardTitle className="text-xl text-slate-50">
+                      <CardTitle className="text-xl text-foreground">
                         Security
                       </CardTitle>
                       <CardDescription>
@@ -670,13 +668,13 @@ export function RobotSelectionDialog({
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-100">
                         Remember password must be at least 8 characters long.
                       </div>
 
                       <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-                        <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-                          <p className="text-sm font-medium text-slate-100">
+                        <div className="space-y-4 rounded-2xl border border-border bg-background/50 p-5">
+                          <p className="text-sm font-medium text-foreground">
                             1. Request reset token
                           </p>
                           <div className="space-y-2">
@@ -691,7 +689,7 @@ export function RobotSelectionDialog({
                                 setSecurityEmail(event.target.value)
                               }
                               placeholder="operator@example.com"
-                              className="border-slate-700 bg-slate-950/60"
+                              className="border-border bg-background"
                             />
                           </div>
                           <Button
@@ -707,8 +705,8 @@ export function RobotSelectionDialog({
                           </Button>
                         </div>
 
-                        <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-5">
-                          <p className="text-sm font-medium text-slate-100">
+                        <div className="space-y-4 rounded-2xl border border-border bg-background/50 p-5">
+                          <p className="text-sm font-medium text-foreground">
                             2. Set new password
                           </p>
 
@@ -723,12 +721,12 @@ export function RobotSelectionDialog({
                                 setSecurityResetToken(event.target.value)
                               }
                               placeholder="Paste the reset token here"
-                              className="min-h-[120px] border-slate-700 bg-slate-950/60"
+                              className="min-h-[120px] border-border bg-background"
                             />
                           </div>
 
                           {issuedResetToken && (
-                            <p className="text-xs text-cyan-200/80">
+                            <p className="text-xs text-cyan-700 dark:text-cyan-200/80">
                               Development token received. It has been copied
                               into the reset token field automatically.
                             </p>
@@ -746,7 +744,7 @@ export function RobotSelectionDialog({
                                 setSecurityNewPassword(event.target.value)
                               }
                               placeholder="Enter a new password"
-                              className="border-slate-700 bg-slate-950/60"
+                              className="border-border bg-background"
                             />
                           </div>
 

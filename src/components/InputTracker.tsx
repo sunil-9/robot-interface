@@ -154,11 +154,11 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         repeat: e.repeat,
       };
 
-      toast({
-        title: "Keyboard Input",
-        description: `Key: ${e.key} (${e.code})`,
-        duration: 1500,
-      });
+      // toast({
+      //   title: "Keyboard Input",
+      //   description: `Key: ${e.key} (${e.code})`,
+      //   duration: 1500,
+      // });
 
       session?.sendControl(payload); 
     };

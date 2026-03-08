@@ -15,7 +15,7 @@ interface ModeProviderProps {
 // Mode provider component to wrap the application
 export const ModeProvider: React.FC<ModeProviderProps> = ({
   children,
-  initialMode = AppMode.TRAINING,
+  initialMode = AppMode.EXPLORATION,
 }) => {
   const [mode, setMode] = useState<AppMode>(initialMode);
 

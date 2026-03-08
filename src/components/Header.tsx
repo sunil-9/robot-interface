@@ -1,23 +1,232 @@
 import { AppMode } from "@/context/ModeContextDef";
 import { useModeContext } from "@/hooks/useModeContext";
-import { CircleUserRound, Circle, Moon, Settings, Sun } from "lucide-react";
+import { useRobots } from "@/hooks/useRobots";
+import {
+  Circle,
+  CircleUserRound,
+  Moon,
+  Play,
+  RefreshCcw,
+  Settings,
+  Sun,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 interface HeaderProps {
   page: string;
   selectedRobot?: string;
   selectedControl?: string;
   onOpenSettings?: () => void;
+  onSelectionStart?: (robotId: string, controllerId: string) => void;
 }
+
+interface TrainHeaderProps {
+  selectedRobot?: string;
+  selectedControl?: string;
+  onOpenSettings?: () => void;
+  onSelectionStart?: (robotId: string, controllerId: string) => void;
+  mode: AppMode;
+  getModeLabel: () => string;
+  modeColors: Record<AppMode, string>;
+  ThemeToggle: () => JSX.Element;
+}
+
+const TrainHeader = ({
+  selectedRobot,
+  selectedControl,
+  onOpenSettings,
+  onSelectionStart,
+  mode,
+  getModeLabel,
+  modeColors,
+  ThemeToggle,
+}: TrainHeaderProps) => {
+  const navigate = useNavigate();
+  const [robotSelection, setRobotSelection] = useState<string>(
+    selectedRobot ?? "",
+  );
+  const [controlSelection, setControlSelection] = useState<string>(
+    selectedControl ?? "",
+  );
+
+  const { robots, controlDevices, loading, loadingDevices, refreshRobots } =
+    useRobots(robotSelection || selectedRobot || "");
+
+  useEffect(() => {
+    setRobotSelection(selectedRobot ?? "");
+  }, [selectedRobot]);
+
+  useEffect(() => {
+    setControlSelection(selectedControl ?? "");
+  }, [selectedControl]);
+
+  const handleRobotChange = (value: string) => {
+    setRobotSelection(value);
+    setControlSelection("");
+  };
+
+  const handleStart = () => {
+    if (!robotSelection || !controlSelection) {
+      return;
+    }
+    onSelectionStart?.(robotSelection, controlSelection);
+  };
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
+      <div className="container mx-auto flex flex-wrap items-center gap-3 px-4 py-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground hover:text-foreground"
+          onClick={() => navigate("/")}
+        >
+          <CircleUserRound />
+        </Button>
+
+        <div className="min-w-[220px] px-1">
+          <div className="flex flex-col">
+            <p
+              className={`flex items-center gap-2 text-base font-semibold text-primary              }`}
+            >
+              Imitation Machines 
+            </p>
+                        <p
+              className={`flex items-center gap-2 text-base font-semibold ${
+                modeColors[mode] || "text-primary"
+              }`}
+            >
+              {mode === AppMode.RECORDING && (
+                <Circle className="h-3 w-3 fill-current animate-pulse" />
+              )}
+              {getModeLabel()}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-1 flex-wrap items-end gap-2">
+          <div className="min-w-[220px] flex-1 space-y-1">
+            <p className="px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              Robot
+            </p>
+            <div className="flex items-center gap-1">
+              <Select
+                value={robotSelection || undefined}
+                onValueChange={handleRobotChange}
+                disabled={loading}
+              >
+                <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                  <SelectValue
+                    placeholder={loading ? "Loading robots..." : "Select robot"}
+                  />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-card">
+                  {robots.map((robot) => (
+                    <SelectItem key={robot.id} value={robot.id}>
+                      {robot.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => refreshRobots()}
+                title="Refresh robots"
+              >
+                <RefreshCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="min-w-[220px] flex-1 space-y-1">
+            <p className="px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+              Control Device
+            </p>
+            <div className="flex items-center gap-1">
+              <Select
+                value={controlSelection || undefined}
+                onValueChange={setControlSelection}
+                disabled={!robotSelection || loadingDevices}
+              >
+                <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                  <SelectValue
+                    placeholder={
+                      !robotSelection
+                        ? "Select robot first"
+                        : loadingDevices
+                          ? "Loading devices..."
+                          : "Select control device"
+                    }
+                  />
+                </SelectTrigger>
+                <SelectContent className="border-border bg-card">
+                  {controlDevices.map((device) => (
+                    <SelectItem key={device.id} value={device.id}>
+                      {device.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-8 text-muted-foreground hover:text-foreground"
+                onClick={() => refreshRobots()}
+                title="Refresh control devices"
+                disabled={!robotSelection}
+              >
+                <RefreshCcw className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <Button
+            size="sm"
+            onClick={handleStart}
+            disabled={!robotSelection || !controlSelection}
+            className="h-10 px-4"
+          >
+            <Play className="mr-1 h-3.5 w-3.5" />
+            Start
+          </Button>
+                {onOpenSettings && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onOpenSettings}
+            aria-label="Open settings"
+            className="h-10 w-10 text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
+        )}
+        <ThemeToggle />
+        </div>
+
+  
+      </div>
+    </header>
+  );
+};
+
 export const Header = ({
   page,
   selectedRobot,
   selectedControl,
   onOpenSettings,
+  onSelectionStart,
 }: HeaderProps) => {
-  const navigate = useNavigate();
   const { getModeLabel, mode } = useModeContext();
   const getStoredTheme = () => {
     if (typeof window === "undefined") {
@@ -49,7 +258,7 @@ export const Header = ({
 
   const modeColors: Record<AppMode, string> = {
     [AppMode.RECORDING]: "text-red-500",
-    [AppMode.TRAINING]: "text-emerald-500",
+    [AppMode.EXPLORATION]: "text-emerald-500",
     [AppMode.REPLAY]: "text-blue-500",
     [AppMode.POLICY_RUNNING]: "text-primary",
   };
@@ -85,48 +294,16 @@ export const Header = ({
       </div>
     </header>
   ) : page == "train" ? (
-    <header className="fixed left-1/2 top-4 z-50 -translate-x-1/2 opacity-50 transition-opacity hover:opacity-100">
-      <div className="flex items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_10px_40px_rgba(15,23,42,0.15)] backdrop-blur">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={() => navigate("/")}
-        >
-          <CircleUserRound  />
-        </Button>
-
-        <div className="flex flex-col items-center text-center px-1">
-          <h1
-            className={`flex items-center justify-center gap-2 text-base font-semibold ${
-              modeColors[mode] || "text-primary"
-            }`}
-          >
-            {mode === AppMode.RECORDING && (
-              <Circle className="h-3 w-3 fill-current animate-pulse" />
-            )}
-            {getModeLabel()}
-          </h1>
-          <p className="text-[11px] text-muted-foreground">
-            {selectedRobot ? `${selectedRobot}` : ""}
-            {selectedControl ? ` · ${selectedControl}` : ""}
-          </p>
-        </div>
-
-        {onOpenSettings && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenSettings}
-            aria-label="Open settings"
-            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        )}
-        <ThemeToggle />
-      </div>
-    </header>
+    <TrainHeader
+      selectedRobot={selectedRobot}
+      selectedControl={selectedControl}
+      onOpenSettings={onOpenSettings}
+      onSelectionStart={onSelectionStart}
+      mode={mode}
+      getModeLabel={getModeLabel}
+      modeColors={modeColors}
+      ThemeToggle={ThemeToggle}
+    />
   ) : (
     <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur">
       <div className="flex-1 flex justify-center">

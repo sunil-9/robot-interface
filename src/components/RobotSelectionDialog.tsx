@@ -612,7 +612,7 @@ export function RobotSelectionDialog({
                         Cancel
                       </Button>
                       <Button onClick={handleConfirm} disabled={!canConfirm}>
-                        Start Training
+                        Start
                       </Button>
                     </div>
                   </div>

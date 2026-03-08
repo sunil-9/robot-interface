@@ -245,7 +245,7 @@ export default function TrainPage() {
   }, [selectedRobot, selectedControl, sessionRobotData, navigate]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
       {/* Robot Selection Dialog */}
       <RobotSelectionDialog
         open={showSelectionDialog}
@@ -258,13 +258,14 @@ export default function TrainPage() {
       {/* Transparent overlay header */}
       <Header
         page={"train"}
-        selectedRobot={selectedRobot || "unknown"}
-        selectedControl={selectedControl || "unknown"}
+        selectedRobot={selectedRobot || undefined}
+        selectedControl={selectedControl || undefined}
         onOpenSettings={() => setShowSelectionDialog(true)}
+        onSelectionStart={handleSelectionConfirm}
       />
 
       {/* Main content takes full height */}
-      <main className="h-full">
+      <main className="flex-1 min-h-0 overflow-hidden">
         <TrainingInterface
           robotId={selectedRobot}
           controllerId={selectedControl}

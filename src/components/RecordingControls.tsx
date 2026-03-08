@@ -61,7 +61,7 @@ export const RecordingControls = ({
           ) : (
             <Play className="h-4 w-4" />
           )}
-          {isRecording ? "Stop" : "Start"}
+          {isRecording ? "Stop" : "Record"}
         </Button>
 
         <Button

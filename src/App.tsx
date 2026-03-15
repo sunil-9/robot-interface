@@ -10,7 +10,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 // import Home from "./pages/Home";
-import Index from "./pages/Index"; // Keep as legacy entry point
 import NotFound from "./pages/NotFound";
 import Test from "./pages/Test";
 import Train from "./pages/Train";
@@ -42,7 +41,6 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Train />} />
                   {/* <Route path="/" element={<Home />} /> */}
-                  <Route path="/legacy" element={<Index />} />
                   <Route path="/train" element={<Train />} />
                   <Route path="/test" element={<Test />} />
 

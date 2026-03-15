@@ -79,7 +79,7 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
 
           {/* Content */}
 
-          <div className="p-[3px]">
+          <div >
             {imageError ? (
               <div className="flex h-[350px] w-[450px] items-center justify-center bg-muted">
                 <p className="text-muted-foreground text-sm">No help found</p>

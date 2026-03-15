@@ -72,9 +72,9 @@ export const EpisodeCard = ({
         className={`text-xs font-medium shrink-0 ${isViewing ? "text-primary" : "text-muted-foreground"}`}
       >{`#${displayIndex}`}</span>
       <div className="flex flex-col min-w-0 flex-1">
-        <span className="text-xs font-medium text-foreground">
+        <span className={`text-xs font-medium ${isViewing ? "text-primary" : "text-muted-foreground"}`}>
           {formattedTimestamp}{" "}
-          <span className=" text-muted-foreground">
+          <span className={`text-muted-foreground ${isViewing ? "text-primary" : "text-muted-foreground"}`}>
             ( Duration: {formatDuration(episode.duration)})
           </span>
         </span>

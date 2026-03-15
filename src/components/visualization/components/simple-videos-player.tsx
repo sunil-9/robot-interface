@@ -289,7 +289,7 @@ export const SimpleVideosPlayer = ({
               key={info.filename}
               className={`${
                 isEnlarged
-                  ? "z-40 fixed inset-0 bg-black bg-opacity-90 flex flex-col items-center justify-center"
+                  ? "absolute inset-0 z-40 flex h-full w-full flex-col bg-black/90 p-4"
                   : "max-w-2xl"
               }`}
             >
@@ -318,7 +318,7 @@ export const SimpleVideosPlayer = ({
               <video
                 ref={(el) => (videoRefs.current[idx] = el)}
                 className={`w-full object-contain ${
-                  isEnlarged ? "max-h-[90vh] max-w-[90vw]" : ""
+                  isEnlarged ? "min-h-0 flex-1 max-h-full max-w-full" : ""
                 }`}
                 muted
                 playsInline

@@ -2,7 +2,7 @@ import { robotService } from "@/services/robotService";
 import { AppRobot, ControlDevice, Robot } from "@/types/robot";
 import { useEffect, useState } from "react";
 
-export function useRobots(robotId: string) {
+export function useRobots(robotId: string, accessToken: string | null) {
   const [robots, setRobots] = useState<AppRobot[]>([]);
   const [robotPresence, setRobotPresence] = useState<Robot[]>([]);
   const [controlDevices, setControlDevices] = useState<ControlDevice[]>([]);
@@ -13,11 +13,19 @@ export function useRobots(robotId: string) {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   const fetchRobots = async () => {
+    if (!accessToken) {
+      setError("Not authorized. Please log in.");
+      setRobots([]);
+      setRobotPresence([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
 
-      const { appRobots, rawRobots } = await robotService.fetchRobots();
+      const { appRobots, rawRobots } =
+        await robotService.fetchRobots(accessToken);
       setRobots(appRobots);
       setRobotPresence(rawRobots);
       setLastUpdated(new Date());
@@ -58,7 +66,7 @@ export function useRobots(robotId: string) {
     fetchControlDevices(robotId);
   };
 
-  // Initial fetch for robots only (runs once)
+  // Initial fetch for robots only (re-runs when accessToken changes)
   useEffect(() => {
     fetchRobots();
 
@@ -70,7 +78,7 @@ export function useRobots(robotId: string) {
     return () => {
       clearInterval(intervalId);
     };
-  }, []);
+  }, [accessToken]);
 
   // Fetch control devices when robotId changes
   useEffect(() => {

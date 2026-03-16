@@ -7,10 +7,7 @@ import {
   Robot,
   RobotsResponse,
 } from "@/types/robot";
-import {
-  formatApiError,
-  parseCloudApiResponse,
-} from "@/utils/apiResponse";
+import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
 export interface RobotFetchResult {
   appRobots: AppRobot[];
@@ -22,7 +19,7 @@ export const robotService = {
    * Fetch available robots from the API
    * @returns Promise with available robots
    */
-  async fetchRobots(): Promise<RobotFetchResult> {
+  async fetchRobots(accessToken: string): Promise<RobotFetchResult> {
     try {
       const response = await fetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOTS}`,
@@ -30,18 +27,21 @@ export const robotService = {
           method: "GET",
           headers: {
             accept: "application/json",
+            Authorization: `Bearer ${accessToken}`,
           },
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
-        }
+        },
       );
       if (!response.ok) {
         throw new Error(
-          formatApiError("api failed to respond", `Failed to fetch robots: ${response.status}`)
+          formatApiError(
+            "api failed to respond",
+            `Failed to fetch robots: ${response.status}`,
+          ),
         );
       }
 
       const data = await parseCloudApiResponse<RobotsResponse>(response);
-
 
       const rawRobots = Array.isArray(data.robots) ? data.robots : [];
 
@@ -77,19 +77,19 @@ export const robotService = {
             accept: "application/json",
           },
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
-        }
+          
+        },
       );
 
-      const data = await parseCloudApiResponse<OperatorDevicesResponse>(
-        response
-      );
+      const data =
+        await parseCloudApiResponse<OperatorDevicesResponse>(response);
 
       if (!response.ok) {
         throw new Error(
           formatApiError(
             data,
-            `Failed to fetch operator devices: ${response.status}`
-          )
+            `Failed to fetch operator devices: ${response.status}`,
+          ),
         );
       }
 
@@ -151,10 +151,10 @@ function mapApiRobotToAppRobot(robot: Robot): AppRobot {
  */
 function mapApiDeviceToControlDevice(device: ApiOperatorDevice): ControlDevice {
   // Generate a unique ID based on the device name
-  const deviceId =device.name.toLowerCase().replace(/\s+/g, "-");
+  const deviceId = device.name.toLowerCase().replace(/\s+/g, "-");
 
   // Get description based on type or use a default
-  const description =device.description 
+  const description = device.description;
   return {
     id: deviceId,
     name: device.name,

@@ -84,7 +84,7 @@ export function RobotSelectionDialog({
     error: robotsError,
     deviceError,
     refreshRobots,
-  } = useRobots(selectedRobot || "");
+  } = useRobots(selectedRobot || "", auth.accessToken);
 
   // Sync initial values when dialog opens
   useEffect(() => {
@@ -160,7 +160,7 @@ export function RobotSelectionDialog({
       }
       toast({
         title: "Reset requested",
-        description:  result.message,
+        description: result.message,
       });
     } catch (error) {
       toast({

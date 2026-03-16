@@ -59,10 +59,16 @@ export function useRobots(robotId: string, accessToken: string | null) {
     }
   };
 
-  // Refresh data
-  const refreshData = () => {
-    console.log("refreshing data");
+  const refreshRobots = () => {
     fetchRobots();
+  };
+
+  const refreshControlDevices = () => {
+    if (!robotId) {
+      setControlDevices([]);
+      setLoadingDevices(false);
+      return;
+    }
     fetchControlDevices(robotId);
   };
 
@@ -108,7 +114,8 @@ export function useRobots(robotId: string, accessToken: string | null) {
     loadingDevices,
     error,
     deviceError,
-    refreshRobots: refreshData, // Keep the same function name for compatibility
+    refreshRobots,
+    refreshControlDevices,
     lastUpdated,
   };
 }

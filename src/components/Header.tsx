@@ -1,9 +1,13 @@
 import { AppMode } from "@/context/ModeContextDef";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
+import { robotService } from "@/services/robotService";
 import {
+  CheckCircle2,
   Circle,
   CircleUserRound,
+  Link2,
   Moon,
   Play,
   RefreshCcw,
@@ -14,12 +18,23 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
+import { Input } from "./ui/input";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+
+const CLAIM_ROBOT_VALUE = "__claim__";
 
 interface HeaderProps {
   page: string;
@@ -51,15 +66,36 @@ const TrainHeader = ({
   ThemeToggle,
 }: TrainHeaderProps) => {
   const navigate = useNavigate();
+  const auth = useAuthSession();
   const [robotSelection, setRobotSelection] = useState<string>(
     selectedRobot ?? "",
   );
   const [controlSelection, setControlSelection] = useState<string>(
     selectedControl ?? "",
   );
+  const [claimRobotOpen, setClaimRobotOpen] = useState(false);
+  const [claimRobotHash, setClaimRobotHash] = useState("");
+  const [claimRobotLoading, setClaimRobotLoading] = useState(false);
+  const [claimRobotError, setClaimRobotError] = useState<string | null>(null);
 
-  const { robots, controlDevices, loading, loadingDevices, refreshRobots } =
-    useRobots(robotSelection || selectedRobot || "");
+  const {
+    robots,
+    controlDevices,
+    loading,
+    loadingDevices,
+    refreshRobots,
+    refreshControlDevices,
+  } = useRobots(robotSelection || selectedRobot || "", auth.accessToken);
+
+  const sortedRobots = [...robots].sort((left, right) => {
+    if (left.is_live === right.is_live) {
+      return left.name.localeCompare(right.name);
+    }
+    return left.is_live ? -1 : 1;
+  });
+
+  const selectedRobotDetail =
+    sortedRobots.find((robot) => robot.id === robotSelection) ?? null;
 
   useEffect(() => {
     setRobotSelection(selectedRobot ?? "");
@@ -70,8 +106,45 @@ const TrainHeader = ({
   }, [selectedControl]);
 
   const handleRobotChange = (value: string) => {
+    if (value === CLAIM_ROBOT_VALUE) {
+      setClaimRobotOpen(true);
+      setClaimRobotError(null);
+      return;
+    }
     setRobotSelection(value);
     setControlSelection("");
+  };
+
+  const handleClaimRobot = async () => {
+    if (!auth.accessToken) {
+      setClaimRobotError("Not authorized. Please log in and try again.");
+      return;
+    }
+    const normalizedHash = claimRobotHash.trim();
+    if (!normalizedHash) {
+      setClaimRobotError("Robot hash is required.");
+      return;
+    }
+
+    try {
+      setClaimRobotLoading(true);
+      setClaimRobotError(null);
+      const claimResult = await robotService.claimRobot(
+        auth.accessToken,
+        normalizedHash,
+      );
+      setRobotSelection(String(claimResult.robot_id));
+      setControlSelection("");
+      setClaimRobotHash("");
+      setClaimRobotOpen(false);
+      refreshRobots();
+    } catch (error) {
+      setClaimRobotError(
+        error instanceof Error ? error.message : "Failed to claim robot.",
+      );
+    } finally {
+      setClaimRobotLoading(false);
+    }
   };
 
   const handleStart = () => {
@@ -98,9 +171,9 @@ const TrainHeader = ({
             <p
               className={`flex items-center gap-2 text-base font-semibold text-primary              }`}
             >
-              Imitation Machines 
+              Imitation Machines
             </p>
-                        <p
+            <p
               className={`flex items-center gap-2 text-base font-semibold ${
                 modeColors[mode] || "text-primary"
               }`}
@@ -120,28 +193,83 @@ const TrainHeader = ({
             </p>
             <div className="flex items-center gap-1">
               <Select
-                value={robotSelection || undefined}
+                value={
+                  robotSelection && robotSelection !== CLAIM_ROBOT_VALUE
+                    ? robotSelection
+                    : undefined
+                }
                 onValueChange={handleRobotChange}
                 disabled={loading}
               >
                 <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
-                  <SelectValue
-                    placeholder={loading ? "Loading robots..." : "Select robot"}
-                  />
+                  {selectedRobotDetail ? (
+                    <span className="flex min-w-0 flex-col items-start leading-tight">
+                      <span className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
+                        {selectedRobotDetail.is_live ? (
+                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        ) : (
+                          <Circle className="h-3 w-3 text-red-500" />
+                        )}
+                        {selectedRobotDetail.name}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {selectedRobotDetail.is_live
+                          ? selectedRobotDetail.description
+                          : "Offline robot"}
+                      </span>
+                    </span>
+                  ) : (
+                    <SelectValue
+                      placeholder={
+                        loading ? "Loading robots..." : "Select robot"
+                      }
+                    />
+                  )}
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card">
-                  {robots.map((robot) => (
-                    <SelectItem key={robot.id} value={robot.id}>
-                      {robot.name}
+                  {sortedRobots.map((robot) => (
+                    <SelectItem
+                      key={robot.id}
+                      value={robot.id}
+                      className="mb-1 min-h-16 items-start rounded-md border border-border/70 bg-background/60 py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
+                    >
+                      <div className="flex w-full items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-foreground">
+                            <span className="mr-1">
+                              {robot.is_live ? (
+                                <CheckCircle2 className="inline h-3 w-3 text-emerald-500" />
+                              ) : (
+                                <Circle className="inline h-3 w-3 text-red-500" />
+                              )}
+                            </span>
+                            {robot.name}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {robot.is_live
+                              ? robot.description
+                              : "Offline robot"}
+                          </p>
+                        </div>
+                      </div>
                     </SelectItem>
                   ))}
+                  <SelectItem
+                    value={CLAIM_ROBOT_VALUE}
+                    className="mt-1 items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary focus:bg-accent/30 focus:text-primary [&>span:first-child]:hidden"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Link2 className="h-3 w-3" />
+                      Claim robot
+                    </span>
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-10 w-8 text-muted-foreground hover:text-foreground"
-                onClick={() => refreshRobots()}
+                onClick={refreshRobots}
                 title="Refresh robots"
               >
                 <RefreshCcw className="h-4 w-4" />
@@ -182,7 +310,7 @@ const TrainHeader = ({
                 variant="ghost"
                 size="icon"
                 className="h-10 w-8 text-muted-foreground hover:text-foreground"
-                onClick={() => refreshRobots()}
+                onClick={refreshControlDevices}
                 title="Refresh control devices"
                 disabled={!robotSelection}
               >
@@ -200,22 +328,71 @@ const TrainHeader = ({
             <Play className="mr-1 h-3.5 w-3.5" />
             Start
           </Button>
-                {onOpenSettings && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onOpenSettings}
-            aria-label="Open settings"
-            className="h-10 w-10 text-muted-foreground hover:text-foreground"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        )}
-        <ThemeToggle />
+          {onOpenSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onOpenSettings}
+              aria-label="Open settings"
+              className="h-10 w-10 text-muted-foreground hover:text-foreground"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
+          <ThemeToggle />
         </div>
-
-  
       </div>
+
+      <Dialog
+        open={claimRobotOpen}
+        onOpenChange={(open) => {
+          setClaimRobotOpen(open);
+          if (!open) {
+            setClaimRobotError(null);
+            setClaimRobotHash("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Claim robot</DialogTitle>
+            <DialogDescription>
+              Enter robot hash to claim and link this robot to your user.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            placeholder="Enter robot hash"
+            value={claimRobotHash}
+            onChange={(event) => {
+              setClaimRobotHash(event.target.value);
+              if (claimRobotError) {
+                setClaimRobotError(null);
+              }
+            }}
+            disabled={claimRobotLoading}
+          />
+          {claimRobotError ? (
+            <p className="text-sm text-red-500">{claimRobotError}</p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setClaimRobotOpen(false)}
+              disabled={claimRobotLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleClaimRobot}
+              disabled={claimRobotLoading || !claimRobotHash.trim()}
+            >
+              {claimRobotLoading ? "Claiming..." : "Claim"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 };
@@ -261,6 +438,7 @@ export const Header = ({
     [AppMode.EXPLORATION]: "text-emerald-500",
     [AppMode.REPLAY]: "text-blue-500",
     [AppMode.POLICY_RUNNING]: "text-primary",
+    [AppMode.TRAINING]: "",
   };
 
   const ThemeToggle = () => (

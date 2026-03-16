@@ -6,6 +6,7 @@ export enum AppMode {
   RECORDING = "recording",
   REPLAY = "replay",
   POLICY_RUNNING = "policy_running",
+  TRAINING = "TRAINING",
 }
 
 // Mode display labels

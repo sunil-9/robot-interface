@@ -13,8 +13,15 @@ export interface Robot {
   };
 }
 
+export interface ClaimedRobot {
+  robot_id: string;
+  friendly_name: string | null;
+  is_live: boolean;
+}
+
 export interface RobotsResponse {
   robots: Robot[];
+  claimed_robots: ClaimedRobot[];
 }
 
 // Map API robot data to our application robot format
@@ -27,6 +34,7 @@ export interface AppRobot {
   specifications: Record<string, string | number | string[]>;
   status: "online" | "offline";
   address: string;
+  is_live: boolean;
 }
 
 // API operator device interface
@@ -52,4 +60,10 @@ export interface ControlDevice {
 export interface RobotsData {
   robots: AppRobot[];
   controlDevices: ControlDevice[];
+}
+
+export interface ClaimRobotResponse {
+  user_id: number;
+  robot_id: number;
+  created: boolean;
 }

@@ -19,26 +19,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
-import { useRobots } from "@/hooks/useRobots";
 import { cn } from "@/lib/utils";
 import { requestPasswordReset, resetPassword } from "@/services/authApi";
-import {
-  Activity,
-  Bot,
-  KeyRound,
-  Package,
-  RefreshCcw,
-  UserRound,
-} from "lucide-react";
+import { Activity, KeyRound, Package, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import {
-  ControlDeviceCard,
-  ControlDeviceSkeleton,
-  EmptyControlDeviceState,
-  EmptyRobotState,
-  RobotCard,
-  RobotSkeleton,
-} from "./RobotSkeleton";
 
 interface RobotSelectionDialogProps {
   open: boolean;
@@ -76,16 +60,6 @@ export function RobotSelectionDialog({
   const [issuedResetToken, setIssuedResetToken] = useState<string | null>(null);
   const [securitySubmitting, setSecuritySubmitting] = useState(false);
 
-  const {
-    robots,
-    controlDevices,
-    loading,
-    loadingDevices,
-    error: robotsError,
-    deviceError,
-    refreshRobots,
-  } = useRobots(selectedRobot || "", auth.accessToken);
-
   // Sync initial values when dialog opens
   useEffect(() => {
     if (open) {
@@ -101,14 +75,6 @@ export function RobotSelectionDialog({
     }
   }, [open, initialRobot, initialController, auth.user]);
 
-  const handleConfirm = () => {
-    if (selectedRobot && selectedControl) {
-      onConfirm(selectedRobot, selectedControl);
-      onOpenChange(false);
-    }
-  };
-
-  const canConfirm = selectedRobot && selectedControl;
   const welcomeName =
     auth.user?.fullName?.trim() || auth.user?.email || "operator";
 
@@ -209,12 +175,6 @@ export function RobotSelectionDialog({
       description: auth.user
         ? "Profile and session"
         : "Sign in or create account",
-    },
-    {
-      value: "robots" as const,
-      label: "Robots",
-      icon: Bot,
-      description: "Robot and controller selection",
     },
     {
       value: "models" as const,
@@ -327,9 +287,6 @@ export function RobotSelectionDialog({
                             </p>
                           </div>
                           <div className="flex flex-wrap gap-3">
-                            <Button onClick={() => setActiveTab("robots")}>
-                              Go to Robots
-                            </Button>
                             <Button
                               variant="outline"
                               className="border-border bg-transparent text-foreground hover:bg-accent"
@@ -470,152 +427,6 @@ export function RobotSelectionDialog({
                       )}
                     </CardContent>
                   </Card>
-                )}
-
-                {activeTab === "robots" && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-foreground">
-                        Select Robot & Control Device
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Choose a robot and control device to start your training
-                        session.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-foreground">
-                            Select Robot
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => refreshRobots()}
-                            title="Refresh robots list"
-                          >
-                            <RefreshCcw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <ScrollArea className="h-[320px] rounded-2xl border border-border bg-background/50 p-3">
-                          <div className="space-y-2 pr-4">
-                            {loading ? (
-                              <RobotSkeleton count={3} />
-                            ) : robots.length > 0 ? (
-                              robots.map((robot) => (
-                                <RobotCard
-                                  key={robot.id}
-                                  robot={robot}
-                                  selected={selectedRobot === robot.id}
-                                  onClick={() => {
-                                    setSelectedRobot(robot.id);
-                                    setSelectedControl(null);
-                                  }}
-                                  size="compact"
-                                />
-                              ))
-                            ) : (
-                              <EmptyRobotState />
-                            )}
-
-                            {robotsError && (
-                              <div className="rounded-xl border border-destructive bg-destructive/10 p-3 text-destructive">
-                                <p className="text-sm font-medium">
-                                  Error loading robots
-                                </p>
-                                <p className="mt-1 text-xs">{robotsError}</p>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="mt-3 h-7 border-destructive bg-transparent text-destructive hover:bg-destructive/20"
-                                  onClick={() => refreshRobots()}
-                                >
-                                  <RefreshCcw className="mr-1 h-3 w-3" /> Try
-                                  Again
-                                </Button>
-                              </div>
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h3 className="text-sm font-medium text-foreground">
-                            Select Control Device
-                          </h3>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                            onClick={() => refreshRobots()}
-                            title="Refresh control devices list"
-                            disabled={!selectedRobot}
-                          >
-                            <RefreshCcw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <ScrollArea className="h-[320px] rounded-2xl border border-border bg-background/50 p-3">
-                          <div className="space-y-2 pr-4">
-                            {!selectedRobot ? (
-                              <div className="rounded-xl border border-border bg-muted/40 p-4 text-muted-foreground">
-                                <p className="text-sm font-medium">
-                                  Please select a robot first to view available
-                                  control devices.
-                                </p>
-                              </div>
-                            ) : loadingDevices ? (
-                              <ControlDeviceSkeleton count={3} />
-                            ) : deviceError ? (
-                              <div className="rounded-xl border border-destructive bg-destructive/10 p-3 text-destructive">
-                                <p className="text-sm font-medium">
-                                  Error loading control devices
-                                </p>
-                                <p className="mt-1 text-xs">{deviceError}</p>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="mt-3 h-7 border-destructive bg-transparent text-destructive hover:bg-destructive/20"
-                                  onClick={() => refreshRobots()}
-                                >
-                                  <RefreshCcw className="mr-1 h-3 w-3" /> Try
-                                  Again
-                                </Button>
-                              </div>
-                            ) : controlDevices.length > 0 ? (
-                              controlDevices.map((device) => (
-                                <ControlDeviceCard
-                                  key={device.id}
-                                  device={device}
-                                  selected={selectedControl === device.id}
-                                  onClick={() => setSelectedControl(device.id)}
-                                  size="compact"
-                                />
-                              ))
-                            ) : (
-                              <EmptyControlDeviceState />
-                            )}
-                          </div>
-                        </ScrollArea>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap justify-end gap-3 border-t border-border pt-4">
-                      <Button
-                        variant="outline"
-                        className="border-border bg-transparent text-foreground hover:bg-accent"
-                        onClick={() => onOpenChange(false)}
-                      >
-                        Cancel
-                      </Button>
-                      <Button onClick={handleConfirm} disabled={!canConfirm}>
-                        Start
-                      </Button>
-                    </div>
-                  </div>
                 )}
 
                 {activeTab === "models" && (

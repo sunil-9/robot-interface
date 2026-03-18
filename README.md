@@ -253,4 +253,13 @@ npm run lint         # Run ESLint
 
 ---
 
+# 🤝🏻 Help Images
+
+All the help image src should be uploaded to the frontend repo
+
+```
+/public/help/(robot)/(controller).png
+```
+---
+
 For questions or support, please open an issue on the repository.

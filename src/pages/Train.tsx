@@ -226,10 +226,10 @@ export default function TrainPage() {
         if (disposed) {
           return;
         }
-        console.info(
-          "Training session initialized with signaling endpoints",
-          config,
-        );
+        // console.info(
+        //   "Training session initialized with signaling endpoints",
+        //   config,
+        // );
       } catch (e) {
         console.error("Error initializing session data", e);
         failAndRedirect(

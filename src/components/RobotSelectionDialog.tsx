@@ -65,7 +65,7 @@ export function RobotSelectionDialog({
     if (open) {
       setSelectedRobot(initialRobot || null);
       setSelectedControl(initialController || null);
-      setActiveTab(auth.user ? "robots" : "account");
+      setActiveTab("account");
       setAuthEmail(auth.user?.email ?? "");
       setAuthPassword("");
       setSecurityEmail(auth.user?.email ?? "");

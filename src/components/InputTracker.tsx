@@ -66,7 +66,12 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
       };
       const ok = session.sendControl(envelope);
       if (!ok) {
-        console.warn("Failed to send input telemetry", envelope);
+        console.warn(
+          "Failed to send input telemetry",
+          ok,
+          "and data is",
+          envelope,
+        );
       }
     },
     [session, controlType],
@@ -121,13 +126,13 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
   // Track keyboard input
 
   useEffect(() => {
-    console.log("[InputTracker] keyboard effect ran", { canTrackKeyboard, controlType });
+    // console.log("[InputTracker] keyboard effect ran", { canTrackKeyboard, controlType });
     if (!canTrackKeyboard) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't capture F5, browser shortcuts etc.
       if (e.metaKey || e.ctrlKey || e.altKey) return;
-      console.log("key pressed: ", e.key);
+      // console.log("key pressed: ", e.key);
 
       setLastInput({
         type: "keyboard",
@@ -135,7 +140,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         timestamp: Date.now(),
       });
 
-      console.log("[InputTracker] keydown", { key: e.key, code: e.code, repeat: e.repeat });
+      // console.log("[InputTracker] keydown", { key: e.key, code: e.code, repeat: e.repeat });
 
       sendTelemetry({
         source: "keyboard",
@@ -160,7 +165,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
       //   duration: 1500,
       // });
 
-      session?.sendControl(payload); 
+      session?.sendControl(payload);
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -174,9 +179,9 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         pressed: false,
         repeat: false,
       };
-      console.log("[InputTracker] keyup", { key: e.key, code: e.code });
+      // console.log("[InputTracker] keyup", { key: e.key, code: e.code });
       session?.sendControl(payload);
-};
+    };
 
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);

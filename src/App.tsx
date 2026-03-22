@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { BridgeProvider } from "@/context/BridgeContext";
 import { EpisodeControlProvider } from "@/context/EpisodeControlContext";
 import { ModeProvider } from "@/context/ModeContext";
+import { AuthSessionProvider } from "@/context/AuthSessionContext";
 import { useModeContext } from "@/hooks/useModeContext";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { type ReactNode } from "react";
@@ -31,32 +32,34 @@ function EpisodeControlWithMode({ children }: { children: ReactNode }) {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ModeProvider>
-      <BridgeProvider>
-        <EpisodeControlWithMode>
-          <EpisodeViewerProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter>
-                <Routes>
-                  <Route path="/" element={<Train />} />
-                  {/* <Route path="/" element={<Home />} /> */}
-                  <Route path="/train" element={<Train />} />
-                  <Route path="/test" element={<Test />} />
+      <AuthSessionProvider>
+        <BridgeProvider>
+          <EpisodeControlWithMode>
+            <EpisodeViewerProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <BrowserRouter>
+                  <Routes>
+                    <Route path="/" element={<Train />} />
+                    {/* <Route path="/" element={<Home />} /> */}
+                    <Route path="/train" element={<Train />} />
+                    <Route path="/test" element={<Test />} />
 
-                  <Route path="/webrtc-debug" element={<WebRTCDebug />} />
-                  <Route
-                    path="/visualization/:robotid/:datasetid"
-                    element={<VisualizationPage />}
-                  />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </EpisodeViewerProvider>
-        </EpisodeControlWithMode>
-      </BridgeProvider>
+                    <Route path="/webrtc-debug" element={<WebRTCDebug />} />
+                    <Route
+                      path="/visualization/:robotid/:datasetid"
+                      element={<VisualizationPage />}
+                    />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </BrowserRouter>
+              </TooltipProvider>
+            </EpisodeViewerProvider>
+          </EpisodeControlWithMode>
+        </BridgeProvider>
+      </AuthSessionProvider>
     </ModeProvider>
   </QueryClientProvider>
 );

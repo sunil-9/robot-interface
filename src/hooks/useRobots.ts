@@ -2,7 +2,10 @@ import { robotService } from "@/services/robotService";
 import { AppRobot, ControlDevice, Robot } from "@/types/robot";
 import { useEffect, useState } from "react";
 
-export function useRobots(robotId: string, accessToken: string | null) {
+export function useRobots(
+  robotId: string,
+  accessToken: string | null = null,
+) {
   const [robots, setRobots] = useState<AppRobot[]>([]);
   const [robotPresence, setRobotPresence] = useState<Robot[]>([]);
   const [controlDevices, setControlDevices] = useState<ControlDevice[]>([]);
@@ -17,6 +20,9 @@ export function useRobots(robotId: string, accessToken: string | null) {
       setError("Not authorized. Please log in.");
       setRobots([]);
       setRobotPresence([]);
+      setControlDevices([]);
+      setDeviceError(null);
+      setLoadingDevices(false);
       setLoading(false);
       return;
     }
@@ -27,12 +33,19 @@ export function useRobots(robotId: string, accessToken: string | null) {
       const { appRobots, rawRobots } = await robotService.fetchRobots();
       setRobots(appRobots);
       setRobotPresence(rawRobots);
+      if (robotId && !appRobots.some((robot) => robot.id === robotId)) {
+        setControlDevices([]);
+        setDeviceError(null);
+        setLoadingDevices(false);
+      }
       setLastUpdated(new Date());
     } catch (err) {
       console.error("Error fetching robots:", err);
       setError(err instanceof Error ? err.message : "Failed to fetch robots");
       setRobots([]);
       setRobotPresence([]);
+      setControlDevices([]);
+      setLoadingDevices(false);
     } finally {
       setLoading(false);
     }
@@ -40,6 +53,13 @@ export function useRobots(robotId: string, accessToken: string | null) {
 
   // Fetch operator devices from the API
   const fetchControlDevices = async (robotId: string) => {
+    if (!accessToken) {
+      setControlDevices([]);
+      setDeviceError("Not authorized. Please log in.");
+      setLoadingDevices(false);
+      return;
+    }
+
     try {
       setLoadingDevices(true);
       setDeviceError(null);
@@ -63,7 +83,7 @@ export function useRobots(robotId: string, accessToken: string | null) {
   };
 
   const refreshControlDevices = () => {
-    if (!robotId) {
+    if (!accessToken || !robotId) {
       setControlDevices([]);
       setLoadingDevices(false);
       return;
@@ -85,8 +105,15 @@ export function useRobots(robotId: string, accessToken: string | null) {
     };
   }, [accessToken]);
 
-  // Fetch control devices when robotId changes
+  // Fetch control devices when robotId or auth changes
   useEffect(() => {
+    if (!accessToken || !robotId) {
+      setControlDevices([]);
+      setDeviceError(accessToken ? null : "Not authorized. Please log in.");
+      setLoadingDevices(false);
+      return;
+    }
+
     if (robotId) {
       fetchControlDevices(robotId);
 
@@ -98,12 +125,8 @@ export function useRobots(robotId: string, accessToken: string | null) {
       return () => {
         clearInterval(intervalId);
       };
-    } else {
-      // Clear control devices when no robot is selected
-      setControlDevices([]);
-      setLoadingDevices(false);
     }
-  }, [robotId]);
+  }, [robotId, accessToken]);
 
   return {
     robots,

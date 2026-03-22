@@ -31,11 +31,37 @@ export const AuthSessionProvider = ({
   const accessToken = session?.accessToken ?? null;
   const user = session?.user ?? null;
 
+  const stripSessionQueryParamsAndReload = () => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const currentUrl = new URL(window.location.href);
+    const hadRobot = currentUrl.searchParams.has("robot");
+    const hadController = currentUrl.searchParams.has("controller");
+
+    if (!hadRobot && !hadController) {
+      return;
+    }
+
+    currentUrl.searchParams.delete("robot");
+    currentUrl.searchParams.delete("controller");
+
+    const nextSearch = currentUrl.searchParams.toString();
+    const nextUrl = `${currentUrl.pathname}${
+      nextSearch ? `?${nextSearch}` : ""
+    }${currentUrl.hash}`;
+
+    window.history.replaceState(null, "", nextUrl);
+    window.location.reload();
+  };
+
   const clearOperatorSession = () => {
     clearStoredAuthSession();
     clearAuthSessionState();
     setSession(null);
     setIsLoadingUser(false);
+    stripSessionQueryParamsAndReload();
   };
 
   useEffect(() => {

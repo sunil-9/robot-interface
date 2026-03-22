@@ -3,6 +3,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
 import { robotService } from "@/services/robotService";
+import { toast } from "@/components/ui/use-toast";
 import {
   CheckCircle2,
   Circle,
@@ -77,6 +78,7 @@ const TrainHeader = ({
   const [claimRobotHash, setClaimRobotHash] = useState("");
   const [claimRobotLoading, setClaimRobotLoading] = useState(false);
   const [claimRobotError, setClaimRobotError] = useState<string | null>(null);
+  const selectedRobotId = robotSelection || selectedRobot || "";
 
   const {
     robots,
@@ -85,7 +87,7 @@ const TrainHeader = ({
     loadingDevices,
     refreshRobots,
     refreshControlDevices,
-  } = useRobots(robotSelection || selectedRobot || "", auth.accessToken);
+  } = useRobots(selectedRobotId, auth.accessToken);
 
   const sortedRobots = [...robots].sort((left, right) => {
     if (left.is_live === right.is_live) {
@@ -94,8 +96,12 @@ const TrainHeader = ({
     return left.is_live ? -1 : 1;
   });
 
+  const hasSelectedRobot = sortedRobots.some(
+    (robot) => robot.id === selectedRobotId,
+  );
   const selectedRobotDetail =
-    sortedRobots.find((robot) => robot.id === robotSelection) ?? null;
+    sortedRobots.find((robot) => robot.id === selectedRobotId) ?? null;
+  const visibleControlDevices = hasSelectedRobot ? controlDevices : [];
 
   useEffect(() => {
     setRobotSelection(selectedRobot ?? "");
@@ -105,12 +111,34 @@ const TrainHeader = ({
     setControlSelection(selectedControl ?? "");
   }, [selectedControl]);
 
+  useEffect(() => {
+    if (!auth.accessToken) {
+      setRobotSelection("");
+      setControlSelection("");
+      return;
+    }
+
+    if (!hasSelectedRobot) {
+      setControlSelection("");
+    }
+  }, [auth.accessToken, hasSelectedRobot]);
+
   const handleRobotChange = (value: string) => {
     if (value === CLAIM_ROBOT_VALUE) {
+      if (!auth.accessToken) {
+        toast({
+          title: "Login required",
+          description: "Please log in first to claim a robot.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setClaimRobotOpen(true);
       setClaimRobotError(null);
       return;
     }
+
     setRobotSelection(value);
     setControlSelection("");
   };
@@ -145,10 +173,10 @@ const TrainHeader = ({
   };
 
   const handleStart = () => {
-    if (!robotSelection || !controlSelection) {
+    if (!hasSelectedRobot || !controlSelection) {
       return;
     }
-    onSelectionStart?.(robotSelection, controlSelection);
+    onSelectionStart?.(selectedRobotId, controlSelection);
   };
 
   return (
@@ -191,9 +219,7 @@ const TrainHeader = ({
             <div className="flex items-center gap-1">
               <Select
                 value={
-                  robotSelection && robotSelection !== CLAIM_ROBOT_VALUE
-                    ? robotSelection
-                    : undefined
+                  hasSelectedRobot ? selectedRobotId : undefined
                 }
                 onValueChange={handleRobotChange}
                 disabled={loading}
@@ -257,7 +283,7 @@ const TrainHeader = ({
                   >
                     <span className="flex items-center gap-2">
                       <Link2 className="h-3 w-3" />
-                      Claim robot
+                      {auth.accessToken ? "Claim robot" : "Claim robot"}
                     </span>
                   </SelectItem>
                 </SelectContent>
@@ -268,6 +294,7 @@ const TrainHeader = ({
                 className="h-10 w-8 text-muted-foreground hover:text-foreground"
                 onClick={refreshRobots}
                 title="Refresh robots"
+                disabled={!auth.accessToken}
               >
                 <RefreshCcw className="h-4 w-4" />
               </Button>
@@ -280,14 +307,20 @@ const TrainHeader = ({
             </p>
             <div className="flex items-center gap-1">
               <Select
-                value={controlSelection || undefined}
+                value={
+                  hasSelectedRobot && controlSelection
+                    ? controlSelection
+                    : undefined
+                }
                 onValueChange={setControlSelection}
-                disabled={!robotSelection || loadingDevices}
+                disabled={!auth.accessToken || !hasSelectedRobot || loadingDevices}
               >
                 <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
                   <SelectValue
                     placeholder={
-                      !robotSelection
+                      !auth.accessToken
+                        ? "Log in to select"
+                        : !hasSelectedRobot
                         ? "Select robot first"
                         : loadingDevices
                           ? "Loading devices..."
@@ -296,7 +329,7 @@ const TrainHeader = ({
                   />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card">
-                  {controlDevices.map((device) => (
+                  {visibleControlDevices.map((device) => (
                     <SelectItem key={device.id} value={device.id}>
                       {device.name}
                     </SelectItem>
@@ -309,7 +342,7 @@ const TrainHeader = ({
                 className="h-10 w-8 text-muted-foreground hover:text-foreground"
                 onClick={refreshControlDevices}
                 title="Refresh control devices"
-                disabled={!robotSelection}
+                disabled={!auth.accessToken || !hasSelectedRobot}
               >
                 <RefreshCcw className="h-4 w-4" />
               </Button>
@@ -319,7 +352,7 @@ const TrainHeader = ({
           <Button
             size="sm"
             onClick={handleStart}
-            disabled={!robotSelection || !controlSelection}
+            disabled={!auth.accessToken || !hasSelectedRobot || !controlSelection}
             className="h-10 px-4"
           >
             <Play className="mr-1 h-3.5 w-3.5" />

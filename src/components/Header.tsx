@@ -118,10 +118,44 @@ const TrainHeader = ({
       return;
     }
 
-    if (!hasSelectedRobot) {
+    if (!loading && !hasSelectedRobot) {
       setControlSelection("");
     }
-  }, [auth.accessToken, hasSelectedRobot]);
+  }, [auth.accessToken, hasSelectedRobot, loading]);
+
+  useEffect(() => {
+    if (!auth.accessToken || loading || !hasSelectedRobot || loadingDevices) {
+      return;
+    }
+
+    const hasSelectedControl = visibleControlDevices.some(
+      (device) => device.id === controlSelection,
+    );
+    if (hasSelectedControl) {
+      return;
+    }
+
+    const defaultControl = selectedControl ?? "";
+    if (
+      defaultControl &&
+      visibleControlDevices.some((device) => device.id === defaultControl)
+    ) {
+      setControlSelection(defaultControl);
+      return;
+    }
+
+    if (controlSelection) {
+      setControlSelection("");
+    }
+  }, [
+    auth.accessToken,
+    controlSelection,
+    hasSelectedRobot,
+    loading,
+    loadingDevices,
+    selectedControl,
+    visibleControlDevices,
+  ]);
 
   const handleRobotChange = (value: string) => {
     if (value === CLAIM_ROBOT_VALUE) {
@@ -358,7 +392,6 @@ const TrainHeader = ({
             <Play className="mr-1 h-3.5 w-3.5" />
             Start
           </Button>
-          {onOpenSettings && (
             <Button
               variant="ghost"
               size="icon"
@@ -368,7 +401,6 @@ const TrainHeader = ({
             >
               <Settings className="h-4 w-4" />
             </Button>
-          )}
           <ThemeToggle />
         </div>
       </div>

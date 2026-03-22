@@ -26,11 +26,8 @@ export default defineConfig(({ mode }) => ({
 
           const urlPath = decodeURIComponent(req.url.split("?")[0] || "");
 
-          // Let the SPA handle non-file paths (no extension and no resolve/main)
-          if (
-            !urlPath.includes("/resolve/") &&
-            !path.extname(urlPath.replace(/\/$/, ""))
-          ) {
+          // Let the SPA handle non-file paths without an extension.
+          if (!path.extname(urlPath.replace(/\/$/, ""))) {
             return next();
           }
 
@@ -39,19 +36,10 @@ export default defineConfig(({ mode }) => ({
             .split("/")
             .filter(Boolean);
 
-          // Drop resolve/main parts
-          const keptLocal: string[] = [];
-          for (let i = 0; i < segments.length; i++) {
-            if (segments[i] === "resolve" && segments[i + 1] === "main") {
-              i++; // skip main
-              continue;
-            }
-            keptLocal.push(segments[i]);
-          }
           const droppedLocal =
-            keptLocal[0] === "local" ? keptLocal.slice(1) : keptLocal.slice();
+            segments[0] === "local" ? segments.slice(1) : segments.slice();
 
-          const candidates = [droppedLocal, keptLocal, segments];
+          const candidates = [droppedLocal, segments];
           const rootResolved = path.resolve(DATASET_ROOT);
 
           const getContentType = (filePath: string) => {

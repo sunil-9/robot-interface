@@ -1,9 +1,6 @@
 import { apiFetch } from "@/lib/apiClient";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
-const LEGACY_DATASET_URL =
-  (import.meta.env.VITE_DATASET_URL as string | undefined)?.trim() || null;
-
 /**
  * Dataset information structure from info.json
  */
@@ -25,7 +22,7 @@ interface DatasetInfo {
 
 interface DatasetVisualizationDescriptor {
   dataset_id: string;
-  source: "backend_proxy" | "public_url";
+  source: "backend_proxy";
   file_base_url: string;
   metadata_url: string;
   dataset_path?: string | null;
@@ -48,16 +45,6 @@ const splitRepoId = (repoId: string): { datasetId: string } => {
   return {
     datasetId: segments[segments.length - 1],
   };
-};
-
-const buildLegacyUrl = (repoId: string, path: string): string => {
-  if (!LEGACY_DATASET_URL) {
-    throw new Error(
-      "No dataset URL configured. Set the backend visualization API or VITE_DATASET_URL.",
-    );
-  }
-
-  return `${LEGACY_DATASET_URL}/${repoId}/resolve/main/${path}`;
 };
 
 const joinFileUrl = (baseUrl: string, path: string): string =>
@@ -130,41 +117,8 @@ const getDatasetDescriptor = async (
  * Fetches dataset information from the configured visualization source.
  */
 export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
-  try {
-    const descriptor = await getDatasetDescriptor(repoId);
-    return descriptor.metadata;
-  } catch (descriptorError) {
-    if (!LEGACY_DATASET_URL) {
-      throw descriptorError;
-    }
-
-    const legacyInfoUrl = buildLegacyUrl(repoId, "meta/info.json");
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    try {
-      const response = await apiFetch(legacyInfoUrl, {
-        method: "GET",
-        cache: "no-store",
-        signal: controller.signal,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch dataset info: ${response.status}`);
-      }
-
-      const data = (await response.json()) as DatasetInfo;
-      if (!data.features) {
-        throw new Error(
-          "Dataset info.json does not have the expected features structure",
-        );
-      }
-
-      return data;
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
+  const descriptor = await getDatasetDescriptor(repoId);
+  return descriptor.metadata;
 }
 
 /**
@@ -212,5 +166,7 @@ export function buildVersionedUrl(
     return joinFileUrl(descriptor.file_base_url, path);
   }
 
-  return buildLegacyUrl(repoId, path);
+  throw new Error(
+    `Dataset descriptor for '${repoId}' is not loaded. Fetch dataset metadata before building asset URLs.`,
+  );
 }

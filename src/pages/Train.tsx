@@ -249,11 +249,12 @@ export default function TrainPage() {
     };
 
     (async () => {
+      if (!auth.accessToken) {
+        return;
+      }
+
       // Show selection dialog if robot or controller is missing instead of redirecting
       if (!selectedRobot || !selectedControl) {
-        if (!disposed && !auth.accessToken) {
-          setShowSelectionDialog(true);
-        }
         return;
       }
 
@@ -289,25 +290,20 @@ export default function TrainPage() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      {/* Control Center is only used for unauthenticated flows. */}
-      {!auth.accessToken && (
-        <RobotSelectionDialog
-          open={showSelectionDialog}
-          onOpenChange={setShowSelectionDialog}
-          initialRobot={selectedRobot}
-          initialController={selectedControl}
-          onConfirm={handleSelectionConfirm}
-        />
-      )}
+      <RobotSelectionDialog
+        open={showSelectionDialog}
+        onOpenChange={setShowSelectionDialog}
+        initialRobot={selectedRobot}
+        initialController={selectedControl}
+        onConfirm={handleSelectionConfirm}
+      />
 
       {/* Transparent overlay header */}
       <Header
         page={"train"}
         selectedRobot={selectedRobot || undefined}
         selectedControl={selectedControl || undefined}
-        onOpenSettings={
-          auth.accessToken ? undefined : () => setShowSelectionDialog(true)
-        }
+        onOpenSettings={() => setShowSelectionDialog(true)}
         onSelectionStart={handleSelectionConfirm}
       />
 

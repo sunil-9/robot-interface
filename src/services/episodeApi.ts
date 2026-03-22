@@ -1,4 +1,5 @@
 import { API_CONFIG } from "@/config/api";
+import { apiFetch } from "@/lib/apiClient";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
 const DATASETS_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}`;
@@ -55,7 +56,7 @@ export async function listEpisodes(
   datasetId?: string
 ): Promise<EpisodeListResponse> {
   const endpoint = `${DATASETS_BASE_URL}/${datasetId}`;
-  const response = await fetch(endpoint);
+  const response = await apiFetch(endpoint);
 
   const data = await parseCloudApiResponse<EpisodesApiResponse>(response);
 
@@ -92,7 +93,7 @@ export async function deleteEpisode(
   episodeId: string
 ): Promise<void> {
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`,
     {
       method: "DELETE",

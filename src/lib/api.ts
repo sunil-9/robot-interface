@@ -1,4 +1,4 @@
-import { buildApiUrl } from "./config";
+import { apiFetch } from "@/lib/apiClient";
 import {
   formatApiError,
   parseCloudApiResponse,
@@ -40,7 +40,7 @@ export interface RobotCameraConfig {
 }
 
 export const fetchRobots = async (): Promise<RobotPresenceSummary[]> => {
-  const response = await fetch(buildApiUrl("/robots"));
+  const response = await apiFetch("/robots");
   const payload = await parseCloudApiResponse<RobotPresenceListResponse>(
     response
   );
@@ -55,7 +55,7 @@ export const fetchRobots = async (): Promise<RobotPresenceSummary[]> => {
 export const fetchSignalingConfig =
   async (): Promise<DiscoveredSignalingConfig | null> => {
     try {
-      const response = await fetch(buildApiUrl("/config/signaling"));
+      const response = await apiFetch("/config/signaling");
       if (!response.ok) {
         return null;
       }
@@ -80,8 +80,8 @@ export const fetchRobotCameras = async (
   }
 
   try {
-    const response = await fetch(
-      buildApiUrl(`/robot-configs/${encodeURIComponent(robotId)}/camera`)
+    const response = await apiFetch(
+      `/robot-configs/${encodeURIComponent(robotId)}/camera`
     );
     if (!response.ok) {
       return [];
@@ -106,7 +106,7 @@ export interface DatasetsListResponse {
 
 export const fetchDatasets = async (): Promise<string[]> => {
   try {
-    const response = await fetch(buildApiUrl("/datasets/"));
+    const response = await apiFetch("/datasets/");
     const payload = await parseCloudApiResponse<DatasetsListResponse>(
       response
     );
@@ -122,10 +122,17 @@ export const fetchDatasets = async (): Promise<string[]> => {
   }
 };
 
-export const createDataset = async (datasetId: string): Promise<void> => {
+export const createDataset = async (
+  datasetId: string,
+  robotId: string,
+): Promise<void> => {
   try {
-    const response = await fetch(buildApiUrl(`/datasets/create/${datasetId}`), {
+    const response = await apiFetch(`/datasets/create/${datasetId}`, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ robot_id: robotId }),
     });
 
     if (!response.ok) {
@@ -136,6 +143,24 @@ export const createDataset = async (datasetId: string): Promise<void> => {
     }
   } catch (error) {
     console.error("Failed to create dataset:", error);
+    throw error;
+  }
+};
+
+export const deleteDataset = async (datasetId: string): Promise<void> => {
+  try {
+    const response = await apiFetch(`/datasets/${encodeURIComponent(datasetId)}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const detail = await parseCloudApiResponse<unknown>(response);
+      throw new Error(
+        formatApiError(detail, `Failed to delete dataset (${response.status})`)
+      );
+    }
+  } catch (error) {
+    console.error("Failed to delete dataset:", error);
     throw error;
   }
 };

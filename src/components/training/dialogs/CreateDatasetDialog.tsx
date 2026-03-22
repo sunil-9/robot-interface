@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 interface CreateDatasetDialogProps {
   open: boolean;
   newDatasetName: string;
+  selectedRobotId: string | null;
   isCreating: boolean;
   onOpenChange: (open: boolean) => void;
   onNameChange: (value: string) => void;
@@ -23,6 +24,7 @@ interface CreateDatasetDialogProps {
 export const CreateDatasetDialog = ({
   open,
   newDatasetName,
+  selectedRobotId,
   isCreating,
   onOpenChange,
   onNameChange,
@@ -35,10 +37,21 @@ export const CreateDatasetDialog = ({
         <DialogTitle>Create New Dataset</DialogTitle>
         <DialogDescription className="text-muted-foreground">
           Enter a name for your new dataset. This will be used to organize your
-          training episodes.
+          training episodes and will be linked to the selected robot.
         </DialogDescription>
       </DialogHeader>
       <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="dataset-robot" className="text-foreground">
+            Robot ID
+          </Label>
+          <Input
+            id="dataset-robot"
+            value={selectedRobotId ?? "Select a robot first"}
+            disabled
+            className="border-border bg-muted/40 text-foreground"
+          />
+        </div>
         <div className="space-y-2">
           <Label htmlFor="dataset-name" className="text-foreground">
             Dataset Name
@@ -49,7 +62,7 @@ export const CreateDatasetDialog = ({
             value={newDatasetName}
             onChange={(event) => onNameChange(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && !isCreating) {
+              if (event.key === "Enter" && !isCreating && selectedRobotId) {
                 onSubmit();
               }
             }}
@@ -69,7 +82,7 @@ export const CreateDatasetDialog = ({
         </Button>
         <Button
           onClick={onSubmit}
-          disabled={isCreating || !newDatasetName.trim()}
+          disabled={isCreating || !selectedRobotId || !newDatasetName.trim()}
           className="bg-primary hover:bg-primary/90"
         >
           {isCreating ? "Creating..." : "Create Dataset"}

@@ -65,14 +65,14 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         ...payload,
       };
       const ok = session.sendControl(envelope);
-      if (!ok) {
-        console.warn(
-          "Failed to send input telemetry",
-          ok,
-          "and data is",
-          envelope,
-        );
-      }
+      // if (!ok) {
+      //   console.warn(
+      //     "Failed to send input telemetry",
+      //     ok,
+      //     "and data is",
+      //     envelope,
+      //   );
+      // }
     },
     [session, controlType],
   );

@@ -1,4 +1,3 @@
-import { API_CONFIG } from "@/config/api";
 import { AppMode } from "@/context/ModeContextDef";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
@@ -7,6 +6,7 @@ import { useModeContext } from "@/hooks/useModeContext";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
   createDataset,
+  deleteDataset,
   fetchDatasets,
   fetchRobotCameras,
   type RobotCameraConfig,
@@ -560,9 +560,18 @@ export const TrainingInterface = ({
       return;
     }
 
+    if (!robotId) {
+      toast({
+        title: "Error",
+        description: "Select a robot before creating a dataset.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsCreatingDataset(true);
     try {
-      await createDataset(newDatasetName.trim());
+      await createDataset(newDatasetName.trim(), robotId);
       toast({
         title: "Success",
         description: `Dataset "${newDatasetName}" created successfully`,
@@ -944,17 +953,7 @@ export const TrainingInterface = ({
 
     setIsDeleting(true);
     try {
-      // Delete the dataset using the API
-      const response = await fetch(
-        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}/${datasetToDelete}`,
-        {
-          method: "DELETE",
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to delete dataset");
-      }
+      await deleteDataset(datasetToDelete);
 
       toast({
         title: "Success",
@@ -1166,6 +1165,7 @@ export const TrainingInterface = ({
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         newDatasetName={newDatasetName}
+        selectedRobotId={robotId}
         isCreating={isCreatingDataset}
         onNameChange={setNewDatasetName}
         onSubmit={handleCreateDataset}

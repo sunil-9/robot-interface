@@ -24,8 +24,7 @@ export function useRobots(robotId: string, accessToken: string | null) {
       setLoading(true);
       setError(null);
 
-      const { appRobots, rawRobots } =
-        await robotService.fetchRobots(accessToken);
+      const { appRobots, rawRobots } = await robotService.fetchRobots();
       setRobots(appRobots);
       setRobotPresence(rawRobots);
       setLastUpdated(new Date());

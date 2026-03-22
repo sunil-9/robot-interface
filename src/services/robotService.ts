@@ -1,4 +1,5 @@
 import { API_CONFIG } from "@/config/api";
+import { apiFetch } from "@/lib/apiClient";
 import {
   ApiOperatorDevice,
   AppRobot,
@@ -21,15 +22,14 @@ export const robotService = {
    * Fetch available robots from the API
    * @returns Promise with available robots
    */
-  async fetchRobots(accessToken: string): Promise<RobotFetchResult> {
+  async fetchRobots(): Promise<RobotFetchResult> {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOTS}`,
         {
           method: "GET",
           headers: {
             accept: "application/json",
-            Authorization: `Bearer ${accessToken}`,
           },
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
         },
@@ -82,7 +82,7 @@ export const robotService = {
       if (!robotId) {
         throw new Error("Robot ID is required to fetch operator devices");
       }
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOT_CONFIGS}/${robotId}/${API_CONFIG.ENDPOINTS.OPERATOR_DEVICES}`,
         {
           method: "GET",
@@ -114,7 +114,6 @@ export const robotService = {
   },
 
   async claimRobot(
-    accessToken: string,
     robotHash: string,
   ): Promise<ClaimRobotResponse> {
     const normalizedHash = robotHash.trim();
@@ -122,14 +121,13 @@ export const robotService = {
       throw new Error("Robot hash is required");
     }
 
-    const response = await fetch(
+    const response = await apiFetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOT_CLAIM}`,
       {
         method: "POST",
         headers: {
           "content-type": "application/json",
           accept: "application/json",
-          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify({ robot_hash: normalizedHash }),
         signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),

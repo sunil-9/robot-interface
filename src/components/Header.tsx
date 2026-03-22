@@ -129,10 +129,7 @@ const TrainHeader = ({
     try {
       setClaimRobotLoading(true);
       setClaimRobotError(null);
-      const claimResult = await robotService.claimRobot(
-        auth.accessToken,
-        normalizedHash,
-      );
+      const claimResult = await robotService.claimRobot(normalizedHash);
       setRobotSelection(String(claimResult.robot_id));
       setControlSelection("");
       setClaimRobotHash("");

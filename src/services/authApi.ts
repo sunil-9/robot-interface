@@ -1,4 +1,4 @@
-import { buildApiUrl } from "@/lib/config";
+import { apiFetch } from "@/lib/apiClient";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
 const AUTH_STORAGE_KEY = "im.auth.session";
@@ -45,14 +45,11 @@ const mapAuthUser = (
   createdAt: payload.created_at,
 });
 
-const buildJsonHeaders = (accessToken?: string): HeadersInit => {
+const buildJsonHeaders = (): HeadersInit => {
   const headers: Record<string, string> = {
     Accept: "application/json",
     "Content-Type": "application/json",
   };
-  if (accessToken) {
-    headers.Authorization = `Bearer ${accessToken}`;
-  }
   return headers;
 };
 
@@ -69,11 +66,11 @@ const postJson = async <TResponse>(
   path: string,
   body: unknown,
   fallbackMessage: string,
-  accessToken?: string,
 ): Promise<TResponse> => {
-  const response = await fetch(buildApiUrl(path), {
+  const response = await apiFetch(path, {
     method: "POST",
-    headers: buildJsonHeaders(accessToken),
+    auth: "never",
+    headers: buildJsonHeaders(),
     body: JSON.stringify(body),
   });
   const payload = await parseCloudApiResponse<TResponse | unknown>(response);
@@ -154,10 +151,11 @@ export const loginUser = async (input: {
   };
 };
 
-export const fetchCurrentUser = async (accessToken: string): Promise<AuthUser> => {
-  const response = await fetch(buildApiUrl("/auth/me"), {
+export const fetchCurrentUser = async (): Promise<AuthUser> => {
+  const response = await apiFetch("/auth/me", {
     method: "GET",
-    headers: buildJsonHeaders(accessToken),
+    auth: "always",
+    headers: buildJsonHeaders(),
   });
   const payload = await parseCloudApiResponse<UserProfileResponse | unknown>(response);
   if (!response.ok) {
@@ -179,8 +177,9 @@ export const resetPassword = async (input: {
   resetToken: string;
   newPassword: string;
 }): Promise<void> => {
-  const response = await fetch(buildApiUrl("/auth/reset-password"), {
+  const response = await apiFetch("/auth/reset-password", {
     method: "POST",
+    auth: "never",
     headers: buildJsonHeaders(),
     body: JSON.stringify({
       reset_token: input.resetToken,

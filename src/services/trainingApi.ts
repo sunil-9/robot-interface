@@ -1,4 +1,5 @@
 import { API_CONFIG } from "@/config/api";
+import { apiFetch } from "@/lib/apiClient";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
 const TRAINING_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.TRAINING}`;
@@ -74,7 +75,7 @@ export const fetchCheckpointStatus = async (
     return { status: null };
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${TRAINING_BASE_URL}/${encodeURIComponent(datasetId)}/checkpoints/status`,
     {
       method: "GET",
@@ -113,7 +114,7 @@ export const fetchCheckpointDetails = async (
     return { details: null };
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${TRAINING_BASE_URL}/${encodeURIComponent(datasetId)}/checkpoints`,
     {
       method: "GET",
@@ -147,7 +148,7 @@ export const fetchTrainingJobStatus = async (
     return { job: null };
   }
 
-  const response = await fetch(
+  const response = await apiFetch(
     `${TRAINING_BASE_URL}/jobs/${encodeURIComponent(datasetId)}`,
     {
       method: "GET",

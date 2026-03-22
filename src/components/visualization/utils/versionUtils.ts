@@ -1,9 +1,8 @@
-/**
- * Utility functions for checking dataset version compatibility
- */
+import { apiFetch } from "@/lib/apiClient";
+import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
-const DATASET_URL =
-  import.meta.env.VITE_DATASET_URL ;
+const LEGACY_DATASET_URL =
+  (import.meta.env.VITE_DATASET_URL as string | undefined)?.trim() || null;
 
 /**
  * Dataset information structure from info.json
@@ -24,64 +23,162 @@ interface DatasetInfo {
   features: Record<string, unknown>;
 }
 
+interface DatasetVisualizationDescriptor {
+  dataset_id: string;
+  source: "backend_proxy" | "public_url";
+  file_base_url: string;
+  metadata_url: string;
+  dataset_path?: string | null;
+  version?: string | null;
+  metadata: DatasetInfo;
+}
+
+const descriptorCache = new Map<string, DatasetVisualizationDescriptor>();
+const descriptorRequestCache = new Map<
+  string,
+  Promise<DatasetVisualizationDescriptor>
+>();
+
+const splitRepoId = (repoId: string): { datasetId: string } => {
+  const segments = repoId.split("/").filter(Boolean);
+  if (segments.length === 0) {
+    throw new Error("Dataset repo id is required.");
+  }
+
+  return {
+    datasetId: segments[segments.length - 1],
+  };
+};
+
+const buildLegacyUrl = (repoId: string, path: string): string => {
+  if (!LEGACY_DATASET_URL) {
+    throw new Error(
+      "No dataset URL configured. Set the backend visualization API or VITE_DATASET_URL.",
+    );
+  }
+
+  return `${LEGACY_DATASET_URL}/${repoId}/resolve/main/${path}`;
+};
+
+const joinFileUrl = (baseUrl: string, path: string): string =>
+  `${baseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+
+const fetchDatasetDescriptor = async (
+  repoId: string,
+): Promise<DatasetVisualizationDescriptor> => {
+  const { datasetId } = splitRepoId(repoId);
+  const response = await apiFetch(
+    `/datasets/${encodeURIComponent(datasetId)}/visualization`,
+    {
+      cache: "no-store",
+    },
+  );
+  const payload = await parseCloudApiResponse<
+    DatasetVisualizationDescriptor | unknown
+  >(response);
+
+  if (!response.ok) {
+    throw new Error(
+      formatApiError(
+        payload,
+        `Failed to resolve dataset visualization info (${response.status})`,
+      ),
+    );
+  }
+
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !("file_base_url" in payload) ||
+    !("metadata" in payload)
+  ) {
+    throw new Error("Dataset visualization response is missing required fields.");
+  }
+
+  return payload as DatasetVisualizationDescriptor;
+};
+
+const getDatasetDescriptor = async (
+  repoId: string,
+): Promise<DatasetVisualizationDescriptor> => {
+  const cached = descriptorCache.get(repoId);
+  if (cached) {
+    return cached;
+  }
+
+  const pending = descriptorRequestCache.get(repoId);
+  if (pending) {
+    return pending;
+  }
+
+  const request = fetchDatasetDescriptor(repoId)
+    .then((descriptor) => {
+      descriptorCache.set(repoId, descriptor);
+      descriptorRequestCache.delete(repoId);
+      return descriptor;
+    })
+    .catch((error) => {
+      descriptorRequestCache.delete(repoId);
+      throw error;
+    });
+
+  descriptorRequestCache.set(repoId, request);
+  return request;
+};
+
 /**
- * Fetches dataset information from the main revision
+ * Fetches dataset information from the configured visualization source.
  */
 export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
   try {
-    // Simple static path for local storage
-    const testUrl = `${DATASET_URL}/${repoId}/meta/info.json`;
+    const descriptor = await getDatasetDescriptor(repoId);
+    return descriptor.metadata;
+  } catch (descriptorError) {
+    if (!LEGACY_DATASET_URL) {
+      throw descriptorError;
+    }
 
+    const legacyInfoUrl = buildLegacyUrl(repoId, "meta/info.json");
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(testUrl, {
-      method: "GET",
-      cache: "no-store",
-      signal: controller.signal,
-    });
+    try {
+      const response = await apiFetch(legacyInfoUrl, {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+      });
 
-    clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch dataset info: ${response.status}`);
+      }
 
-    if (!response.ok) {
-      throw new Error(`Failed to fetch dataset info: ${response.status}`);
+      const data = (await response.json()) as DatasetInfo;
+      if (!data.features) {
+        throw new Error(
+          "Dataset info.json does not have the expected features structure",
+        );
+      }
+
+      return data;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    const data = await response.json();
-
-    // Check if it has the required structure
-    if (!data.features) {
-      throw new Error(
-        "Dataset info.json does not have the expected features structure",
-      );
-    }
-
-    return data as DatasetInfo;
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error(
-      `Dataset ${repoId} is not compatible with this visualizer. ` +
-        "Failed to read dataset information from the main revision.",
-    );
   }
 }
 
 /**
- * Gets the dataset version by reading the codebase_version from the main revision's info.json
+ * Gets the dataset version by reading codebase_version from info.json.
  */
 export async function getDatasetVersion(repoId: string): Promise<string> {
   try {
     const datasetInfo = await getDatasetInfo(repoId);
-
-    // Extract codebase_version
     const codebaseVersion = datasetInfo.codebase_version;
+
     if (!codebaseVersion) {
       throw new Error("Dataset info.json does not contain codebase_version");
     }
 
-    // Validate that it's a supported version
     const supportedVersions = ["v3.0", "v2.1", "v2.0"];
     if (!supportedVersions.includes(codebaseVersion)) {
       throw new Error(
@@ -98,7 +195,7 @@ export async function getDatasetVersion(repoId: string): Promise<string> {
     }
     throw new Error(
       `Dataset ${repoId} is not compatible with this visualizer. ` +
-        "Failed to read dataset information from the main revision.",
+        "Failed to read dataset information from the configured source.",
     );
   }
 }
@@ -106,7 +203,14 @@ export async function getDatasetVersion(repoId: string): Promise<string> {
 export function buildVersionedUrl(
   repoId: string,
   version: string,
-  path: string
+  path: string,
 ): string {
-  return `${DATASET_URL}/${repoId}/resolve/main/${path}`;
+  void version;
+
+  const descriptor = descriptorCache.get(repoId);
+  if (descriptor) {
+    return joinFileUrl(descriptor.file_base_url, path);
+  }
+
+  return buildLegacyUrl(repoId, path);
 }

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/apiClient";
 import {
   DatasetMetadata,
   fetchJson,
@@ -240,7 +241,7 @@ async function getEpisodeDataV2(
   if (!task && allData.length > 0) {
     try {
       const tasksUrl = buildVersionedUrl(repoId, version, "meta/tasks.jsonl");
-      const tasksResponse = await fetch(tasksUrl);
+      const tasksResponse = await apiFetch(tasksUrl);
       
       if (tasksResponse.ok) {
         const tasksText = await tasksResponse.text();

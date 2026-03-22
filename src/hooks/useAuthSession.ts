@@ -30,7 +30,7 @@ export const useAuthSession = () => {
 
     const syncUser = async () => {
       try {
-        const currentUser = await fetchCurrentUser(accessToken);
+        const currentUser = await fetchCurrentUser();
         if (cancelled) {
           return;
         }
@@ -82,7 +82,7 @@ export const useAuthSession = () => {
       setUser(null);
       return null;
     }
-    const currentUser = await fetchCurrentUser(accessToken);
+    const currentUser = await fetchCurrentUser();
     setUser(currentUser);
     saveStoredAuthSession({ accessToken, user: currentUser });
     return currentUser;

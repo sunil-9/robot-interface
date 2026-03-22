@@ -1,9 +1,7 @@
 /**
- * Centralized session storage utility
- * Organized by domain:
- * - sessionRobotData: Robot/controller session state
- * - signalingConfig: WebRTC signaling configuration
- * - (future) sessionUserData: User preferences and settings
+ * Centralized auth-scoped session storage utility.
+ * These values belong to the signed-in operator session and must be cleared
+ * together when auth is lost or the user signs out.
  */
 
 export interface SessionRobotData {
@@ -23,6 +21,13 @@ const KEYS = {
   SESSION_ROBOT_DATA: "sessionRobotData",
   SIGNALING_CONFIG: "signalingConfig",
   CONNECTION_READY: "connection_ready",
+} as const;
+
+const LOCAL_KEYS = {
+  SELECTED_DATASET: "im-selected-dataset",
+  LEGACY_CONTROLLER: "controller",
+  LEGACY_SELECTED_CONTROL: "selectedControl",
+  LEGACY_CONTROL_TYPE: "controlType",
 } as const;
 
 // Robot Session Data
@@ -118,9 +123,23 @@ export const setConnectionReady = (ready: boolean): void => {
   }
 };
 
-// Clear all session data
-export const clearAll = (): void => {
-  sessionStorage.removeItem(KEYS.SESSION_ROBOT_DATA);
-  sessionStorage.removeItem(KEYS.SIGNALING_CONFIG);
-  sessionStorage.removeItem(KEYS.CONNECTION_READY);
+export const clearAuthSessionState = (): void => {
+  try {
+    sessionStorage.removeItem(KEYS.SESSION_ROBOT_DATA);
+    sessionStorage.removeItem(KEYS.SIGNALING_CONFIG);
+    sessionStorage.removeItem(KEYS.CONNECTION_READY);
+  } catch {
+    // Ignore storage access errors
+  }
+
+  try {
+    localStorage.removeItem(LOCAL_KEYS.SELECTED_DATASET);
+    localStorage.removeItem(LOCAL_KEYS.LEGACY_CONTROLLER);
+    localStorage.removeItem(LOCAL_KEYS.LEGACY_SELECTED_CONTROL);
+    localStorage.removeItem(LOCAL_KEYS.LEGACY_CONTROL_TYPE);
+  } catch {
+    // Ignore storage access errors
+  }
 };
+
+export const clearAll = clearAuthSessionState;

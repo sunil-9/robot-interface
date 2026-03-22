@@ -3,6 +3,8 @@ import { InputTracker } from "@/components/InputTracker";
 import { RobotSelectionDialog } from "@/components/RobotSelectionDialog";
 import { TrainingInterface } from "@/components/TrainingInterface";
 import { toast } from "@/components/ui/use-toast";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 import { fetchSignalingConfig } from "@/lib/api";
@@ -20,6 +22,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 export default function TrainPage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const auth = useAuthSession();
+  const { resetAuthSessionState } = useEpisodeControlContext();
   const { getModeLabel } = useModeContext();
   const params = useMemo(
     () => new URLSearchParams(location.search),
@@ -47,6 +51,40 @@ export default function TrainPage() {
     robotId: selectedRobot || "unknown",
     controllerId: selectedControl || "unknown",
   });
+
+  useEffect(() => {
+    if (auth.isLoadingUser || auth.accessToken) {
+      return;
+    }
+
+    resetAuthSessionState();
+    setCurrentRobot(null);
+    setCurrentControl(null);
+    setShowSelectionDialog(true);
+
+    const nextParams = new URLSearchParams(location.search);
+    const hadRobot = nextParams.has("robot");
+    const hadController = nextParams.has("controller");
+    nextParams.delete("robot");
+    nextParams.delete("controller");
+
+    if (hadRobot || hadController) {
+      const nextSearch = nextParams.toString();
+      navigate(
+        {
+          pathname: "/",
+          search: nextSearch ? `?${nextSearch}` : "",
+        },
+        { replace: true },
+      );
+    }
+  }, [
+    auth.accessToken,
+    auth.isLoadingUser,
+    location.search,
+    navigate,
+    resetAuthSessionState,
+  ]);
 
   // Handle selection from dialog
   const handleSelectionConfirm = useCallback(

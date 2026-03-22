@@ -9,6 +9,7 @@ import {
   registerUser,
   saveStoredAuthSession,
 } from "@/services/authApi";
+import { clearAuthSessionState } from "@/lib/sessionStore";
 
 import {
   AuthSessionContext,
@@ -29,6 +30,13 @@ export const AuthSessionProvider = ({
 
   const accessToken = session?.accessToken ?? null;
   const user = session?.user ?? null;
+
+  const clearOperatorSession = () => {
+    clearStoredAuthSession();
+    clearAuthSessionState();
+    setSession(null);
+    setIsLoadingUser(false);
+  };
 
   useEffect(() => {
     if (!accessToken) {
@@ -52,8 +60,7 @@ export const AuthSessionProvider = ({
         if (cancelled) {
           return;
         }
-        clearStoredAuthSession();
-        setSession(null);
+        clearOperatorSession();
       } finally {
         if (!cancelled) {
           setIsLoadingUser(false);
@@ -92,9 +99,7 @@ export const AuthSessionProvider = ({
     applySession(await registerUser({ email, password, fullName }));
 
   const logout = () => {
-    clearStoredAuthSession();
-    setSession(null);
-    setIsLoadingUser(false);
+    clearOperatorSession();
   };
 
   const refreshUser = async () => {

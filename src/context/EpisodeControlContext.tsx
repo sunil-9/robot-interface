@@ -33,6 +33,7 @@ export interface EpisodeControlState {
 export interface EpisodeControlActions {
   startEpisode: () => Promise<boolean>;
   endEpisode: () => Promise<boolean>;
+  resetAuthSessionState: () => void;
   setSelectedDataset: (datasetId: string) => void;
   setSession: (session: WebRTCSession | null) => void;
   setRobotId: (robotId: string | null) => void;
@@ -377,6 +378,23 @@ export function EpisodeControlProvider({
     return true;
   }, []);
 
+  const resetAuthSessionState = useCallback(() => {
+    sessionRef.current = null;
+    robotIdRef.current = null;
+    controllerIdRef.current = null;
+    setIsRecording(false);
+    setCurrentEpisodeId(null);
+    setIsLoading(false);
+    setIsSavingEpisode(false);
+    setSelectedDataset("");
+    setIsDeploying(false);
+    setDeployRequestPending(false);
+    setDeployDatasetId(null);
+    setDeployStatusPopupOpen(false);
+    setDeployStatusMessage(null);
+    setMode?.(AppMode.EXPLORATION);
+  }, [setMode, setSelectedDataset]);
+
   const value: EpisodeControlContextValue = {
     // State
     isRecording,
@@ -392,6 +410,7 @@ export function EpisodeControlProvider({
     // Actions
     startEpisode,
     endEpisode,
+    resetAuthSessionState,
     setSelectedDataset,
     setSession,
     setRobotId,

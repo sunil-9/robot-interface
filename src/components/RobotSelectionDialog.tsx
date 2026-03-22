@@ -47,8 +47,8 @@ export function RobotSelectionDialog({
     initialController || null,
   );
   const [activeTab, setActiveTab] = useState<
-    "account" | "robots" | "models" | "training" | "security"
-  >("robots");
+    "account"  | "models" | "training" | "security"
+  >("account");
   const [authMode, setAuthMode] = useState<"login" | "signup">("login");
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -99,7 +99,8 @@ export function RobotSelectionDialog({
         });
       }
       setAuthPassword("");
-      setActiveTab("robots");
+      setActiveTab("account");
+      onOpenChange(false);
     } catch (error) {
       toast({
         title: authMode === "login" ? "Sign in failed" : "Sign up failed",

@@ -53,7 +53,12 @@ export default function TrainPage() {
   });
 
   useEffect(() => {
-    if (auth.isLoadingUser || auth.accessToken) {
+    if (auth.isLoadingUser) {
+      return;
+    }
+
+    if (auth.accessToken) {
+      setShowSelectionDialog(false);
       return;
     }
 
@@ -246,7 +251,7 @@ export default function TrainPage() {
     (async () => {
       // Show selection dialog if robot or controller is missing instead of redirecting
       if (!selectedRobot || !selectedControl) {
-        if (!disposed) {
+        if (!disposed && !auth.accessToken) {
           setShowSelectionDialog(true);
         }
         return;
@@ -280,25 +285,29 @@ export default function TrainPage() {
     return () => {
       disposed = true;
     };
-  }, [selectedRobot, selectedControl, sessionRobotData, navigate]);
+  }, [auth.accessToken, selectedRobot, selectedControl, sessionRobotData, navigate]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
-      {/* Robot Selection Dialog */}
-      <RobotSelectionDialog
-        open={showSelectionDialog}
-        onOpenChange={setShowSelectionDialog}
-        initialRobot={selectedRobot}
-        initialController={selectedControl}
-        onConfirm={handleSelectionConfirm}
-      />
+      {/* Control Center is only used for unauthenticated flows. */}
+      {!auth.accessToken && (
+        <RobotSelectionDialog
+          open={showSelectionDialog}
+          onOpenChange={setShowSelectionDialog}
+          initialRobot={selectedRobot}
+          initialController={selectedControl}
+          onConfirm={handleSelectionConfirm}
+        />
+      )}
 
       {/* Transparent overlay header */}
       <Header
         page={"train"}
         selectedRobot={selectedRobot || undefined}
         selectedControl={selectedControl || undefined}
-        onOpenSettings={() => setShowSelectionDialog(true)}
+        onOpenSettings={
+          auth.accessToken ? undefined : () => setShowSelectionDialog(true)
+        }
         onSelectionStart={handleSelectionConfirm}
       />
 

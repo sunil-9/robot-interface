@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
+import { apiFetch } from "@/lib/apiClient";
 import React, { useEffect, useRef } from "react";
 import { FaCompress, FaExpand, FaEye } from "react-icons/fa";
 import { useTime } from "../context/time-context";
@@ -29,6 +30,9 @@ export const SimpleVideosPlayer = ({
   const [enlargedVideo, setEnlargedVideo] = React.useState<string | null>(null);
   const [showHiddenMenu, setShowHiddenMenu] = React.useState(false);
   const [videosReady, setVideosReady] = React.useState(false);
+  const [resolvedVideoUrls, setResolvedVideoUrls] = React.useState<
+    Record<string, string>
+  >({});
   const [videoErrors, setVideoErrors] = React.useState<Record<string, string>>(
     {},
   );
@@ -43,6 +47,81 @@ export const SimpleVideosPlayer = ({
     videoRefs.current = videoRefs.current.slice(0, videosInfo.length);
   }, [videosInfo.length]);
 
+  // Fetch protected video assets through apiFetch so the Authorization header is sent.
+  useEffect(() => {
+    readyCalledRef.current = false;
+    setVideosReady(videosInfo.length === 0);
+    setVideoErrors({});
+    setResolvedVideoUrls({});
+
+    if (videosInfo.length === 0) {
+      return;
+    }
+
+    let active = true;
+    const createdUrls: string[] = [];
+    const abortControllers = videosInfo.map(() => new AbortController());
+
+    const loadVideos = async () => {
+      const results = await Promise.all(
+        videosInfo.map(async (info, index) => {
+          try {
+            const response = await apiFetch(info.url, {
+              cache: "no-store",
+              signal: abortControllers[index].signal,
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch video (${response.status} ${response.statusText})`,
+              );
+            }
+
+            const blob = await response.blob();
+            const objectUrl = URL.createObjectURL(blob);
+            createdUrls.push(objectUrl);
+
+            return [info.filename, objectUrl] as const;
+          } catch (error) {
+            if (abortControllers[index].signal.aborted) {
+              return null;
+            }
+
+            const message =
+              error instanceof Error ? error.message : "Failed to fetch video.";
+            console.error(`Video ${info.filename} fetch failed:`, message);
+            setVideoErrors((prev) => ({
+              ...prev,
+              [info.filename]: message,
+            }));
+            return [info.filename, null] as const;
+          }
+        }),
+      );
+
+      if (!active) {
+        return;
+      }
+
+      setResolvedVideoUrls(
+        Object.fromEntries(
+          results.filter(
+            (entry): entry is readonly [string, string] =>
+              entry !== null && typeof entry[1] === "string",
+          ),
+        ),
+      );
+    };
+
+    void loadVideos();
+
+    return () => {
+      active = false;
+      abortControllers.forEach((controller) => controller.abort());
+      createdUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [videosInfo]);
+
   // Handle videos ready
   useEffect(() => {
     if (videosInfo.length === 0) {
@@ -52,6 +131,16 @@ export const SimpleVideosPlayer = ({
         setVideosReady(true);
         onVideosReady();
       }
+      return;
+    }
+
+    const allSourcesSettled = videosInfo.every(
+      (info) =>
+        typeof resolvedVideoUrls[info.filename] === "string" ||
+        typeof videoErrors[info.filename] === "string",
+    );
+
+    if (!allSourcesSettled) {
       return;
     }
 
@@ -84,6 +173,12 @@ export const SimpleVideosPlayer = ({
     videoRefs.current.forEach((video, index) => {
       if (video) {
         const info = videosInfo[index];
+        const sourceUrl = resolvedVideoUrls[info.filename];
+
+        if (!sourceUrl) {
+          checkReady(index);
+          return;
+        }
 
         // Handle video load error
         const handleError = (e: Event) => {
@@ -169,6 +264,8 @@ export const SimpleVideosPlayer = ({
     };
   }, [
     videosInfo,
+    resolvedVideoUrls,
+    videoErrors,
     onVideosReady,
     setIsPlaying,
     firstVisibleIdx,
@@ -320,6 +417,7 @@ export const SimpleVideosPlayer = ({
                 className={`w-full object-contain ${
                   isEnlarged ? "min-h-0 flex-1 max-h-full max-w-full" : ""
                 }`}
+                src={resolvedVideoUrls[info.filename]}
                 muted
                 playsInline
                 controls
@@ -327,9 +425,13 @@ export const SimpleVideosPlayer = ({
                 onPlay={(e) => handlePlay(e.currentTarget, info)}
                 onTimeUpdate={isFirstVisible ? handleTimeUpdate : undefined}
               >
-                <source src={info.url} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
+              {videoErrors[info.filename] ? (
+                <p className="mt-2 rounded-b-xl bg-red-950 px-3 py-2 text-xs text-red-200">
+                  Failed to load video: {videoErrors[info.filename]}
+                </p>
+              ) : null}
             </div>
           );
         })}

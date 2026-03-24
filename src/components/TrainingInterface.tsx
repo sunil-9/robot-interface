@@ -7,6 +7,7 @@ import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
   createDataset,
   deleteDataset,
+  type DatasetListItem,
   fetchDatasets,
   fetchRobotCameras,
   type RobotCameraConfig,
@@ -123,6 +124,7 @@ export const TrainingInterface = ({
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
+  const [datasetItems, setDatasetItems] = useState<DatasetListItem[]>([]);
   // selectedDataset and setSelectedDataset come from episodeControl context
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -141,6 +143,16 @@ export const TrainingInterface = ({
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
   const deployDatasetRef = useRef<string | null>(deployDatasetId);
   const episodesTotalRef = useRef<number | null>(null);
+  const datasetIdByName = useMemo(
+    () => new Map(datasetItems.map((item) => [item.name, item.id])),
+    [datasetItems],
+  );
+  const selectedDatasetDbId = useMemo(() => {
+    if (!selectedDataset) {
+      return null;
+    }
+    return datasetIdByName.get(selectedDataset) ?? null;
+  }, [datasetIdByName, selectedDataset]);
 
   // Handle tab changes and update URL
   const handleTabChange = useCallback(
@@ -510,14 +522,22 @@ export const TrainingInterface = ({
   const loadDatasets = useCallback(async () => {
     setIsLoadingDatasets(true);
     try {
-      const datasetList = await fetchDatasets();
-      setDatasets(datasetList);
+      const datasetList = await fetchDatasets(robotId);
+      setDatasets(datasetList.datasets);
+      setDatasetItems(datasetList.datasetItems);
+
+      const activeDataset = selectedDatasetRef.current ?? "";
+      if (datasetList.datasets.length === 0) {
+        setEpisodes([]);
+        if (activeDataset) {
+          setSelectedDataset("");
+        }
+        return;
+      }
+
       // Set first dataset as default if none selected OR if selected dataset doesn't exist
-      if (
-        datasetList.length > 0 &&
-        (!selectedDataset || !datasetList.includes(selectedDataset))
-      ) {
-        setSelectedDataset(datasetList[0]);
+      if (!activeDataset || !datasetList.datasets.includes(activeDataset)) {
+        setSelectedDataset(datasetList.datasets[0]);
       }
     } catch (error) {
       toast({
@@ -528,7 +548,7 @@ export const TrainingInterface = ({
     } finally {
       setIsLoadingDatasets(false);
     }
-  }, [selectedDataset, setSelectedDataset]);
+  }, [robotId, setSelectedDataset]);
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
@@ -539,7 +559,7 @@ export const TrainingInterface = ({
       loadDatasets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodePanelActive, selectedDataset]);
+  }, [episodePanelActive, robotId, selectedDataset]);
 
   const { isConnected: episodesWsConnected } = useEpisodesWebSocket({
     datasetId: selectedDataset,
@@ -1138,6 +1158,7 @@ export const TrainingInterface = ({
               tab={sidebarTab}
               onTabChange={handleTabChange}
               secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
+              selectedDatasetDbId={selectedDatasetDbId}
               episodeManagementProps={{
                 datasets,
                 isLoadingDatasets,

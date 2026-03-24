@@ -8,6 +8,7 @@ interface SidebarTabsProps {
   tab: "secondary" | "episodes";
   onTabChange: (value: "secondary" | "episodes") => void;
   secondaryContent: React.ReactNode;
+  selectedDatasetDbId?: number | null;
   episodeManagementProps: Omit<
     React.ComponentProps<typeof EpisodeManagementContent>,
     "isActive" | "className"
@@ -18,6 +19,7 @@ export function SidebarTabs({
   tab,
   onTabChange,
   secondaryContent,
+  selectedDatasetDbId,
   episodeManagementProps,
 }: SidebarTabsProps) {
   return (
@@ -65,7 +67,10 @@ export function SidebarTabs({
         />
         {/* add model training related data here not inside EpisodeManagementContent */}
         <div className="flex-shrink-0">
-          <ModelTrainingSection isActive={tab === "episodes"} />
+          <ModelTrainingSection
+            isActive={tab === "episodes"}
+            selectedDatasetDbId={selectedDatasetDbId}
+          />
         </div>
       </TabsContent>
     </Tabs>

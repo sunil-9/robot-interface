@@ -14,11 +14,13 @@ import { CheckpointDetailsDialog } from "./CheckpointDetailsDialog";
 interface ModelTrainingSectionProps {
   isActive: boolean;
   className?: string;
+  selectedDatasetDbId?: number | null;
 }
 
 export const ModelTrainingSection = ({
   isActive,
   className,
+  selectedDatasetDbId = null,
 }: ModelTrainingSectionProps) => {
   const { selectedDataset } = useEpisodeControlContext();
   const [interval, setInterval] = useState<number[]>([25]);
@@ -30,9 +32,16 @@ export const ModelTrainingSection = ({
   const [checkpointStatus, setCheckpointStatus] =
     useState<trainingApi.CheckpointStatus | null>(null);
   const [isCheckpointDialogOpen, setIsCheckpointDialogOpen] = useState(false);
+  const trainingDatasetRef = selectedDatasetDbId ?? selectedDataset;
 
   useEffect(() => {
-    if (!isActive || !selectedDataset) {
+    if (
+      !isActive ||
+      !selectedDataset ||
+      trainingDatasetRef === null ||
+      trainingDatasetRef === undefined ||
+      trainingDatasetRef === ""
+    ) {
       setTrainingJob(null);
       setTrainingMessage(null);
       setCheckpointStatus(null);
@@ -48,8 +57,8 @@ export const ModelTrainingSection = ({
       setTrainingError(null);
       try {
         const [trainingResult, checkpointResult] = await Promise.all([
-          trainingApi.fetchTrainingJobStatus(selectedDataset),
-          trainingApi.fetchCheckpointStatus(selectedDataset),
+          trainingApi.fetchTrainingJobStatus(trainingDatasetRef),
+          trainingApi.fetchCheckpointStatus(trainingDatasetRef),
         ]);
         if (cancelled) {
           return;
@@ -88,7 +97,7 @@ export const ModelTrainingSection = ({
       cancelled = true;
       window.clearInterval(pollInterval);
     };
-  }, [isActive, selectedDataset]);
+  }, [isActive, selectedDataset, trainingDatasetRef]);
 
   useEffect(() => {
     if (trainingJob && Number.isFinite(trainingJob.checkpoint_interval)) {
@@ -214,7 +223,8 @@ export const ModelTrainingSection = ({
       <CheckpointDetailsDialog
         open={isCheckpointDialogOpen}
         onOpenChange={setIsCheckpointDialogOpen}
-        datasetId={selectedDataset}
+        datasetName={selectedDataset}
+        datasetRef={trainingDatasetRef}
       />
 
       <div className="mb-3">

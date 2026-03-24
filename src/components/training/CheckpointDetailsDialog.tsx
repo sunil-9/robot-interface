@@ -30,7 +30,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 interface CheckpointDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  datasetId: string | null;
+  datasetName: string | null;
+  datasetRef: string | number | null;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -56,7 +57,8 @@ const formatDateTime = (dateString: string): string => {
 export const CheckpointDetailsDialog = ({
   open,
   onOpenChange,
-  datasetId,
+  datasetName,
+  datasetRef,
 }: CheckpointDetailsDialogProps) => {
   const [details, setDetails] = useState<trainingApi.CheckpointDetails | null>(
     null,
@@ -65,7 +67,7 @@ export const CheckpointDetailsDialog = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || !datasetId) {
+    if (!open || datasetRef === null || datasetRef === undefined || datasetRef === "") {
       setDetails(null);
       setError(null);
       return;
@@ -76,7 +78,7 @@ export const CheckpointDetailsDialog = ({
       setIsLoading(true);
       setError(null);
       try {
-        const result = await trainingApi.fetchCheckpointDetails(datasetId);
+        const result = await trainingApi.fetchCheckpointDetails(datasetRef);
         if (cancelled) return;
         if (result.details) {
           setDetails(result.details);
@@ -102,7 +104,7 @@ export const CheckpointDetailsDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [open, datasetId]);
+  }, [datasetRef, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -113,7 +115,7 @@ export const CheckpointDetailsDialog = ({
             Checkpoint Details
           </DialogTitle>
           <DialogDescription>
-            {datasetId ? `Dataset: ${datasetId}` : "No dataset selected"}
+            {datasetName ? `Dataset: ${datasetName}` : "No dataset selected"}
           </DialogDescription>
         </DialogHeader>
 
@@ -171,7 +173,7 @@ export const CheckpointDetailsDialog = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               window.open(
-                                `http://localhost:8100/training/${datasetId}/checkpoints/${checkpoint.step}`,
+                                `http://localhost:8100/training/${encodeURIComponent(String(datasetRef))}/checkpoints/${checkpoint.step}`,
                                 "_blank",
                               );
                             }}

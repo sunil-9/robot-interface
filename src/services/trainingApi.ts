@@ -69,14 +69,16 @@ export interface CheckpointDetailsFetchResult {
  * Fetch checkpoint status for a dataset.
  */
 export const fetchCheckpointStatus = async (
-  datasetId: string,
+  datasetRef: string | number,
 ): Promise<CheckpointStatusFetchResult> => {
-  if (!datasetId) {
+  if (datasetRef === "" || datasetRef === null || datasetRef === undefined) {
     return { status: null };
   }
 
+  const normalizedDatasetRef = String(datasetRef);
+
   const response = await apiFetch(
-    `${TRAINING_BASE_URL}/${encodeURIComponent(datasetId)}/checkpoints/status`,
+    `${TRAINING_BASE_URL}/${encodeURIComponent(normalizedDatasetRef)}/checkpoints/status`,
     {
       method: "GET",
       headers: { accept: "application/json" },
@@ -108,14 +110,16 @@ export const fetchCheckpointStatus = async (
  * Fetch checkpoint details for a dataset.
  */
 export const fetchCheckpointDetails = async (
-  datasetId: string,
+  datasetRef: string | number,
 ): Promise<CheckpointDetailsFetchResult> => {
-  if (!datasetId) {
+  if (datasetRef === "" || datasetRef === null || datasetRef === undefined) {
     return { details: null };
   }
 
+  const normalizedDatasetRef = String(datasetRef);
+
   const response = await apiFetch(
-    `${TRAINING_BASE_URL}/${encodeURIComponent(datasetId)}/checkpoints`,
+    `${TRAINING_BASE_URL}/${encodeURIComponent(normalizedDatasetRef)}/checkpoints`,
     {
       method: "GET",
       headers: { accept: "application/json" },
@@ -142,14 +146,16 @@ export const fetchCheckpointDetails = async (
 };
 
 export const fetchTrainingJobStatus = async (
-  datasetId: string,
+  datasetRef: string | number,
 ): Promise<TrainingJobFetchResult> => {
-  if (!datasetId) {
+  if (datasetRef === "" || datasetRef === null || datasetRef === undefined) {
     return { job: null };
   }
 
+  const normalizedDatasetRef = String(datasetRef);
+
   const response = await apiFetch(
-    `${TRAINING_BASE_URL}/jobs/${encodeURIComponent(datasetId)}`,
+    `${TRAINING_BASE_URL}/jobs/${encodeURIComponent(normalizedDatasetRef)}`,
     {
       method: "GET",
       headers: { accept: "application/json" },
@@ -164,7 +170,7 @@ export const fetchTrainingJobStatus = async (
       job: null,
       message: formatApiError(
         data,
-        `No active training job for dataset '${datasetId}'`,
+        `No active training job for dataset '${normalizedDatasetRef}'`,
       ),
     };
   }

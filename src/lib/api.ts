@@ -102,11 +102,31 @@ export const fetchRobotCameras = async (
 
 export interface DatasetsListResponse {
   datasets: string[];
+  dataset_items?: DatasetListItem[];
 }
 
-export const fetchDatasets = async (): Promise<string[]> => {
+export interface DatasetListItem {
+  id: number;
+  name: string;
+}
+
+export interface DatasetListResult {
+  datasets: string[];
+  datasetItems: DatasetListItem[];
+}
+
+export const fetchDatasets = async (
+  robotId?: string | null,
+): Promise<DatasetListResult> => {
   try {
-    const response = await apiFetch("/datasets/");
+    const query = new URLSearchParams();
+    if (robotId) {
+      query.set("robot_id", robotId);
+    }
+
+    const queryString = query.toString();
+    const datasetUrl = queryString ? `/datasets/?${queryString}` : "/datasets/";
+    const response = await apiFetch(datasetUrl);
     const payload = await parseCloudApiResponse<DatasetsListResponse>(
       response
     );
@@ -115,7 +135,26 @@ export const fetchDatasets = async (): Promise<string[]> => {
         formatApiError(payload, `Failed to fetch datasets (${response.status})`)
       );
     }
-    return payload.datasets ?? [];
+
+    const datasetItems = Array.isArray(payload.dataset_items)
+      ? payload.dataset_items.filter(
+          (item): item is DatasetListItem =>
+            !!item &&
+            typeof item === "object" &&
+            typeof item.id === "number" &&
+            typeof item.name === "string"
+        )
+      : [];
+
+    const datasets =
+      payload.datasets?.length
+        ? payload.datasets
+        : datasetItems.map((item) => item.name);
+
+    return {
+      datasets,
+      datasetItems,
+    };
   } catch (error) {
     console.error("Failed to fetch datasets:", error);
     throw error;

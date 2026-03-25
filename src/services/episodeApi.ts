@@ -5,6 +5,8 @@ import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 const DATASETS_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}`;
 
 export interface Episode {
+  episode_id?: string;
+  dataset_id?: string | number;
   episode_index: string;
   duration?: number;
   created_at?: string;
@@ -13,7 +15,7 @@ export interface Episode {
 export interface EpisodeListResponse {
   episodes: Episode[];
   total_count: number;
-  dataset_id?: string;
+  dataset_id?: string | number;
 }
 
 interface DatasetEpisodeSummary {
@@ -23,7 +25,7 @@ interface DatasetEpisodeSummary {
 }
 
 interface DatasetDetailResponse {
-  dataset_id: string;
+  dataset_id: number;
   total_episodes: number;
   total_frames: number;
   episodes: DatasetEpisodeSummary[];
@@ -40,7 +42,7 @@ export interface EpisodeUpdate {
 
 export interface EpisodeReplayResponse {
   episode_id: string;
-  dataset_id: string;
+  dataset_id: string | number;
   replay_count: number;
   message: string;
 }
@@ -53,9 +55,13 @@ type EpisodesApiResponse =
   | { detail?: DatasetDetailResponse | null };
 
 export async function listEpisodes(
-  datasetId?: string
+  datasetId?: string | number
 ): Promise<EpisodeListResponse> {
-  const endpoint = `${DATASETS_BASE_URL}/${datasetId}`;
+  if (datasetId === undefined || datasetId === null || datasetId === "") {
+    return { episodes: [], total_count: 0 };
+  }
+  const normalizedDatasetId = encodeURIComponent(String(datasetId));
+  const endpoint = `${DATASETS_BASE_URL}/${normalizedDatasetId}`;
   const response = await apiFetch(endpoint);
 
   const data = await parseCloudApiResponse<EpisodesApiResponse>(response);
@@ -89,12 +95,13 @@ export async function listEpisodes(
  * Delete a single episode
  */
 export async function deleteEpisode(
-  datasetId: string,
+  datasetId: string | number,
   episodeId: string
 ): Promise<void> {
+  const normalizedDatasetId = encodeURIComponent(String(datasetId));
 
   const response = await apiFetch(
-    `${DATASETS_BASE_URL}/${datasetId}/episodes/delete`,
+    `${DATASETS_BASE_URL}/${normalizedDatasetId}/episodes/delete`,
     {
       method: "DELETE",
       headers: {

@@ -117,7 +117,7 @@ export const TrainingInterface = ({
   const bridgeData = useBridgeData();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [episodeToDelete, setEpisodeToDelete] = useState<{
-    datasetId: string;
+    datasetId: string | number;
     episodeId: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -133,6 +133,7 @@ export const TrainingInterface = ({
   const [deleteDatasetConfirmOpen, setDeleteDatasetConfirmOpen] =
     useState(false);
   const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null);
+  const [datasetToDeleteId, setDatasetToDeleteId] = useState<number | null>(null);
   const [datasetEpisodesToShow, setDatasetEpisodesToShow] = useState<
     episodeApi.Episode[]
   >([]);
@@ -141,6 +142,7 @@ export const TrainingInterface = ({
   const { setMode } = useModeContext();
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
+  const selectedDatasetRouteIdRef = useRef<string | null>(null);
   const deployDatasetRef = useRef<string | null>(deployDatasetId);
   const episodesTotalRef = useRef<number | null>(null);
   const datasetIdByName = useMemo(
@@ -153,6 +155,10 @@ export const TrainingInterface = ({
     }
     return datasetIdByName.get(selectedDataset) ?? null;
   }, [datasetIdByName, selectedDataset]);
+  const selectedDatasetRouteId = useMemo(
+    () => (selectedDatasetDbId !== null ? String(selectedDatasetDbId) : null),
+    [selectedDatasetDbId],
+  );
 
   // Handle tab changes and update URL
   const handleTabChange = useCallback(
@@ -182,7 +188,11 @@ export const TrainingInterface = ({
     episodesTotalRef.current = null;
   }, [selectedDataset]);
 
-  const episodesWsEnabled = episodePanelActive && Boolean(selectedDataset);
+  useEffect(() => {
+    selectedDatasetRouteIdRef.current = selectedDatasetRouteId;
+  }, [selectedDatasetRouteId]);
+
+  const episodesWsEnabled = episodePanelActive && Boolean(selectedDatasetRouteId);
 
   const handleEpisodesSnapshot = useCallback(
     (message: {
@@ -190,8 +200,9 @@ export const TrainingInterface = ({
       episodes: episodeApi.Episode[];
       total_count: number;
     }) => {
-      const activeDataset = selectedDatasetRef.current ?? selectedDataset ?? "";
-      if (!activeDataset || message.dataset_id !== activeDataset) {
+      const activeDatasetId =
+        selectedDatasetRouteIdRef.current ?? selectedDatasetRouteId ?? "";
+      if (!activeDatasetId || String(message.dataset_id) !== activeDatasetId) {
         return;
       }
 
@@ -211,28 +222,32 @@ export const TrainingInterface = ({
         setIsSavingEpisode(false);
       }
     },
-    [isSavingEpisode, selectedDataset, setIsSavingEpisode],
+    [isSavingEpisode, selectedDatasetRouteId, setIsSavingEpisode],
   );
 
   const handleDatasetDeleted = useCallback(
     (message: { dataset_id: string }) => {
-      const activeDataset = selectedDatasetRef.current ?? selectedDataset ?? "";
-      if (message.dataset_id !== activeDataset) {
+      const activeDatasetId =
+        selectedDatasetRouteIdRef.current ?? selectedDatasetRouteId ?? "";
+      if (String(message.dataset_id) !== activeDatasetId) {
         return;
       }
       setEpisodes([]);
       toast({
         title: "Dataset removed",
-        description: `Dataset "${message.dataset_id}" was deleted.`,
+        description: selectedDatasetRef.current
+          ? `Dataset "${selectedDatasetRef.current}" was deleted.`
+          : `Dataset "${message.dataset_id}" was deleted.`,
       });
     },
-    [selectedDataset],
+    [selectedDatasetRouteId],
   );
 
   const handleEpisodeSaveError = useCallback(
     (message: { dataset_id: string; message?: string }) => {
-      const activeDataset = selectedDatasetRef.current ?? selectedDataset ?? "";
-      if (!activeDataset || message.dataset_id !== activeDataset) {
+      const activeDatasetId =
+        selectedDatasetRouteIdRef.current ?? selectedDatasetRouteId ?? "";
+      if (!activeDatasetId || String(message.dataset_id) !== activeDatasetId) {
         return;
       }
       setIsSavingEpisode(false);
@@ -244,7 +259,7 @@ export const TrainingInterface = ({
         variant: "destructive",
       });
     },
-    [selectedDataset, setIsSavingEpisode],
+    [selectedDatasetRouteId, setIsSavingEpisode],
   );
   useEffect(() => {
     if (!selectedDataset || !session.telemetryOpen) {
@@ -552,17 +567,17 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    if (episodePanelActive && selectedDataset && !episodesWsEnabled) {
+    if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
       fetchEpisodes();
     }
     if (episodePanelActive) {
       loadDatasets();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [episodePanelActive, robotId, selectedDataset]);
+  }, [episodePanelActive, robotId, selectedDatasetRouteId]);
 
   const { isConnected: episodesWsConnected } = useEpisodesWebSocket({
-    datasetId: selectedDataset,
+    datasetId: selectedDatasetRouteId,
     enabled: episodesWsEnabled,
     onSnapshot: handleEpisodesSnapshot,
     onDatasetDeleted: handleDatasetDeleted,
@@ -614,9 +629,11 @@ export const TrainingInterface = ({
   };
 
   // Fetch episodes
-  const fetchEpisodes = async (datasetIdOverride?: string) => {
+  const fetchEpisodes = async (datasetIdOverride?: string | number) => {
     const datasetId =
-      datasetIdOverride ?? selectedDatasetRef.current ?? selectedDataset;
+      datasetIdOverride ??
+      selectedDatasetRouteIdRef.current ??
+      selectedDatasetRouteId;
     if (!datasetId) {
       return;
     }
@@ -917,7 +934,7 @@ export const TrainingInterface = ({
   }, [session, setIsRecording, setIsSavingEpisode]);
 
   // Additional episode management functions
-  const promptDeleteEpisode = (datasetId: string, episodeId: string) => {
+  const promptDeleteEpisode = (datasetId: string | number, episodeId: string) => {
     setEpisodeToDelete({ datasetId, episodeId });
     setDeleteConfirmOpen(true);
   };
@@ -952,12 +969,23 @@ export const TrainingInterface = ({
     }
   };
 
-  const promptDeleteDataset = async (datasetId: string) => {
+  const promptDeleteDataset = async (datasetName: string) => {
+    const datasetId = datasetIdByName.get(datasetName);
+    if (datasetId === undefined) {
+      toast({
+        title: "Error",
+        description: `Could not resolve dataset id for "${datasetName}"`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Fetch episodes for this dataset to show in confirmation
       const response = await episodeApi.listEpisodes(datasetId);
       setDatasetEpisodesToShow(response.episodes);
-      setDatasetToDelete(datasetId);
+      setDatasetToDelete(datasetName);
+      setDatasetToDeleteId(datasetId);
       setDeleteDatasetConfirmOpen(true);
     } catch (error) {
       toast({
@@ -969,11 +997,11 @@ export const TrainingInterface = ({
   };
 
   const confirmDeleteDataset = async () => {
-    if (!datasetToDelete) return;
+    if (!datasetToDelete || datasetToDeleteId === null) return;
 
     setIsDeleting(true);
     try {
-      await deleteDataset(datasetToDelete);
+      await deleteDataset(datasetToDeleteId);
 
       toast({
         title: "Success",
@@ -991,6 +1019,7 @@ export const TrainingInterface = ({
 
       setDeleteDatasetConfirmOpen(false);
       setDatasetToDelete(null);
+      setDatasetToDeleteId(null);
       setDatasetEpisodesToShow([]);
     } catch (error) {
       toast({
@@ -1168,6 +1197,7 @@ export const TrainingInterface = ({
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
                 onPromptDeleteEpisode: promptDeleteEpisode,
+                selectedDatasetRouteId,
                 robotId,
                 isRecording,
                 recordingElapsedTime: elapsedTime,

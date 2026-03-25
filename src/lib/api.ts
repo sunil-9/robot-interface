@@ -162,11 +162,11 @@ export const fetchDatasets = async (
 };
 
 export const createDataset = async (
-  datasetId: string,
+  datasetName: string,
   robotId: string,
 ): Promise<void> => {
   try {
-    const response = await apiFetch(`/datasets/create/${datasetId}`, {
+    const response = await apiFetch(`/datasets/create/${datasetName}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -186,7 +186,7 @@ export const createDataset = async (
   }
 };
 
-export const deleteDataset = async (datasetId: string): Promise<void> => {
+export const deleteDataset = async (datasetId: string | number): Promise<void> => {
   try {
     const response = await apiFetch(`/datasets/${encodeURIComponent(datasetId)}`, {
       method: "DELETE",

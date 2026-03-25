@@ -9,7 +9,7 @@ interface EpisodeCardProps {
   index: number;
   isDeleting: boolean;
   formatDuration: (seconds?: number) => string;
-  onDelete: (datasetId: string, episodeId: string) => void;
+  onDelete: (datasetId: string | number, episodeId: string) => void;
   onReview: (episodeIndex: number) => void;
   robotId?: string | null;
   isViewing?: boolean;
@@ -34,6 +34,7 @@ export const EpisodeCard = ({
 }: EpisodeCardProps) => {
   const { selectedDataset } = useEpisodeControlContext();
   const episodeIndex = episode.episode_index;
+  const datasetRouteId = episode.dataset_id;
   const displayIndex =
     episodeIndex !== undefined && !isNaN(Number(episodeIndex))
       ? Number(episodeIndex) + 1
@@ -93,8 +94,12 @@ export const EpisodeCard = ({
         <Button
           size="icon"
           variant="ghost"
-          onClick={() => onDelete(selectedDataset, episode.episode_index)}
-          disabled={isDeleting}
+          onClick={() => {
+            if (datasetRouteId !== undefined && datasetRouteId !== null) {
+              onDelete(datasetRouteId, episode.episode_index);
+            }
+          }}
+          disabled={isDeleting || datasetRouteId === undefined || datasetRouteId === null}
           className="h-5 w-5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           aria-label="Delete episode"
         >

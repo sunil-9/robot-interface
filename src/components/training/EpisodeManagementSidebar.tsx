@@ -6,12 +6,10 @@ import * as episodeApi from "@/services/episodeApi";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 
 import { DatasetSelector } from "./DatasetSelector";
 import { EpisodeList } from "./EpisodeList";
 import { useEpisodeViewer } from "./EpisodeViewerContext";
-import { ModelTrainingSection } from "./ModelTrainingSection";
 
 interface EpisodeManagementSidebarProps {
   isOpen: boolean;
@@ -23,7 +21,8 @@ interface EpisodeManagementSidebarProps {
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
   onRequestDeleteDataset: (dataset: string) => void;
-  onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
+  onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
+  selectedDatasetRouteId?: string | null;
   robotId?: string | null;
   isRecording?: boolean;
   recordingElapsedTime?: number;
@@ -46,21 +45,21 @@ export const EpisodeManagementContent = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
+  selectedDatasetRouteId,
   robotId,
   isRecording = false,
   recordingElapsedTime = 0,
   isSavingEpisode = false,
 }: EpisodeManagementContentProps) => {
-  const { selectedDataset } = useEpisodeControlContext();
   const { openViewer, viewerState } = useEpisodeViewer();
 
   const handleReviewEpisode = useCallback(
     (episodeIndex: number) => {
-      if (selectedDataset) {
-        openViewer("local", selectedDataset, episodeIndex);
+      if (selectedDatasetRouteId) {
+        openViewer("local", selectedDatasetRouteId, episodeIndex);
       }
     },
-    [selectedDataset, openViewer],
+    [selectedDatasetRouteId, openViewer],
   );
 
   return (
@@ -85,7 +84,7 @@ export const EpisodeManagementContent = ({
           onReviewEpisode={handleReviewEpisode}
           robotId={robotId}
           viewingEpisodeIndex={
-            viewerState.isOpen && viewerState.datasetId === selectedDataset
+            viewerState.isOpen && viewerState.datasetId === selectedDatasetRouteId
               ? viewerState.episodeIndex
               : null
           }
@@ -111,6 +110,7 @@ export const EpisodeManagementSidebar = ({
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
+  selectedDatasetRouteId,
   robotId,
 }: EpisodeManagementSidebarProps) => {
   return (
@@ -140,6 +140,7 @@ export const EpisodeManagementSidebar = ({
             onRequestCreateDataset={onRequestCreateDataset}
             onRequestDeleteDataset={onRequestDeleteDataset}
             onPromptDeleteEpisode={onPromptDeleteEpisode}
+            selectedDatasetRouteId={selectedDatasetRouteId}
             robotId={robotId}
           />
         </SheetContent>

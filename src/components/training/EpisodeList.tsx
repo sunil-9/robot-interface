@@ -8,7 +8,7 @@ interface EpisodeListProps {
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
   formatDuration: (seconds?: number) => string;
-  onPromptDeleteEpisode: (datasetId: string, episodeId: string) => void;
+  onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
   onReviewEpisode: (episodeIndex: number) => void;
   robotId?: string | null;
   viewingEpisodeIndex?: number | null;

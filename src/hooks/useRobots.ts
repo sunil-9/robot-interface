@@ -33,7 +33,10 @@ export function useRobots(
       const { appRobots, rawRobots } = await robotService.fetchRobots();
       setRobots(appRobots);
       setRobotPresence(rawRobots);
-      if (robotId && !appRobots.some((robot) => robot.id === robotId)) {
+      if (
+        robotId &&
+        !appRobots.some((robot) => String(robot.id) === robotId)
+      ) {
         setControlDevices([]);
         setDeviceError(null);
         setLoadingDevices(false);

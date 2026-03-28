@@ -79,10 +79,7 @@ const TrainHeader = ({
   const [claimRobotLoading, setClaimRobotLoading] = useState(false);
   const [claimRobotError, setClaimRobotError] = useState<string | null>(null);
   const selectedRobotId = robotSelection || selectedRobot || "";
-  const selectedRobotIdNumber =
-    selectedRobotId && !Number.isNaN(Number(selectedRobotId))
-      ? Number(selectedRobotId)
-      : null;
+  const normalizedSelectedRobotId = selectedRobotId.trim();
 
   const {
     robots,
@@ -101,11 +98,15 @@ const TrainHeader = ({
   });
 
   const hasSelectedRobot =
-    selectedRobotIdNumber !== null &&
-    sortedRobots.some((robot) => robot.id === selectedRobotIdNumber);
+    Boolean(normalizedSelectedRobotId) &&
+    sortedRobots.some(
+      (robot) => String(robot.id) === normalizedSelectedRobotId,
+    );
   const selectedRobotDetail =
-    selectedRobotIdNumber !== null
-      ? sortedRobots.find((robot) => robot.id === selectedRobotIdNumber) ?? null
+    normalizedSelectedRobotId
+      ? sortedRobots.find(
+          (robot) => String(robot.id) === normalizedSelectedRobotId,
+        ) ?? null
       : null;
   const visibleControlDevices = hasSelectedRobot ? controlDevices : [];
 
@@ -216,7 +217,7 @@ const TrainHeader = ({
     if (!hasSelectedRobot || !controlSelection) {
       return;
     }
-    onSelectionStart?.(selectedRobotId, controlSelection);
+    onSelectionStart?.(normalizedSelectedRobotId, controlSelection);
   };
 
   return (
@@ -259,7 +260,7 @@ const TrainHeader = ({
             <div className="flex items-center gap-1">
               <Select
                 value={
-                  hasSelectedRobot ? selectedRobotId : undefined
+                  hasSelectedRobot ? normalizedSelectedRobotId : undefined
                 }
                 onValueChange={handleRobotChange}
                 disabled={loading}
@@ -293,7 +294,7 @@ const TrainHeader = ({
                   {sortedRobots.map((robot) => (
                     <SelectItem
                       key={robot.id}
-                      value={robot.id}
+                      value={robot.id.toString()}
                       className="mb-1 min-h-16 items-start rounded-md border border-border/70 bg-background/60 py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
                     >
                       <div className="flex w-full items-start justify-between gap-3">

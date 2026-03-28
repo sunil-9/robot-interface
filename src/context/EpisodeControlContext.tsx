@@ -184,6 +184,7 @@ export function EpisodeControlProvider({
     setIsLoading(true);
 
     try {
+      console.log(datasetId,"this is the datasetid")
       const sent = session.sendControl({
         type: "dataset",
         payload: {

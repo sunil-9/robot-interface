@@ -5,7 +5,6 @@ import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 const DATASETS_BASE_URL = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.DATASETS}`;
 
 export interface Episode {
-  episode_id?: string;
   dataset_id?: string | number;
   episode_index: string;
   duration?: number;

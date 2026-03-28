@@ -100,14 +100,19 @@ export const fetchRobotCameras = async (
   }
 };
 
-export interface DatasetsListResponse {
-  datasets: string[];
-  dataset_items?: DatasetListItem[];
-}
-
 export interface DatasetListItem {
   id: number;
   name: string;
+}
+
+interface ApiDatasetItem {
+  dataset_id: number;
+  dataset_name: string;
+}
+
+export interface DatasetsListResponse {
+  datasets?: string[] | ApiDatasetItem[];
+  dataset_items?: DatasetListItem[];
 }
 
 export interface DatasetListResult {
@@ -136,7 +141,19 @@ export const fetchDatasets = async (
       );
     }
 
-    const datasetItems = Array.isArray(payload.dataset_items)
+    const datasetItemsFromApi = Array.isArray(payload.datasets)
+      ? payload.datasets.filter(
+          (item): item is ApiDatasetItem =>
+            !!item &&
+            typeof item === "object" &&
+            "dataset_id" in item &&
+            "dataset_name" in item &&
+            typeof (item as ApiDatasetItem).dataset_id === "number" &&
+            typeof (item as ApiDatasetItem).dataset_name === "string"
+        )
+      : [];
+
+    const datasetItemsFromList = Array.isArray(payload.dataset_items)
       ? payload.dataset_items.filter(
           (item): item is DatasetListItem =>
             !!item &&
@@ -146,9 +163,17 @@ export const fetchDatasets = async (
         )
       : [];
 
+    const datasetItems =
+      datasetItemsFromApi.length > 0
+        ? datasetItemsFromApi.map((item) => ({
+            id: item.dataset_id,
+            name: item.dataset_name,
+          }))
+        : datasetItemsFromList;
+
     const datasets =
-      payload.datasets?.length
-        ? payload.datasets
+      Array.isArray(payload.datasets) && payload.datasets.every((item) => typeof item === "string")
+        ? (payload.datasets as string[])
         : datasetItems.map((item) => item.name);
 
     return {

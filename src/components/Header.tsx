@@ -79,6 +79,10 @@ const TrainHeader = ({
   const [claimRobotLoading, setClaimRobotLoading] = useState(false);
   const [claimRobotError, setClaimRobotError] = useState<string | null>(null);
   const selectedRobotId = robotSelection || selectedRobot || "";
+  const selectedRobotIdNumber =
+    selectedRobotId && !Number.isNaN(Number(selectedRobotId))
+      ? Number(selectedRobotId)
+      : null;
 
   const {
     robots,
@@ -96,11 +100,13 @@ const TrainHeader = ({
     return left.is_live ? -1 : 1;
   });
 
-  const hasSelectedRobot = sortedRobots.some(
-    (robot) => robot.id === selectedRobotId,
-  );
+  const hasSelectedRobot =
+    selectedRobotIdNumber !== null &&
+    sortedRobots.some((robot) => robot.id === selectedRobotIdNumber);
   const selectedRobotDetail =
-    sortedRobots.find((robot) => robot.id === selectedRobotId) ?? null;
+    selectedRobotIdNumber !== null
+      ? sortedRobots.find((robot) => robot.id === selectedRobotIdNumber) ?? null
+      : null;
   const visibleControlDevices = hasSelectedRobot ? controlDevices : [];
 
   useEffect(() => {

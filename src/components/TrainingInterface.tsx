@@ -68,6 +68,7 @@ export const TrainingInterface = ({
     handleDeploy: contextHandleDeploy,
     handleForceStopDeploy: contextHandleForceStopDeploy,
     setSelectedDataset,
+    setSelectedDatasetId,
     setSession,
     setRobotId,
     setControllerId,
@@ -143,10 +144,15 @@ export const TrainingInterface = ({
   const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
   const selectedDatasetRouteIdRef = useRef<string | null>(null);
+  const datasetNameByIdRef = useRef<Map<string, string>>(new Map());
   const deployDatasetRef = useRef<string | null>(deployDatasetId);
   const episodesTotalRef = useRef<number | null>(null);
   const datasetIdByName = useMemo(
     () => new Map(datasetItems.map((item) => [item.name, item.id])),
+    [datasetItems],
+  );
+  const datasetNameById = useMemo(
+    () => new Map(datasetItems.map((item) => [String(item.id), item.name])),
     [datasetItems],
   );
   const selectedDatasetDbId = useMemo(() => {
@@ -191,6 +197,14 @@ export const TrainingInterface = ({
   useEffect(() => {
     selectedDatasetRouteIdRef.current = selectedDatasetRouteId;
   }, [selectedDatasetRouteId]);
+
+  useEffect(() => {
+    datasetNameByIdRef.current = datasetNameById;
+  }, [datasetNameById]);
+
+  useEffect(() => {
+    setSelectedDatasetId(selectedDatasetRouteId);
+  }, [selectedDatasetRouteId, setSelectedDatasetId]);
 
   const episodesWsEnabled = episodePanelActive && Boolean(selectedDatasetRouteId);
 
@@ -262,17 +276,17 @@ export const TrainingInterface = ({
     [selectedDatasetRouteId, setIsSavingEpisode],
   );
   useEffect(() => {
-    if (!selectedDataset || !session.telemetryOpen) {
+    if (!selectedDatasetRouteId || !session.telemetryOpen) {
       return;
     }
     session.sendControl({
       type: "dataset",
       payload: {
         action: "activate",
-        datasetId: selectedDataset,
+        datasetId: selectedDatasetRouteId,
       },
     });
-  }, [selectedDataset, session.telemetryOpen, session]);
+  }, [selectedDatasetRouteId, session.telemetryOpen, session]);
 
   // Recording timer effect
   useEffect(() => {
@@ -733,10 +747,15 @@ export const TrainingInterface = ({
             : typeof datasetPayload.dataset_id === "string"
               ? datasetPayload.dataset_id
               : null;
+        const datasetName = datasetId
+          ? datasetNameByIdRef.current.get(datasetId) ?? null
+          : null;
+        const datasetLabel =
+          datasetName ?? selectedDatasetRef.current ?? datasetId ?? null;
 
-        if (datasetId && selectedDatasetRef.current !== datasetId) {
-          setSelectedDataset(datasetId);
-          selectedDatasetRef.current = datasetId;
+        if (datasetName && selectedDatasetRef.current !== datasetName) {
+          setSelectedDataset(datasetName);
+          selectedDatasetRef.current = datasetName;
         }
 
         if (action === "collection_start_ack") {
@@ -747,8 +766,8 @@ export const TrainingInterface = ({
           }
           toast({
             title: "Recording started",
-            description: datasetId
-              ? `Recording episode for dataset "${datasetId}"`
+            description: datasetLabel
+              ? `Recording episode for dataset "${datasetLabel}"`
               : "Episode recording has started",
           });
           return;
@@ -760,9 +779,9 @@ export const TrainingInterface = ({
           toast({
             title: "Failed to start recording",
             description: message
-              ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
-              : datasetId
-                ? `Could not start recording for dataset "${datasetId}"`
+              ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetLabel ? ` (Dataset: ${datasetLabel})` : ""}`
+              : datasetLabel
+                ? `Could not start recording for dataset "${datasetLabel}"`
                 : "Could not start recording. Please try again.",
             variant: "destructive",
           });
@@ -787,8 +806,8 @@ export const TrainingInterface = ({
           }
           toast({
             title: "Recording stopped",
-            description: datasetId
-              ? `Episode will be saved for dataset "${datasetId}"`
+            description: datasetLabel
+              ? `Episode will be saved for dataset "${datasetLabel}"`
               : "Episode recording will be saved",
           });
           return;
@@ -799,9 +818,9 @@ export const TrainingInterface = ({
           toast({
             title: "Failed to stop recording",
             description: message
-              ? `${message}${datasetId ? ` (Dataset: ${datasetId})` : ""}`
-              : datasetId
-                ? `Could not stop recording for dataset "${datasetId}"`
+              ? `${message}${datasetLabel ? ` (Dataset: ${datasetLabel})` : ""}`
+              : datasetLabel
+                ? `Could not stop recording for dataset "${datasetLabel}"`
                 : "Could not stop recording. Please try again.",
             variant: "destructive",
           });
@@ -841,11 +860,18 @@ export const TrainingInterface = ({
           : typeof deployPayload.dataset_id === "string"
             ? deployPayload.dataset_id
             : null;
+      const datasetName = datasetId
+        ? datasetNameByIdRef.current.get(datasetId) ?? null
+        : null;
 
       const resolvedDataset =
-        datasetId ??
-        deployDatasetRef.current ??
+        datasetName ??
+        (deployDatasetRef.current
+          ? datasetNameByIdRef.current.get(deployDatasetRef.current) ??
+            deployDatasetRef.current
+          : null) ??
         selectedDatasetRef.current ??
+        datasetId ??
         undefined;
 
       setDeployRequestPending(false);
@@ -854,7 +880,7 @@ export const TrainingInterface = ({
         console.log("Response deployment webrtc", deployPayload);
         const active = status === "deploying";
         setIsDeploying(active);
-        setDeployDatasetId(datasetId ?? selectedDatasetRef.current ?? null);
+        setDeployDatasetId(datasetId ?? selectedDatasetRouteIdRef.current ?? null);
         toast({
           title: active ? "Deployment accepted" : "Deployment updated",
           description:
@@ -897,14 +923,18 @@ export const TrainingInterface = ({
 
       if (action === "deploy_status") {
         const deployingDataset =
-          datasetId ??
-          deployDatasetRef.current ??
+          datasetName ??
+          (deployDatasetRef.current
+            ? datasetNameByIdRef.current.get(deployDatasetRef.current) ??
+              deployDatasetRef.current
+            : null) ??
           selectedDatasetRef.current ??
+          datasetId ??
           undefined;
 
         if (status === "deploying") {
           setIsDeploying(true);
-          setDeployDatasetId(deployingDataset ?? null);
+          setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
           setDeployStatusMessage(message ?? "Downloading checkpoint...");
           setDeployStatusPopupOpen(true);
           toast({
@@ -916,7 +946,7 @@ export const TrainingInterface = ({
           setDeployStatusPopupOpen(false);
           setDeployStatusMessage(null);
           setIsDeploying(true);
-          setDeployDatasetId(deployingDataset ?? null);
+          setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
           toast({
             title: "Deployment complete",
             description:

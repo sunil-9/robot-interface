@@ -31,7 +31,7 @@ interface CheckpointDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   datasetName: string | null;
-  datasetRef: string | number | null;
+  datasetId: number | null;
 }
 
 const formatFileSize = (bytes: number): string => {
@@ -58,7 +58,7 @@ export const CheckpointDetailsDialog = ({
   open,
   onOpenChange,
   datasetName,
-  datasetRef,
+  datasetId,
 }: CheckpointDetailsDialogProps) => {
   const [details, setDetails] = useState<trainingApi.CheckpointDetails | null>(
     null,
@@ -67,7 +67,10 @@ export const CheckpointDetailsDialog = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open || datasetRef === null || datasetRef === undefined || datasetRef === "") {
+    if (
+      !open ||
+      datasetId === null
+    ) {
       setDetails(null);
       setError(null);
       return;
@@ -78,7 +81,7 @@ export const CheckpointDetailsDialog = ({
       setIsLoading(true);
       setError(null);
       try {
-        const result = await trainingApi.fetchCheckpointDetails(datasetRef);
+        const result = await trainingApi.fetchCheckpointDetails(datasetId);
         if (cancelled) return;
         if (result.details) {
           setDetails(result.details);
@@ -104,7 +107,7 @@ export const CheckpointDetailsDialog = ({
     return () => {
       cancelled = true;
     };
-  }, [datasetRef, open]);
+  }, [datasetId, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -160,18 +163,18 @@ export const CheckpointDetailsDialog = ({
                           <span className="text-sm text-muted-foreground">
                             {formatDateTime(checkpoint.modified_at)}
                           </span>
-                         
                         </div>
                         <div className="flex items-center gap-2">
-                           <span className="text-sm font-medium text-primary">
+                          <span className="text-sm font-medium text-primary">
                             {formatFileSize(checkpoint.total_size)}
                           </span>
-                          <Button
+                          {/* <Button
                             size="icon"
                             variant="ghost"
                             className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
                             onClick={(e) => {
                               e.stopPropagation();
+                              // todo this should change the api link
                               window.open(
                                 `http://localhost:8100/training/${encodeURIComponent(String(datasetRef))}/checkpoints/${checkpoint.step}`,
                                 "_blank",
@@ -180,7 +183,7 @@ export const CheckpointDetailsDialog = ({
                             title="Download checkpoint"
                           >
                             <Download className="h-4 w-4" />
-                          </Button>
+                          </Button> */}
                           <AccordionTrigger className="hover:no-underline p-0 h-7 w-7 flex items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-muted-foreground [&>svg]:transition-transform [&>svg]:duration-200" />
                         </div>
                       </div>

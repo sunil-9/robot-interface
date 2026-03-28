@@ -25,22 +25,20 @@ export const ModelTrainingSection = ({
   const { selectedDataset } = useEpisodeControlContext();
   const [interval, setInterval] = useState<number[]>([25]);
   const [trainingJob, setTrainingJob] =
-    useState<trainingApi.pTrainingJob | null>(null);
+    useState<trainingApi.TrainingJob | null>(null);
   const [trainingMessage, setTrainingMessage] = useState<string | null>(null);
   const [isTrainingLoading, setIsTrainingLoading] = useState(false);
   const [trainingError, setTrainingError] = useState<string | null>(null);
   const [checkpointStatus, setCheckpointStatus] =
     useState<trainingApi.CheckpointStatus | null>(null);
   const [isCheckpointDialogOpen, setIsCheckpointDialogOpen] = useState(false);
-  const trainingDatasetRef = selectedDatasetDbId ?? selectedDataset;
+  const trainingDatasetId = selectedDatasetDbId ?? null;
 
   useEffect(() => {
     if (
       !isActive ||
       !selectedDataset ||
-      trainingDatasetRef === null ||
-      trainingDatasetRef === undefined ||
-      trainingDatasetRef === ""
+      trainingDatasetId === null
     ) {
       setTrainingJob(null);
       setTrainingMessage(null);
@@ -57,8 +55,8 @@ export const ModelTrainingSection = ({
       setTrainingError(null);
       try {
         const [trainingResult, checkpointResult] = await Promise.all([
-          trainingApi.fetchTrainingJobStatus(trainingDatasetRef),
-          trainingApi.fetchCheckpointStatus(trainingDatasetRef),
+          trainingApi.fetchTrainingJobStatus(trainingDatasetId),
+          trainingApi.fetchCheckpointStatus(trainingDatasetId),
         ]);
         if (cancelled) {
           return;
@@ -97,7 +95,7 @@ export const ModelTrainingSection = ({
       cancelled = true;
       window.clearInterval(pollInterval);
     };
-  }, [isActive, selectedDataset, trainingDatasetRef]);
+  }, [isActive, selectedDataset, trainingDatasetId]);
 
   useEffect(() => {
     if (trainingJob && Number.isFinite(trainingJob.checkpoint_interval)) {
@@ -216,7 +214,8 @@ export const ModelTrainingSection = ({
             className="h-6 px-2 text-xs gap-0"
             onClick={() => setIsCheckpointDialogOpen(true)}
           >
-            <Eye className="h-3 w-3 mr-1" />          </Button>
+            <Eye className="h-3 w-3 mr-1" />{" "}
+          </Button>
         </div>
       )}
 
@@ -224,7 +223,7 @@ export const ModelTrainingSection = ({
         open={isCheckpointDialogOpen}
         onOpenChange={setIsCheckpointDialogOpen}
         datasetName={selectedDataset}
-        datasetRef={trainingDatasetRef}
+        datasetId={trainingDatasetId}
       />
 
       <div className="mb-3">

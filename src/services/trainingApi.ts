@@ -69,16 +69,16 @@ export interface CheckpointDetailsFetchResult {
  * Fetch checkpoint status for a dataset.
  */
 export const fetchCheckpointStatus = async (
-  datasetRef: string | number,
+  datasetId: number | null,
 ): Promise<CheckpointStatusFetchResult> => {
-  if (datasetRef === "" || datasetRef === null || datasetRef === undefined) {
+  if (datasetId === null || !Number.isFinite(datasetId)) {
     return { status: null };
   }
 
-  const normalizedDatasetRef = String(datasetRef);
+  const normalizedDatasetId = String(datasetId);
 
   const response = await apiFetch(
-    `${TRAINING_BASE_URL}/${encodeURIComponent(normalizedDatasetRef)}/checkpoints/status`,
+    `${TRAINING_BASE_URL}/${encodeURIComponent(normalizedDatasetId)}/checkpoints/status`,
     {
       method: "GET",
       headers: { accept: "application/json" },
@@ -110,16 +110,16 @@ export const fetchCheckpointStatus = async (
  * Fetch checkpoint details for a dataset.
  */
 export const fetchCheckpointDetails = async (
-  datasetRef: string | number,
+  datasetId: number | null,
 ): Promise<CheckpointDetailsFetchResult> => {
-  if (datasetRef === "" || datasetRef === null || datasetRef === undefined) {
+  if (datasetId === null || !Number.isFinite(datasetId)) {
     return { details: null };
   }
 
-  const normalizedDatasetRef = String(datasetRef);
+  const normalizedDatasetId = String(datasetId);
 
   const response = await apiFetch(
-    `${TRAINING_BASE_URL}/${encodeURIComponent(normalizedDatasetRef)}/checkpoints`,
+    `${TRAINING_BASE_URL}/${encodeURIComponent(normalizedDatasetId)}/checkpoints`,
     {
       method: "GET",
       headers: { accept: "application/json" },
@@ -146,16 +146,16 @@ export const fetchCheckpointDetails = async (
 };
 
 export const fetchTrainingJobStatus = async (
-  datasetRef: string | number,
+  datasetId: number | null,
 ): Promise<TrainingJobFetchResult> => {
-  if (datasetRef === "" || datasetRef === null || datasetRef === undefined) {
+  if (datasetId === null || !Number.isFinite(datasetId)) {
     return { job: null };
   }
 
-  const normalizedDatasetRef = String(datasetRef);
+  const normalizedDatasetId = String(datasetId);
 
   const response = await apiFetch(
-    `${TRAINING_BASE_URL}/jobs/${encodeURIComponent(normalizedDatasetRef)}`,
+    `${TRAINING_BASE_URL}/jobs/${encodeURIComponent(normalizedDatasetId)}`,
     {
       method: "GET",
       headers: { accept: "application/json" },
@@ -170,7 +170,7 @@ export const fetchTrainingJobStatus = async (
       job: null,
       message: formatApiError(
         data,
-        `No active training job for dataset '${normalizedDatasetRef}'`,
+        `No active training job for dataset '${normalizedDatasetId}'`,
       ),
     };
   }

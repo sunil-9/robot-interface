@@ -34,7 +34,8 @@ export interface EpisodeControlActions {
   startEpisode: () => Promise<boolean>;
   endEpisode: () => Promise<boolean>;
   resetAuthSessionState: () => void;
-  setSelectedDataset: (datasetId: string) => void;
+  setSelectedDataset: (datasetName: string) => void;
+  setSelectedDatasetId: (datasetId: string | null) => void;
   setSession: (session: WebRTCSession | null) => void;
   setRobotId: (robotId: string | null) => void;
   setControllerId: (controllerId: string | null) => void;
@@ -87,17 +88,25 @@ export function EpisodeControlProvider({
   });
 
   // Persist selectedDataset to localStorage when it changes
-  const setSelectedDataset = useCallback((datasetId: string) => {
-    setSelectedDatasetState(datasetId);
+  const setSelectedDataset = useCallback((datasetName: string) => {
+    setSelectedDatasetState(datasetName);
     try {
-      if (datasetId) {
-        localStorage.setItem(SELECTED_DATASET_STORAGE_KEY, datasetId);
+      if (datasetName) {
+        localStorage.setItem(SELECTED_DATASET_STORAGE_KEY, datasetName);
       } else {
         localStorage.removeItem(SELECTED_DATASET_STORAGE_KEY);
+        selectedDatasetIdRef.current = null;
       }
     } catch {
       // Ignore localStorage errors
     }
+  }, []);
+
+  const selectedDatasetIdRef = useRef<string | null>(null);
+
+  const setSelectedDatasetId = useCallback((datasetId: string | null) => {
+    const normalized = typeof datasetId === "string" ? datasetId.trim() : "";
+    selectedDatasetIdRef.current = normalized || null;
   }, []);
 
   // Deploy state
@@ -131,7 +140,7 @@ export function EpisodeControlProvider({
   }, []);
 
   const startEpisode = useCallback(async (): Promise<boolean> => {
-    const datasetId = selectedDatasetRef.current;
+    const datasetId = selectedDatasetIdRef.current;
     const session = sessionRef.current;
     const robotId = robotIdRef.current;
     const controllerId = controllerIdRef.current;
@@ -206,7 +215,7 @@ export function EpisodeControlProvider({
   }, [setMode, onRecordingStart]);
 
   const endEpisode = useCallback(async (): Promise<boolean> => {
-    const datasetId = selectedDatasetRef.current;
+    const datasetId = selectedDatasetIdRef.current;
     const session = sessionRef.current;
 
     if (!datasetId) {
@@ -258,7 +267,8 @@ export function EpisodeControlProvider({
   }, [setMode, onRecordingEnd]);
 
   const handleDeploy = useCallback(async (): Promise<boolean> => {
-    const datasetId = selectedDatasetRef.current;
+    const datasetId = selectedDatasetIdRef.current;
+    const datasetLabel = selectedDatasetRef.current || datasetId;
     const session = sessionRef.current;
     const robotId = robotIdRef.current;
     const controllerId = controllerIdRef.current;
@@ -325,8 +335,8 @@ export function EpisodeControlProvider({
       title: "Deployment request sent",
       description:
         action === "start"
-          ? `Deploying dataset "${datasetId}".`
-          : `Stopping deployment for dataset "${datasetId}".`,
+          ? `Deploying dataset "${datasetLabel}".`
+          : `Stopping deployment for dataset "${datasetLabel}".`,
     });
 
     return true;
@@ -335,7 +345,8 @@ export function EpisodeControlProvider({
   const handleForceStopDeploy = useCallback(async (): Promise<boolean> => {
     const session = sessionRef.current;
     const datasetToStop =
-      deployDatasetRef.current ?? selectedDatasetRef.current;
+      deployDatasetRef.current ?? selectedDatasetIdRef.current;
+    const datasetLabel = selectedDatasetRef.current ?? datasetToStop;
 
     if (!session) {
       toast({
@@ -372,7 +383,7 @@ export function EpisodeControlProvider({
 
     toast({
       title: "Force stop sent",
-      description: `Stopping deployment for dataset "${datasetToStop}".`,
+      description: `Stopping deployment for dataset "${datasetLabel}".`,
     });
 
     return true;
@@ -382,6 +393,7 @@ export function EpisodeControlProvider({
     sessionRef.current = null;
     robotIdRef.current = null;
     controllerIdRef.current = null;
+    selectedDatasetIdRef.current = null;
     setIsRecording(false);
     setCurrentEpisodeId(null);
     setIsLoading(false);
@@ -412,6 +424,7 @@ export function EpisodeControlProvider({
     endEpisode,
     resetAuthSessionState,
     setSelectedDataset,
+    setSelectedDatasetId,
     setSession,
     setRobotId,
     setControllerId,

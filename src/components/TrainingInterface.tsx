@@ -20,6 +20,7 @@ import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { HelpDialog } from "./HelpDialog";
 import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
+import { MemoriseRestorePose } from "./MemoriseRestorePose";
 import { SidebarTabs } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
@@ -1265,7 +1266,16 @@ export const TrainingInterface = ({
               onRewind={rewindEpisode}
               onDeploy={onDeploy}
               style={RecordingControlStyle.COMPACT}
-            />
+            >
+              <MemoriseRestorePose
+                memorisedPose={memorisedPose}
+                isLoading={poseLoading}
+                isCompact
+                onMemorise={handleMemorisePose}
+                onRestore={handleRestorePose}
+                onClear={handleClearPose}
+              />
+            </RecordingControls>
             <SidebarTabs
               tab={sidebarTab}
               onTabChange={handleTabChange}

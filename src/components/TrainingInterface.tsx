@@ -81,6 +81,14 @@ export const TrainingInterface = ({
     setDeployDatasetId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
+    // Pose
+    memorisedPose,
+    poseLoading,
+    handleMemorisePose,
+    handleRestorePose,
+    handleClearPose,
+    handleGetPose,
+    setMemorisedPose,
   } = episodeControl;
 
   // Sync session, robotId, controllerId to context
@@ -95,6 +103,13 @@ export const TrainingInterface = ({
   useEffect(() => {
     setControllerId(controllerId);
   }, [controllerId, setControllerId]);
+
+  // Fetch memorised pose when telemetry channel opens
+  useEffect(() => {
+    if (session.telemetryOpen) {
+      void handleGetPose();
+    }
+  }, [session.telemetryOpen, handleGetPose]);
 
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
@@ -956,6 +971,40 @@ export const TrainingInterface = ({
             description:
               message ?? `Dataset "${deployingDataset}" deployed successfully.`,
           });
+        }
+        return;
+      }
+
+      // Handle pose responses
+      if (type === "pose") {
+        const rawPayload = record.payload;
+        if (!rawPayload || typeof rawPayload !== "object") return;
+        const posePayload = rawPayload as Record<string, unknown>;
+        const action = typeof posePayload.action === "string" ? posePayload.action : null;
+        const poseMsg = typeof posePayload.message === "string" ? posePayload.message : null;
+
+        if (action === "pose_memorise_ack") {
+          const poseData = posePayload.pose as { joint_names: string[]; positions: number[] } | null | undefined;
+          if (poseData) setMemorisedPose(poseData);
+          toast({ title: "Pose memorised", description: `Saved successfully` });
+          return;
+        }
+        if (action === "pose_get_ack") {
+          const poseData = posePayload.pose as { joint_names: string[]; positions: number[] } | null | undefined;
+          setMemorisedPose(poseData ?? null);
+          return;
+        }
+        if (action === "pose_clear_ack") {
+          toast({ title: "Pose cleared" });
+          return;
+        }
+        if (action === "pose_restore_ack") {
+          toast({ title: "Restore requested", description: poseMsg ?? "Pose restore sent to robot" });
+          return;
+        }
+        if (action?.endsWith("_nack")) {
+          toast({ title: "Pose error", description: poseMsg ?? "Pose action failed", variant: "destructive" });
+          return;
         }
         return;
       }

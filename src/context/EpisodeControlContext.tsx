@@ -29,6 +29,9 @@ export interface EpisodeControlState {
   deployDatasetId: string | null;
   deployStatusPopupOpen: boolean;
   deployStatusMessage: string | null;
+  // Pose state
+  memorisedPose: { joint_names: string[]; positions: number[] } | null;
+  poseLoading: boolean;
 }
 
 export interface EpisodeControlActions {
@@ -52,6 +55,12 @@ export interface EpisodeControlActions {
   setDeployDatasetId: (datasetId: string | null) => void;
   setDeployStatusPopupOpen: (open: boolean) => void;
   setDeployStatusMessage: (message: string | null) => void;
+  // Pose actions
+  handleMemorisePose: () => Promise<boolean>;
+  handleRestorePose: () => Promise<boolean>;
+  handleClearPose: () => Promise<boolean>;
+  handleGetPose: () => Promise<void>;
+  setMemorisedPose: (pose: { joint_names: string[]; positions: number[] } | null) => void;
 }
 
 export type EpisodeControlContextValue = EpisodeControlState &
@@ -119,6 +128,10 @@ export function EpisodeControlProvider({
   const [deployStatusMessage, setDeployStatusMessage] = useState<string | null>(
     null,
   );
+
+  // Pose state
+  const [memorisedPose, setMemorisedPose] = useState<{ joint_names: string[]; positions: number[] } | null>(null);
+  const [poseLoading, setPoseLoading] = useState(false);
 
   // Store session and IDs in refs so they're always current in callbacks
   const sessionRef = useRef<WebRTCSession | null>(null);
@@ -393,6 +406,61 @@ export function EpisodeControlProvider({
     return true;
   }, []);
 
+  const handleGetPose = useCallback(async (): Promise<void> => {
+    const session = sessionRef.current;
+    if (!session) return;
+    session.sendControl({ type: "pose", payload: { action: "get" } });
+  }, []);
+
+  const handleMemorisePose = useCallback(async (): Promise<boolean> => {
+    const session = sessionRef.current;
+    if (!session) {
+      toast({ title: "Error", description: "No active session", variant: "destructive" });
+      return false;
+    }
+    setPoseLoading(true);
+    const sent = session.sendControl({ type: "pose", payload: { action: "memorise" } });
+    setPoseLoading(false);
+    if (!sent) {
+      toast({ title: "Error", description: "Failed to send memorise request", variant: "destructive" });
+      return false;
+    }
+    return true;
+  }, []);
+
+  const handleRestorePose = useCallback(async (): Promise<boolean> => {
+    const session = sessionRef.current;
+    if (!session) {
+      toast({ title: "Error", description: "No active session", variant: "destructive" });
+      return false;
+    }
+    if (!memorisedPose) {
+      toast({ title: "Error", description: "No memorised pose to restore", variant: "destructive" });
+      return false;
+    }
+    const sent = session.sendControl({ type: "pose", payload: { action: "restore" } });
+    if (!sent) {
+      toast({ title: "Error", description: "Failed to send restore request", variant: "destructive" });
+      return false;
+    }
+    return true;
+  }, [memorisedPose]);
+
+  const handleClearPose = useCallback(async (): Promise<boolean> => {
+    const session = sessionRef.current;
+    if (!session) {
+      toast({ title: "Error", description: "No active session", variant: "destructive" });
+      return false;
+    }
+    const sent = session.sendControl({ type: "pose", payload: { action: "clear" } });
+    if (!sent) {
+      toast({ title: "Error", description: "Failed to send clear request", variant: "destructive" });
+      return false;
+    }
+    setMemorisedPose(null);
+    return true;
+  }, []);
+
   const resetAuthSessionState = useCallback(() => {
     sessionRef.current = null;
     robotIdRef.current = null;
@@ -442,6 +510,14 @@ export function EpisodeControlProvider({
     setDeployDatasetId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
+    // Pose
+    memorisedPose,
+    poseLoading,
+    handleMemorisePose,
+    handleRestorePose,
+    handleClearPose,
+    handleGetPose,
+    setMemorisedPose,
   };
 
   return (

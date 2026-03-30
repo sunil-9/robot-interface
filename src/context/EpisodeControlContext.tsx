@@ -30,7 +30,7 @@ export interface EpisodeControlState {
   deployStatusPopupOpen: boolean;
   deployStatusMessage: string | null;
   // Pose state
-  memorisedPose: { joint_names: string[]; positions: number[] } | null;
+  memorisedPose: { topics: Record<string, unknown> } | null;
   poseLoading: boolean;
 }
 
@@ -60,7 +60,7 @@ export interface EpisodeControlActions {
   handleRestorePose: () => Promise<boolean>;
   handleClearPose: () => Promise<boolean>;
   handleGetPose: () => Promise<void>;
-  setMemorisedPose: (pose: { joint_names: string[]; positions: number[] } | null) => void;
+  setMemorisedPose: (pose: { topics: Record<string, unknown> } | null) => void;
 }
 
 export type EpisodeControlContextValue = EpisodeControlState &
@@ -130,7 +130,7 @@ export function EpisodeControlProvider({
   );
 
   // Pose state
-  const [memorisedPose, setMemorisedPose] = useState<{ joint_names: string[]; positions: number[] } | null>(null);
+  const [memorisedPose, setMemorisedPose] = useState<{ topics: Record<string, unknown> } | null>(null);
   const [poseLoading, setPoseLoading] = useState(false);
 
   // Store session and IDs in refs so they're always current in callbacks

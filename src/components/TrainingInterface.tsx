@@ -985,13 +985,13 @@ export const TrainingInterface = ({
         const poseMsg = typeof posePayload.message === "string" ? posePayload.message : null;
 
         if (action === "pose_memorise_ack") {
-          const poseData = posePayload.pose as { joint_names: string[]; positions: number[] } | null | undefined;
+          const poseData = posePayload.pose as { topics: Record<string, unknown> } | null | undefined;
           if (poseData) setMemorisedPose(poseData);
           toast({ title: "Pose memorised", description: `Saved successfully` });
           return;
         }
         if (action === "pose_get_ack") {
-          const poseData = posePayload.pose as { joint_names: string[]; positions: number[] } | null | undefined;
+          const poseData = posePayload.pose as { topics: Record<string, unknown> } | null | undefined;
           setMemorisedPose(poseData ?? null);
           return;
         }

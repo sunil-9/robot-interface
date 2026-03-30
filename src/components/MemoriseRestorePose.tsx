@@ -15,7 +15,7 @@ import {
 import { Button } from "./ui/button";
 
 interface MemoriseRestorePoseProps {
-  memorisedPose: { joint_names: string[]; positions: number[] } | null;
+  memorisedPose: { topics: Record<string, unknown> } | null;
   isLoading: boolean;
   isCompact?: boolean;
   onMemorise: () => void;
@@ -75,7 +75,7 @@ export const MemoriseRestorePose = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Clear memorised pose?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove the saved pose ({memorisedPose.joint_names.length} joints). You can memorise a new one at any time.
+              This will remove the saved pose ({Object.keys(memorisedPose.topics).length} topic(s)). You can memorise a new one at any time.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

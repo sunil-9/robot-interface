@@ -851,7 +851,7 @@ export const TrainingInterface = ({
       }
 
       // Handle deploy responses
-      if (type !== "deploy") {
+      if (type !== "deploy" && type !== "pose") {
         return;
       }
       //println!("Deploy payload: {:?}", payload);
@@ -1015,7 +1015,7 @@ export const TrainingInterface = ({
       unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, setIsRecording, setIsSavingEpisode]);
+  }, [session, setIsRecording, setIsSavingEpisode, setMemorisedPose]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string | number, episodeId: string) => {

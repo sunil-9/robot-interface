@@ -855,7 +855,6 @@ export const TrainingInterface = ({
         return;
       }
       //println!("Deploy payload: {:?}", payload);
-      console.log(payload, "obtained from the robot backend");
 
       const rawPayload = record.payload;
       if (!rawPayload || typeof rawPayload !== "object") {

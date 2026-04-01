@@ -94,7 +94,7 @@ The frontend sends complete gamepad state snapshots (~50Hz) via WebRTC.
 
 - **Polling**: `src/components/InputTracker.tsx` polls state using `requestAnimationFrame`.
 - **Deadzone**: Automatically applied to axes.
-- **Optimization**: Signals only sent on state change.
+- **Transmission**: Active joystick/button input is streamed at ~50Hz; idle unchanged state is suppressed.
 
 ## 🔄 Mode State Management
 

@@ -8,8 +8,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const FRAME_INTERVAL_MS = 20;
 const AXIS_DEADZONE = 0.1;
-const BUTTON_REPEAT_INTERVAL_MS = 500;
 const BUTTON_ACTIVE_THRESHOLD = 0.1;
+
 
 type GamepadState = {
   lastSent: number;
@@ -190,7 +190,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, [canTrackKeyboard, sendTelemetry, session]);
+  }, [canTrackKeyboard, controlType, sendTelemetry, session]);
 
   // Track gamepad/joystick input
   useEffect(() => {
@@ -245,24 +245,25 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
         const axesChanged = normalizedAxes.some(
           (value, idx) => Math.abs(value - (state.axes[idx] || 0)) > 0.01,
         );
-        const buttonsChanged = gamepad.buttons.some(
+        const currentButtons = gamepad.buttons.map((button) => ({
+          pressed: button.pressed,
+          value: button.value,
+        }));
+        const buttonsChanged = currentButtons.some(
           (button, idx) =>
             button.pressed !== state.buttons[idx]?.pressed ||
             Math.abs(button.value - (state.buttons[idx]?.value || 0)) > 0.01,
         );
 
         const axesActive = normalizedAxes.some((value) => value !== 0);
-        const buttonsActive = gamepad.buttons.some(
+        const buttonsActive = currentButtons.some(
           (button) => button.pressed || button.value > BUTTON_ACTIVE_THRESHOLD,
         );
-        const shouldRepeat =
-          !axesChanged &&
-          !buttonsChanged &&
-          (axesActive || buttonsActive) &&
-          now - state.lastSent >= BUTTON_REPEAT_INTERVAL_MS;
+        const hasActiveInput = axesActive || buttonsActive;
 
-        // Only send if something changed
-        if (!axesChanged && !buttonsChanged && !shouldRepeat) {
+        // Keep active inputs streaming at the frame interval, but stay idle
+        // when the controller state is unchanged and inactive.
+        if (!axesChanged && !buttonsChanged && !hasActiveInput) {
           return;
         }
 
@@ -271,10 +272,7 @@ export const InputTracker = ({ controlType, session }: InputTrackerProps) => {
           state.axes = [...normalizedAxes];
         }
         if (buttonsChanged) {
-          state.buttons = gamepad.buttons.map((button) => ({
-            pressed: button.pressed,
-            value: button.value,
-          }));
+          state.buttons = currentButtons;
         }
         state.lastSent = now;
 

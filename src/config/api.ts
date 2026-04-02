@@ -20,6 +20,7 @@ export const API_CONFIG = {
     WEBRTC_HEALTH: "/api/webrtc/health",
     DATASETS: "/datasets",
     TRAINING: "/training",
+    MODELS: "/models",
     ROBOT_CONFIGS: "/robot-configs",
   },
 

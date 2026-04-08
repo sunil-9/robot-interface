@@ -31,7 +31,7 @@ export interface ModelCreateResponse {
 }
 
 export interface TrainModelPayload {
-  target_steps: number;
+  additional_steps: number;
 }
 
 export interface TrainModelResponse {

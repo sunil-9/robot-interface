@@ -123,7 +123,7 @@ export const ModelTrainingSection = ({
     const steps = trainSteps[modelId] ?? STEP_OPTIONS[0].value;
     try {
       await modelsApi.trainExistingModel(modelId, datasetId, {
-        target_steps: steps,
+        additional_steps: steps,
       });
       await fetchModels();
     } catch (err) {

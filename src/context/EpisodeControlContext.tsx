@@ -5,6 +5,7 @@
 
 import { toast } from "@/components/ui/use-toast";
 import { AppMode } from "@/context/ModeContextDef";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
 import {
   createContext,
@@ -73,6 +74,7 @@ export function EpisodeControlProvider({
   onRecordingStart,
   onRecordingEnd,
 }: EpisodeControlProviderProps) {
+  const { user } = useAuthSession();
   const [isRecording, setIsRecording] = useState(false);
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -190,6 +192,7 @@ export function EpisodeControlProvider({
         payload: {
           action: "start",
           datasetId,
+          userId: String(user?.userId),
         },
       });
 

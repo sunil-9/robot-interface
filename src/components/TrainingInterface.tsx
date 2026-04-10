@@ -1,4 +1,5 @@
 import { AppMode } from "@/context/ModeContextDef";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useBridgeData } from "@/hooks/useBridgeData";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useEpisodesWebSocket } from "@/hooks/useEpisodesWebSocket";
@@ -49,6 +50,7 @@ export const TrainingInterface = ({
 }: TrainingInterfaceProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuthSession();
   const { viewerState: episodeViewerState } = useEpisodeViewer();
 
   // Use shared episode control context
@@ -284,6 +286,7 @@ export const TrainingInterface = ({
       payload: {
         action: "activate",
         datasetId: selectedDatasetRouteId,
+        userId: String(user?.userId),
       },
     });
   }, [selectedDatasetRouteId, session.telemetryOpen, session]);

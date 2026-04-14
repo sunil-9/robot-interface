@@ -1,6 +1,7 @@
 import { API_CONFIG } from "@/config/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type * as episodeApi from "@/services/episodeApi";
+import { loadStoredAuthSession } from "@/services/authApi";
 
 type EpisodesSnapshotMessage = {
   type: "episodes_snapshot";
@@ -44,7 +45,7 @@ interface UseEpisodesWebSocketOptions {
   onEpisodeSaveError?: (message: EpisodeSaveErrorMessage) => void;
 }
 
-const buildEpisodesWsUrl = (datasetId: string) => {
+const buildEpisodesWsUrl = (datasetId: string, token?: string) => {
   const base = new URL(API_CONFIG.BASE_URL);
   base.protocol = base.protocol === "https:" ? "wss:" : "ws:";
   const basePath = base.pathname.replace(/\/$/, "");
@@ -53,6 +54,9 @@ const buildEpisodesWsUrl = (datasetId: string) => {
   )}/episodes/ws`;
   base.search = "";
   base.hash = "";
+  if (token) {
+    base.searchParams.set("token", token);
+  }
   return base.toString();
 };
 
@@ -89,7 +93,13 @@ export const useEpisodesWebSocket = ({
       return;
     }
 
-    const targetUrl = buildEpisodesWsUrl(datasetId);
+    const token = loadStoredAuthSession()?.accessToken;
+    if (!token) {
+      console.warn("Episodes websocket: no auth token available, skipping connection.");
+      return;
+    }
+
+    const targetUrl = buildEpisodesWsUrl(datasetId, token);
     console.info("Episodes websocket connecting to:", targetUrl);
 
     if (

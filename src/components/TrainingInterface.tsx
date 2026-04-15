@@ -224,6 +224,7 @@ export const TrainingInterface = ({
 
       const normalizedEpisodes = message.episodes.map((episode) => ({
         ...episode,
+        dataset_id: message.dataset_id,
         episode_index: `${episode.episode_index}`,
       }));
       setEpisodes(normalizedEpisodes);

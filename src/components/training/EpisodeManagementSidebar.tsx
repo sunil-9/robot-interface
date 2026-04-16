@@ -27,6 +27,7 @@ interface EpisodeManagementSidebarProps {
   isRecording?: boolean;
   recordingElapsedTime?: number;
   isSavingEpisode?: boolean;
+  isDatasetLocked?: boolean;
 }
 
 interface EpisodeManagementContentProps extends Omit<
@@ -50,6 +51,7 @@ export const EpisodeManagementContent = ({
   isRecording = false,
   recordingElapsedTime = 0,
   isSavingEpisode = false,
+  isDatasetLocked = false,
 }: EpisodeManagementContentProps) => {
   const { openViewer, viewerState } = useEpisodeViewer();
 
@@ -91,6 +93,7 @@ export const EpisodeManagementContent = ({
           isRecording={isRecording}
           recordingElapsedTime={recordingElapsedTime}
           isSavingEpisode={isSavingEpisode}
+          isDatasetLocked={isDatasetLocked}
         />
       </div>
 
@@ -112,6 +115,7 @@ export const EpisodeManagementSidebar = ({
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
+  isDatasetLocked = false,
 }: EpisodeManagementSidebarProps) => {
   return (
     <div className="fixed inset-y-0 right-0 z-30 flex items-center">
@@ -142,6 +146,7 @@ export const EpisodeManagementSidebar = ({
             onPromptDeleteEpisode={onPromptDeleteEpisode}
             selectedDatasetRouteId={selectedDatasetRouteId}
             robotId={robotId}
+            isDatasetLocked={isDatasetLocked}
           />
         </SheetContent>
       </Sheet>

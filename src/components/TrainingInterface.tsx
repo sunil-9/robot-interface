@@ -124,6 +124,7 @@ export const TrainingInterface = ({
     episodeId: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [datasetStatus, setDatasetStatus] = useState<string>("idle");
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
@@ -213,6 +214,7 @@ export const TrainingInterface = ({
   const handleEpisodesSnapshot = useCallback(
     (message: {
       dataset_id: string;
+      dataset_status?: string;
       episodes: episodeApi.Episode[];
       total_count: number;
     }) => {
@@ -220,6 +222,10 @@ export const TrainingInterface = ({
         selectedDatasetRouteIdRef.current ?? selectedDatasetRouteId ?? "";
       if (!activeDatasetId || String(message.dataset_id) !== activeDatasetId) {
         return;
+      }
+
+      if (message.dataset_status !== undefined) {
+        setDatasetStatus(message.dataset_status);
       }
 
       const normalizedEpisodes = message.episodes.map((episode) => ({
@@ -585,6 +591,7 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
+    setDatasetStatus("idle");
     if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
       fetchEpisodes();
     }
@@ -1236,6 +1243,7 @@ export const TrainingInterface = ({
                 isRecording,
                 recordingElapsedTime: elapsedTime,
                 isSavingEpisode,
+                isDatasetLocked: datasetStatus === "ingesting",
               }}
             />
           </div>
@@ -1275,6 +1283,7 @@ export const TrainingInterface = ({
         episodesPreview={datasetEpisodesToShow}
         onConfirm={confirmDeleteDataset}
         isDeleting={isDeleting}
+        isDatasetLocked={datasetStatus === "ingesting"}
       />
 
       {/* Deploy Status Popup - Unclosable while deploying */}

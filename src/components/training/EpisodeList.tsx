@@ -15,6 +15,7 @@ interface EpisodeListProps {
   isRecording?: boolean;
   recordingElapsedTime?: number;
   isSavingEpisode?: boolean;
+  isDatasetLocked?: boolean;
 }
 
 export const EpisodeList = ({
@@ -28,6 +29,7 @@ export const EpisodeList = ({
   isRecording = false,
   recordingElapsedTime = 0,
   isSavingEpisode = false,
+  isDatasetLocked = false,
 }: EpisodeListProps) => {
   const { selectedDataset } = useEpisodeControlContext();
   const reversedEpisodes = useMemo(
@@ -139,6 +141,7 @@ export const EpisodeList = ({
             onReview={onReviewEpisode}
             robotId={robotId}
             isViewing={viewingEpisodeIndex === Number(episode.episode_index)}
+            isDatasetLocked={isDatasetLocked}
           />
         ))
       )}

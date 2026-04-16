@@ -13,6 +13,7 @@ interface EpisodeCardProps {
   onReview: (episodeIndex: number) => void;
   robotId?: string | null;
   isViewing?: boolean;
+  isDatasetLocked?: boolean;
 }
 
 const shortDateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -31,6 +32,7 @@ export const EpisodeCard = ({
   onReview,
   robotId,
   isViewing = false,
+  isDatasetLocked = false,
 }: EpisodeCardProps) => {
   const { selectedDataset } = useEpisodeControlContext();
   const episodeIndex = episode.episode_index;
@@ -99,7 +101,7 @@ export const EpisodeCard = ({
               onDelete(datasetRouteId, episode.episode_index);
             }
           }}
-          disabled={isDeleting || datasetRouteId === undefined || datasetRouteId === null}
+          disabled={isDeleting || isDatasetLocked || datasetRouteId === undefined || datasetRouteId === null}
           className="h-5 w-5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
           aria-label="Delete episode"
         >

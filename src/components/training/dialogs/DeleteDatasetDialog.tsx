@@ -19,6 +19,7 @@ interface DeleteDatasetDialogProps {
   episodesPreview: episodeApi.Episode[];
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  isDatasetLocked?: boolean;
 }
 
 export const DeleteDatasetDialog = ({
@@ -28,6 +29,7 @@ export const DeleteDatasetDialog = ({
   episodesPreview,
   onOpenChange,
   onConfirm,
+  isDatasetLocked = false,
 }: DeleteDatasetDialogProps) => (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent className="z-[9999] max-w-lg border-border bg-card text-foreground">
@@ -77,10 +79,10 @@ export const DeleteDatasetDialog = ({
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={onConfirm}
-          disabled={isDeleting}
+          disabled={isDeleting || isDatasetLocked}
           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
-          {isDeleting ? "Deleting..." : "Delete Dataset"}
+          {isDeleting ? "Deleting..." : isDatasetLocked ? "Dataset Processing..." : "Delete Dataset"}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

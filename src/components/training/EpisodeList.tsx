@@ -68,33 +68,18 @@ export const EpisodeList = ({
       ? Math.max(...episodes.map((e) => Number(e.episode_index) || 0)) + 2
       : 1;
 
-  // In-flight episodes (uploaded-but-not-yet-confirmed). `isDatasetLocked`
-  // means the backend holds a lock on an earlier upload; `isSavingEpisode`
-  // means a new recording is currently uploading from this client. Both may
-  // be true when a recording is saved while the previous one is still
-  // processing server-side.
-  const inFlightCount =
-    (isDatasetLocked ? 1 : 0) + (isSavingEpisode ? 1 : 0);
+  // `isSavingEpisode` (client upload) and `isDatasetLocked` (server lock)
+  // both refer to the same in-flight episode during the brief overlap
+  // between local upload finishing and the backend acquiring the processing
+  // lock — so combining them into a count would double-count. Treat any
+  // in-flight state as a single episode.
+  const hasInFlightEpisode = isSavingEpisode || isDatasetLocked;
+  const amberBanner = hasInFlightEpisode
+    ? { number: baseNextNumber, label: "Saving episode..." }
+    : null;
 
-  // Amber banners are rendered newest-first (newest on top, larger number).
-  const amberBanners: { number: number; label: string }[] = [];
-  if (isSavingEpisode && isDatasetLocked) {
-    amberBanners.push({
-      number: baseNextNumber + 1,
-      label: "Waiting for processing...",
-    });
-    amberBanners.push({
-      number: baseNextNumber,
-      label: "Saving episode...",
-    });
-  } else if (isSavingEpisode || isDatasetLocked) {
-    amberBanners.push({
-      number: baseNextNumber,
-      label: "Saving episode...",
-    });
-  }
-
-  const recordingEpisodeNumber = baseNextNumber + inFlightCount;
+  const recordingEpisodeNumber =
+    baseNextNumber + (hasInFlightEpisode ? 1 : 0);
 
   return (
     <>
@@ -122,12 +107,9 @@ export const EpisodeList = ({
           </div>
         </div>
       )}
-      {/* Saving / waiting-for-processing indicators (stack newest first) */}
-      {amberBanners.map((banner) => (
-        <div
-          key={banner.number}
-          className="mb-1 animate-in fade-in slide-in-from-top-1 duration-200"
-        >
+      {/* Saving indicator (stays visible while the episode is being processed) */}
+      {amberBanner && (
+        <div className="mb-1 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-1 px-2">
             <svg
               className="h-3 w-3 animate-spin text-amber-500"
@@ -150,12 +132,12 @@ export const EpisodeList = ({
               ></path>
             </svg>
             <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              #{banner.number}
+              #{amberBanner.number}
             </span>
-            <span className="text-xs text-amber-500">{banner.label}</span>
+            <span className="text-xs text-amber-500">{amberBanner.label}</span>
           </div>
         </div>
-      ))}
+      )}
       {reversedEpisodes.length === 0 ? (
         <div className="flex h-full items-center justify-center">
           <p className="text-muted-foreground">

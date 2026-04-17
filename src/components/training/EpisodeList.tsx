@@ -63,48 +63,42 @@ export const EpisodeList = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const processingEpisodeNumber =
+  const baseNextNumber =
     episodes.length > 0
       ? Math.max(...episodes.map((e) => Number(e.episode_index) || 0)) + 2
       : 1;
-  const hasInFlightEpisode = isSavingEpisode || isDatasetLocked;
-  const recordingEpisodeNumber =
-    processingEpisodeNumber + (hasInFlightEpisode ? 1 : 0);
+
+  // In-flight episodes (uploaded-but-not-yet-confirmed). `isDatasetLocked`
+  // means the backend holds a lock on an earlier upload; `isSavingEpisode`
+  // means a new recording is currently uploading from this client. Both may
+  // be true when a recording is saved while the previous one is still
+  // processing server-side.
+  const inFlightCount =
+    (isDatasetLocked ? 1 : 0) + (isSavingEpisode ? 1 : 0);
+
+  // Amber banners are rendered newest-first (newest on top, larger number).
+  const amberBanners: { number: number; label: string }[] = [];
+  if (isSavingEpisode && isDatasetLocked) {
+    amberBanners.push({
+      number: baseNextNumber + 1,
+      label: "Waiting for processing...",
+    });
+    amberBanners.push({
+      number: baseNextNumber,
+      label: "Saving episode...",
+    });
+  } else if (isSavingEpisode || isDatasetLocked) {
+    amberBanners.push({
+      number: baseNextNumber,
+      label: "Saving episode...",
+    });
+  }
+
+  const recordingEpisodeNumber = baseNextNumber + inFlightCount;
 
   return (
     <>
-      {/* Saving / server-processing episode indicator (stays visible while the prior episode is still being processed) */}
-      {hasInFlightEpisode && (
-        <div className="mb-1 animate-in fade-in slide-in-from-top-1 duration-200">
-          <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-1 px-2">
-            <svg
-              className="h-3 w-3 animate-spin text-amber-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              #{processingEpisodeNumber}
-            </span>
-            <span className="text-xs text-amber-500">Saving episode...</span>
-          </div>
-        </div>
-      )}
-      {/* Recording in progress indicator */}
+      {/* Recording in progress indicator (shown on top of any processing ambers) */}
       {isRecording && (
         <div className="mb-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="relative overflow-hidden rounded-lg border border-red-500/50 bg-gradient-to-r from-red-500/10 via-red-500/5 to-red-500/10 pr-2 pl-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
@@ -128,6 +122,40 @@ export const EpisodeList = ({
           </div>
         </div>
       )}
+      {/* Saving / waiting-for-processing indicators (stack newest first) */}
+      {amberBanners.map((banner) => (
+        <div
+          key={banner.number}
+          className="mb-1 animate-in fade-in slide-in-from-top-1 duration-200"
+        >
+          <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-1 px-2">
+            <svg
+              className="h-3 w-3 animate-spin text-amber-500"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+            <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+              #{banner.number}
+            </span>
+            <span className="text-xs text-amber-500">{banner.label}</span>
+          </div>
+        </div>
+      ))}
       {reversedEpisodes.length === 0 ? (
         <div className="flex h-full items-center justify-center">
           <p className="text-muted-foreground">

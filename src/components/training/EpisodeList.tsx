@@ -63,39 +63,18 @@ export const EpisodeList = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const nextEpisodeNumber =
+  const processingEpisodeNumber =
     episodes.length > 0
       ? Math.max(...episodes.map((e) => Number(e.episode_index) || 0)) + 2
       : 1;
+  const hasInFlightEpisode = isSavingEpisode || isDatasetLocked;
+  const recordingEpisodeNumber =
+    processingEpisodeNumber + (hasInFlightEpisode ? 1 : 0);
 
   return (
     <>
-      {/* Recording in progress indicator */}
-      {isRecording && (
-        <div className="mb-2 animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="relative overflow-hidden rounded-lg border border-red-500/50 bg-gradient-to-r from-red-500/10 via-red-500/5 to-red-500/10 pr-2 pl-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
-            {/* Animated glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/20 to-transparent animate-pulse" />
-            <div className="relative flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                  <span className="relative inline-flex h-1 w-1 items-center  rounded-full bg-red-500" />
-                </span>
-                <span className="font-semibold text-red-500">
-                  #{nextEpisodeNumber}
-                </span>
-                <span className="text-sm text-red-400">Recording...</span>
-              </div>
-              <span className="font-mono text-sm font-medium text-red-500">
-                {formatRecordingTime(recordingElapsedTime)}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Saving / server-processing episode indicator */}
-      {(isSavingEpisode || isDatasetLocked) && !isRecording && (
+      {/* Saving / server-processing episode indicator (stays visible while the prior episode is still being processed) */}
+      {hasInFlightEpisode && (
         <div className="mb-1 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-1 px-2">
             <svg
@@ -119,9 +98,33 @@ export const EpisodeList = ({
               ></path>
             </svg>
             <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              #{nextEpisodeNumber}
+              #{processingEpisodeNumber}
             </span>
             <span className="text-xs text-amber-500">Saving episode...</span>
+          </div>
+        </div>
+      )}
+      {/* Recording in progress indicator */}
+      {isRecording && (
+        <div className="mb-2 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="relative overflow-hidden rounded-lg border border-red-500/50 bg-gradient-to-r from-red-500/10 via-red-500/5 to-red-500/10 pr-2 pl-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
+            {/* Animated glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/20 to-transparent animate-pulse" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex h-1 w-1 items-center  rounded-full bg-red-500" />
+                </span>
+                <span className="font-semibold text-red-500">
+                  #{recordingEpisodeNumber}
+                </span>
+                <span className="text-sm text-red-400">Recording...</span>
+              </div>
+              <span className="font-mono text-sm font-medium text-red-500">
+                {formatRecordingTime(recordingElapsedTime)}
+              </span>
+            </div>
           </div>
         </div>
       )}

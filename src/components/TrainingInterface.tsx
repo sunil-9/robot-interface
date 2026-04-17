@@ -289,15 +289,21 @@ export const TrainingInterface = ({
     if (!selectedDatasetRouteId || !session.telemetryOpen) {
       return;
     }
+    if (typeof user?.userId !== "number") {
+      // Wait for the auth session to hydrate before activating; otherwise the
+      // robot-backend would receive userId="undefined" and the Lambda ingest
+      // would write objects under s3://.../incoming/undefined/…
+      return;
+    }
     session.sendControl({
       type: "dataset",
       payload: {
         action: "activate",
         datasetId: selectedDatasetRouteId,
-        userId: String(user?.userId),
+        userId: String(user.userId),
       },
     });
-  }, [selectedDatasetRouteId, session.telemetryOpen, session]);
+  }, [selectedDatasetRouteId, session.telemetryOpen, session, user?.userId]);
 
   // Recording timer effect
   useEffect(() => {

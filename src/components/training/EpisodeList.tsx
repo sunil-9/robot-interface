@@ -7,6 +7,7 @@ import { EpisodeCard } from "./EpisodeCard";
 interface EpisodeListProps {
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
+  deletingEpisodeId?: string | null;
   formatDuration: (seconds?: number) => string;
   onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
   onReviewEpisode: (episodeIndex: number) => void;
@@ -21,6 +22,7 @@ interface EpisodeListProps {
 export const EpisodeList = ({
   episodes,
   isDeleting,
+  deletingEpisodeId = null,
   formatDuration,
   onPromptDeleteEpisode,
   onReviewEpisode,
@@ -136,6 +138,7 @@ export const EpisodeList = ({
             episode={episode}
             index={index}
             isDeleting={isDeleting}
+            isBeingDeleted={deletingEpisodeId === episode.episode_index}
             formatDuration={formatDuration}
             onDelete={onPromptDeleteEpisode}
             onReview={onReviewEpisode}

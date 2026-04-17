@@ -18,6 +18,7 @@ interface EpisodeManagementSidebarProps {
   isLoadingDatasets: boolean;
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
+  deletingEpisodeId?: string | null;
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
   onRequestDeleteDataset: (dataset: string) => void;
@@ -42,6 +43,7 @@ export const EpisodeManagementContent = ({
   isLoadingDatasets,
   episodes,
   isDeleting,
+  deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
@@ -81,6 +83,7 @@ export const EpisodeManagementContent = ({
         <EpisodeList
           episodes={episodes}
           isDeleting={isDeleting}
+          deletingEpisodeId={deletingEpisodeId}
           formatDuration={formatDuration}
           onPromptDeleteEpisode={onPromptDeleteEpisode}
           onReviewEpisode={handleReviewEpisode}
@@ -109,6 +112,7 @@ export const EpisodeManagementSidebar = ({
   isLoadingDatasets,
   episodes,
   isDeleting,
+  deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
@@ -140,6 +144,7 @@ export const EpisodeManagementSidebar = ({
             isLoadingDatasets={isLoadingDatasets}
             episodes={episodes}
             isDeleting={isDeleting}
+            deletingEpisodeId={deletingEpisodeId}
             formatDuration={formatDuration}
             onRequestCreateDataset={onRequestCreateDataset}
             onRequestDeleteDataset={onRequestDeleteDataset}

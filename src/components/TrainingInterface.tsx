@@ -124,7 +124,8 @@ export const TrainingInterface = ({
     episodeId: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [datasetStatus, setDatasetStatus] = useState<string>("idle");
+  const [deletingEpisodeId, setDeletingEpisodeId] = useState<string | null>(null);
+  const [datasetStatus, setDatasetStatus] = useState<string | null>(null);
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
@@ -591,7 +592,7 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    setDatasetStatus("idle");
+    setDatasetStatus(null);
     if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
       fetchEpisodes();
     }
@@ -985,6 +986,9 @@ export const TrainingInterface = ({
 
     const { datasetId, episodeId } = episodeToDelete;
     setIsDeleting(true);
+    setDeletingEpisodeId(episodeId);
+    setDeleteConfirmOpen(false);
+    setEpisodeToDelete(null);
 
     try {
       await episodeApi.deleteEpisode(datasetId, episodeId);
@@ -996,8 +1000,6 @@ export const TrainingInterface = ({
       if (!episodesWsEnabled && !episodesWsConnected) {
         fetchEpisodes(datasetId);
       }
-      setDeleteConfirmOpen(false);
-      setEpisodeToDelete(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -1007,6 +1009,7 @@ export const TrainingInterface = ({
       });
     } finally {
       setIsDeleting(false);
+      setDeletingEpisodeId(null);
     }
   };
 
@@ -1234,6 +1237,7 @@ export const TrainingInterface = ({
                 isLoadingDatasets,
                 episodes,
                 isDeleting,
+                deletingEpisodeId,
                 formatDuration,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
@@ -1243,7 +1247,7 @@ export const TrainingInterface = ({
                 isRecording,
                 recordingElapsedTime: elapsedTime,
                 isSavingEpisode,
-                isDatasetLocked: datasetStatus === "ingesting",
+                isDatasetLocked: datasetStatus === "processing",
               }}
             />
           </div>
@@ -1283,7 +1287,10 @@ export const TrainingInterface = ({
         episodesPreview={datasetEpisodesToShow}
         onConfirm={confirmDeleteDataset}
         isDeleting={isDeleting}
-        isDatasetLocked={datasetStatus === "ingesting"}
+        isDatasetLocked={
+          datasetToDelete === selectedDataset &&
+          datasetStatus === "processing"
+        }
       />
 
       {/* Deploy Status Popup - Unclosable while deploying */}

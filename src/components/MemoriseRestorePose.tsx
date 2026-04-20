@@ -1,4 +1,4 @@
-import { MapPin, RotateCcw, X } from "lucide-react";
+import { Loader2, MapPin, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
 
 import {
@@ -17,6 +17,7 @@ import { Button } from "./ui/button";
 interface MemoriseRestorePoseProps {
   memorisedPose: { topics: Record<string, unknown> } | null;
   isLoading: boolean;
+  isRestoring: boolean;
   isCompact?: boolean;
   onMemorise: () => void;
   onRestore: () => void;
@@ -26,6 +27,7 @@ interface MemoriseRestorePoseProps {
 export const MemoriseRestorePose = ({
   memorisedPose,
   isLoading,
+  isRestoring,
   isCompact = false,
   onMemorise,
   onRestore,
@@ -38,12 +40,26 @@ export const MemoriseRestorePose = ({
     return (
       <Button
         onClick={onMemorise}
-        disabled={isLoading}
+        disabled={isLoading || isRestoring}
         variant="ghost"
         className={`rounded-full font-semibold uppercase tracking-wide bg-slate-600 text-slate-200 border-0 transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105 ${btnSize}`}
       >
         <MapPin className="h-4 w-4" />
         Memorise Pose
+      </Button>
+    );
+  }
+
+  // Restoring in progress — show disabled "Restoring..." button, no ✕
+  if (isRestoring) {
+    return (
+      <Button
+        disabled
+        variant="ghost"
+        className={`rounded-full font-semibold uppercase tracking-wide bg-violet-700 text-white border-0 opacity-80 ${btnSize}`}
+      >
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Restoring...
       </Button>
     );
   }

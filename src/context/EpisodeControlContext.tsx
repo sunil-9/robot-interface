@@ -32,6 +32,7 @@ export interface EpisodeControlState {
   // Pose state
   memorisedPose: { topics: Record<string, unknown> } | null;
   poseLoading: boolean;
+  isRestoring: boolean;
 }
 
 export interface EpisodeControlActions {
@@ -61,6 +62,7 @@ export interface EpisodeControlActions {
   handleClearPose: () => Promise<boolean>;
   handleGetPose: () => Promise<void>;
   setMemorisedPose: (pose: { topics: Record<string, unknown> } | null) => void;
+  setIsRestoring: (restoring: boolean) => void;
 }
 
 export type EpisodeControlContextValue = EpisodeControlState &
@@ -132,6 +134,7 @@ export function EpisodeControlProvider({
   // Pose state
   const [memorisedPose, setMemorisedPose] = useState<{ topics: Record<string, unknown> } | null>(null);
   const [poseLoading, setPoseLoading] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   // Store session and IDs in refs so they're always current in callbacks
   const sessionRef = useRef<WebRTCSession | null>(null);
@@ -443,6 +446,7 @@ export function EpisodeControlProvider({
       toast({ title: "Error", description: "Failed to send restore request", variant: "destructive" });
       return false;
     }
+    setIsRestoring(true);
     return true;
   }, [memorisedPose]);
 
@@ -513,11 +517,13 @@ export function EpisodeControlProvider({
     // Pose
     memorisedPose,
     poseLoading,
+    isRestoring,
     handleMemorisePose,
     handleRestorePose,
     handleClearPose,
     handleGetPose,
     setMemorisedPose,
+    setIsRestoring,
   };
 
   return (

@@ -85,11 +85,13 @@ export const TrainingInterface = ({
     // Pose
     memorisedPose,
     poseLoading,
+    isRestoring,
     handleMemorisePose,
     handleRestorePose,
     handleClearPose,
     handleGetPose,
     setMemorisedPose,
+    setIsRestoring,
   } = episodeControl;
 
   // Sync session, robotId, controllerId to context
@@ -1002,7 +1004,13 @@ export const TrainingInterface = ({
           toast({ title: "Restore requested", description: poseMsg ?? "Pose restore sent to robot" });
           return;
         }
+        if (action === "pose_restore_ack") {
+          setIsRestoring(false);
+          toast({ title: "Pose restored", description: poseMsg ?? "Robot returned to memorised pose" });
+          return;
+        }
         if (action?.endsWith("_nack")) {
+          setIsRestoring(false);
           toast({ title: "Pose error", description: poseMsg ?? "Pose action failed", variant: "destructive" });
           return;
         }
@@ -1269,6 +1277,7 @@ export const TrainingInterface = ({
               <MemoriseRestorePose
                 memorisedPose={memorisedPose}
                 isLoading={poseLoading}
+                isRestoring={isRestoring}
                 isCompact
                 onMemorise={handleMemorisePose}
                 onRestore={handleRestorePose}

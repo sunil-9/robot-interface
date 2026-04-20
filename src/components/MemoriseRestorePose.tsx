@@ -65,27 +65,28 @@ export const MemoriseRestorePose = ({
   }
 
   return (
-    <div className="flex items-center gap-1">
-      <Button
+    <div className={`flex items-center overflow-hidden rounded-full border border-border bg-violet-600 ${isCompact ? "h-7" : "h-9"}`}>
+      <button
         onClick={onRestore}
         disabled={isLoading}
-        variant="ghost"
-        className={`rounded-full font-semibold uppercase tracking-wide bg-violet-600 text-white border-0 transition-all duration-200 hover:bg-violet-500 hover:shadow-lg hover:shadow-violet-600/25 hover:scale-105 ${btnSize}`}
+        className={`flex items-center gap-1.5 font-semibold uppercase tracking-wide text-white transition-all duration-200 hover:bg-violet-500 disabled:opacity-50 ${isCompact ? "px-3 text-xs h-full" : "px-5 text-sm h-full"}`}
       >
         <RotateCcw className="h-4 w-4" />
         Restore Pose
-      </Button>
+      </button>
+
+      {/* Divider */}
+      <div className="w-px self-stretch bg-violet-400/60" />
 
       <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
         <AlertDialogTrigger asChild>
-          <Button
-            variant="ghost"
+          <button
             disabled={isLoading}
-            className={`rounded-full font-semibold bg-slate-600 text-slate-200 border-0 transition-all duration-200 hover:bg-red-500 hover:text-white hover:scale-105 ${isCompact ? "h-7 w-7 p-0" : "h-9 w-9 p-0"}`}
             aria-label="Clear memorised pose"
+            className={`flex items-center justify-center text-white transition-all duration-200 hover:bg-red-500 disabled:opacity-50 ${isCompact ? "w-7 h-full" : "w-9 h-full"}`}
           >
             <X className="h-4 w-4" />
-          </Button>
+          </button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>

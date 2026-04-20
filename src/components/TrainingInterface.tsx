@@ -987,33 +987,36 @@ export const TrainingInterface = ({
 
         if (action === "pose_memorise_ack") {
           const poseData = posePayload.pose as { topics: Record<string, unknown> } | null | undefined;
+          console.log("[pose] memorise_ack, pose=", poseData);
           if (poseData) setMemorisedPose(poseData);
           toast({ title: "Pose memorised", description: `Saved successfully` });
           return;
         }
         if (action === "pose_get_ack") {
           const poseData = posePayload.pose as { topics: Record<string, unknown> } | null | undefined;
+          console.log("[pose] get_ack, pose=", poseData);
           setMemorisedPose(poseData ?? null);
           return;
         }
         if (action === "pose_clear_ack") {
+          console.log("[pose] clear_ack");
           toast({ title: "Pose cleared" });
           return;
         }
         if (action === "pose_restore_ack") {
-          toast({ title: "Restore requested", description: poseMsg ?? "Pose restore sent to robot" });
-          return;
-        }
-        if (action === "pose_restore_ack") {
+          const result = posePayload.result as Record<string, unknown> | undefined;
+          console.log("[pose] restore_ack, msg=", poseMsg, "max_error_rad=", result?.max_abs_error_rad, "final_positions=", result?.final_positions);
           setIsRestoring(false);
           toast({ title: "Pose restored", description: poseMsg ?? "Robot returned to memorised pose" });
           return;
         }
         if (action?.endsWith("_nack")) {
+          console.log("[pose] nack, action=", action, "msg=", poseMsg, "full=", posePayload);
           setIsRestoring(false);
           toast({ title: "Pose error", description: poseMsg ?? "Pose action failed", variant: "destructive" });
           return;
         }
+        console.log("[pose] unhandled action=", action, "full=", posePayload);
         return;
       }
     });
@@ -1022,7 +1025,7 @@ export const TrainingInterface = ({
       unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, setIsRecording, setIsSavingEpisode, setMemorisedPose]);
+  }, [session, setIsRecording, setIsSavingEpisode, setMemorisedPose, setIsRestoring]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string | number, episodeId: string) => {

@@ -20,6 +20,7 @@ import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { HelpDialog } from "./HelpDialog";
 import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
+import { MemoriseRestorePose } from "./MemoriseRestorePose";
 import { SidebarTabs } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
@@ -81,6 +82,16 @@ export const TrainingInterface = ({
     setDeployDatasetId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
+    // Pose
+    memorisedPose,
+    poseLoading,
+    isRestoring,
+    handleMemorisePose,
+    handleRestorePose,
+    handleClearPose,
+    handleGetPose,
+    setMemorisedPose,
+    setIsRestoring,
   } = episodeControl;
 
   // Sync session, robotId, controllerId to context
@@ -95,6 +106,13 @@ export const TrainingInterface = ({
   useEffect(() => {
     setControllerId(controllerId);
   }, [controllerId, setControllerId]);
+
+  // Fetch memorised pose when telemetry channel opens
+  useEffect(() => {
+    if (session.telemetryOpen) {
+      void handleGetPose();
+    }
+  }, [session.telemetryOpen, handleGetPose]);
 
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
@@ -835,11 +853,10 @@ export const TrainingInterface = ({
       }
 
       // Handle deploy responses
-      if (type !== "deploy") {
+      if (type !== "deploy" && type !== "pose") {
         return;
       }
       //println!("Deploy payload: {:?}", payload);
-      console.log(payload, "obtained from the robot backend");
 
       const rawPayload = record.payload;
       if (!rawPayload || typeof rawPayload !== "object") {
@@ -959,13 +976,56 @@ export const TrainingInterface = ({
         }
         return;
       }
+
+      // Handle pose responses
+      if (type === "pose") {
+        const rawPayload = record.payload;
+        if (!rawPayload || typeof rawPayload !== "object") return;
+        const posePayload = rawPayload as Record<string, unknown>;
+        const action = typeof posePayload.action === "string" ? posePayload.action : null;
+        const poseMsg = typeof posePayload.message === "string" ? posePayload.message : null;
+
+        if (action === "pose_memorise_ack") {
+          const poseData = posePayload.pose as { topics: Record<string, unknown> } | null | undefined;
+          console.log("[pose] memorise_ack, pose=", poseData);
+          if (poseData) setMemorisedPose(poseData);
+          toast({ title: "Pose memorised", description: `Saved successfully` });
+          return;
+        }
+        if (action === "pose_get_ack") {
+          const poseData = posePayload.pose as { topics: Record<string, unknown> } | null | undefined;
+          console.log("[pose] get_ack, pose=", poseData);
+          setMemorisedPose(poseData ?? null);
+          return;
+        }
+        if (action === "pose_clear_ack") {
+          console.log("[pose] clear_ack");
+          toast({ title: "Pose cleared" });
+          return;
+        }
+        if (action === "pose_restore_ack") {
+          const result = posePayload.result as Record<string, unknown> | undefined;
+          console.log("[pose] restore_ack, msg=", poseMsg, "max_error_rad=", result?.max_abs_error_rad, "final_positions=", result?.final_positions);
+          setIsRestoring(false);
+          toast({ title: "Pose restored", description: poseMsg ?? "Robot returned to memorised pose" });
+          return;
+        }
+        if (action?.endsWith("_nack")) {
+          console.log("[pose] nack, action=", action, "msg=", poseMsg, "full=", posePayload);
+          setIsRestoring(false);
+          toast({ title: "Pose error", description: poseMsg ?? "Pose action failed", variant: "destructive" });
+          return;
+        }
+        console.log("[pose] unhandled action=", action, "full=", posePayload);
+        return;
+      }
     });
 
     return () => {
       unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, setIsRecording, setIsSavingEpisode]);
+  }, [session, setIsRecording, setIsSavingEpisode, setMemorisedPose, setIsRestoring]);
 
   // Additional episode management functions
   const promptDeleteEpisode = (datasetId: string | number, episodeId: string) => {
@@ -1216,7 +1276,17 @@ export const TrainingInterface = ({
               onRewind={rewindEpisode}
               onDeploy={onDeploy}
               style={RecordingControlStyle.COMPACT}
-            />
+            >
+              <MemoriseRestorePose
+                memorisedPose={memorisedPose}
+                isLoading={poseLoading}
+                isRestoring={isRestoring}
+                isCompact
+                onMemorise={handleMemorisePose}
+                onRestore={handleRestorePose}
+                onClear={handleClearPose}
+              />
+            </RecordingControls>
             <SidebarTabs
               tab={sidebarTab}
               onTabChange={handleTabChange}

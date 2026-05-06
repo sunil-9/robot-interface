@@ -142,6 +142,8 @@ export const TrainingInterface = ({
     episodeId: string;
   } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingEpisodeId, setDeletingEpisodeId] = useState<string | null>(null);
+  const [datasetStatus, setDatasetStatus] = useState<string | null>(null);
 
   // Dataset management state
   const [datasets, setDatasets] = useState<string[]>([]);
@@ -231,6 +233,7 @@ export const TrainingInterface = ({
   const handleEpisodesSnapshot = useCallback(
     (message: {
       dataset_id: string;
+      dataset_status?: string;
       episodes: episodeApi.Episode[];
       total_count: number;
     }) => {
@@ -238,6 +241,10 @@ export const TrainingInterface = ({
         selectedDatasetRouteIdRef.current ?? selectedDatasetRouteId ?? "";
       if (!activeDatasetId || String(message.dataset_id) !== activeDatasetId) {
         return;
+      }
+
+      if (message.dataset_status !== undefined) {
+        setDatasetStatus(message.dataset_status);
       }
 
       const normalizedEpisodes = message.episodes.map((episode) => ({
@@ -300,15 +307,21 @@ export const TrainingInterface = ({
     if (!selectedDatasetRouteId || !session.telemetryOpen) {
       return;
     }
+    if (typeof user?.userId !== "number") {
+      // Wait for the auth session to hydrate before activating; otherwise the
+      // robot-backend would receive userId="undefined" and the Lambda ingest
+      // would write objects under s3://.../incoming/undefined/…
+      return;
+    }
     session.sendControl({
       type: "dataset",
       payload: {
         action: "activate",
         datasetId: selectedDatasetRouteId,
-        userId: String(user?.userId),
+        userId: String(user.userId),
       },
     });
-  }, [selectedDatasetRouteId, session.telemetryOpen, session]);
+  }, [selectedDatasetRouteId, session.telemetryOpen, session, user?.userId]);
 
   // Recording timer effect
   useEffect(() => {
@@ -603,6 +616,7 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
+    setDatasetStatus(null);
     if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
       fetchEpisodes();
     }
@@ -1038,6 +1052,9 @@ export const TrainingInterface = ({
 
     const { datasetId, episodeId } = episodeToDelete;
     setIsDeleting(true);
+    setDeletingEpisodeId(episodeId);
+    setDeleteConfirmOpen(false);
+    setEpisodeToDelete(null);
 
     try {
       await episodeApi.deleteEpisode(datasetId, episodeId);
@@ -1049,8 +1066,6 @@ export const TrainingInterface = ({
       if (!episodesWsEnabled && !episodesWsConnected) {
         fetchEpisodes(datasetId);
       }
-      setDeleteConfirmOpen(false);
-      setEpisodeToDelete(null);
     } catch (error) {
       toast({
         title: "Error",
@@ -1060,6 +1075,7 @@ export const TrainingInterface = ({
       });
     } finally {
       setIsDeleting(false);
+      setDeletingEpisodeId(null);
     }
   };
 
@@ -1297,6 +1313,7 @@ export const TrainingInterface = ({
                 isLoadingDatasets,
                 episodes,
                 isDeleting,
+                deletingEpisodeId,
                 formatDuration,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
@@ -1306,6 +1323,7 @@ export const TrainingInterface = ({
                 isRecording,
                 recordingElapsedTime: elapsedTime,
                 isSavingEpisode,
+                isDatasetLocked: datasetStatus === "processing",
               }}
             />
           </div>
@@ -1345,6 +1363,10 @@ export const TrainingInterface = ({
         episodesPreview={datasetEpisodesToShow}
         onConfirm={confirmDeleteDataset}
         isDeleting={isDeleting}
+        isDatasetLocked={
+          datasetToDelete === selectedDataset &&
+          datasetStatus === "processing"
+        }
       />
 
       {/* Deploy Status Popup - Unclosable while deploying */}

@@ -142,6 +142,11 @@ export function EpisodeControlProvider({
   const controllerIdRef = useRef<string | null>(null);
   const selectedDatasetRef = useRef(selectedDataset);
   selectedDatasetRef.current = selectedDataset;
+  // Keep the latest auth user reachable from stable callbacks below — the
+  // useCallback dependency lists are intentionally minimal, so we can't rely
+  // on the closed-over `user` staying fresh across auth hydration.
+  const userRef = useRef(user);
+  userRef.current = user;
   const deployDatasetRef = useRef(deployDatasetId);
   deployDatasetRef.current = deployDatasetId;
 
@@ -199,16 +204,25 @@ export function EpisodeControlProvider({
       return false;
     }
 
+    const userId = userRef.current?.userId;
+    if (typeof userId !== "number") {
+      toast({
+        title: "Error",
+        description: "User session not ready yet; please wait and try again",
+        variant: "destructive",
+      });
+      return false;
+    }
+
     setIsLoading(true);
 
     try {
-      console.log(datasetId,"this is the datasetid")
       const sent = session.sendControl({
         type: "dataset",
         payload: {
           action: "start",
           datasetId,
-          userId: String(user?.userId),
+          userId: String(userId),
         },
       });
 

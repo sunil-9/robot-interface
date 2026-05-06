@@ -18,6 +18,7 @@ interface EpisodeManagementSidebarProps {
   isLoadingDatasets: boolean;
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
+  deletingEpisodeId?: string | null;
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
   onRequestDeleteDataset: (dataset: string) => void;
@@ -27,6 +28,7 @@ interface EpisodeManagementSidebarProps {
   isRecording?: boolean;
   recordingElapsedTime?: number;
   isSavingEpisode?: boolean;
+  isDatasetLocked?: boolean;
 }
 
 interface EpisodeManagementContentProps extends Omit<
@@ -41,6 +43,7 @@ export const EpisodeManagementContent = ({
   isLoadingDatasets,
   episodes,
   isDeleting,
+  deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
@@ -50,6 +53,7 @@ export const EpisodeManagementContent = ({
   isRecording = false,
   recordingElapsedTime = 0,
   isSavingEpisode = false,
+  isDatasetLocked = false,
 }: EpisodeManagementContentProps) => {
   const { openViewer, viewerState } = useEpisodeViewer();
 
@@ -79,6 +83,7 @@ export const EpisodeManagementContent = ({
         <EpisodeList
           episodes={episodes}
           isDeleting={isDeleting}
+          deletingEpisodeId={deletingEpisodeId}
           formatDuration={formatDuration}
           onPromptDeleteEpisode={onPromptDeleteEpisode}
           onReviewEpisode={handleReviewEpisode}
@@ -91,6 +96,7 @@ export const EpisodeManagementContent = ({
           isRecording={isRecording}
           recordingElapsedTime={recordingElapsedTime}
           isSavingEpisode={isSavingEpisode}
+          isDatasetLocked={isDatasetLocked}
         />
       </div>
 
@@ -106,12 +112,14 @@ export const EpisodeManagementSidebar = ({
   isLoadingDatasets,
   episodes,
   isDeleting,
+  deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
+  isDatasetLocked = false,
 }: EpisodeManagementSidebarProps) => {
   return (
     <div className="fixed inset-y-0 right-0 z-30 flex items-center">
@@ -136,12 +144,14 @@ export const EpisodeManagementSidebar = ({
             isLoadingDatasets={isLoadingDatasets}
             episodes={episodes}
             isDeleting={isDeleting}
+            deletingEpisodeId={deletingEpisodeId}
             formatDuration={formatDuration}
             onRequestCreateDataset={onRequestCreateDataset}
             onRequestDeleteDataset={onRequestDeleteDataset}
             onPromptDeleteEpisode={onPromptDeleteEpisode}
             selectedDatasetRouteId={selectedDatasetRouteId}
             robotId={robotId}
+            isDatasetLocked={isDatasetLocked}
           />
         </SheetContent>
       </Sheet>

@@ -7,6 +7,7 @@ import { EpisodeCard } from "./EpisodeCard";
 interface EpisodeListProps {
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
+  deletingEpisodeId?: string | null;
   formatDuration: (seconds?: number) => string;
   onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
   onReviewEpisode: (episodeIndex: number) => void;
@@ -15,11 +16,13 @@ interface EpisodeListProps {
   isRecording?: boolean;
   recordingElapsedTime?: number;
   isSavingEpisode?: boolean;
+  isDatasetLocked?: boolean;
 }
 
 export const EpisodeList = ({
   episodes,
   isDeleting,
+  deletingEpisodeId = null,
   formatDuration,
   onPromptDeleteEpisode,
   onReviewEpisode,
@@ -28,6 +31,7 @@ export const EpisodeList = ({
   isRecording = false,
   recordingElapsedTime = 0,
   isSavingEpisode = false,
+  isDatasetLocked = false,
 }: EpisodeListProps) => {
   const { selectedDataset } = useEpisodeControlContext();
   const reversedEpisodes = useMemo(
@@ -59,14 +63,27 @@ export const EpisodeList = ({
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const nextEpisodeNumber =
+  const baseNextNumber =
     episodes.length > 0
       ? Math.max(...episodes.map((e) => Number(e.episode_index) || 0)) + 2
       : 1;
 
+  // `isSavingEpisode` (client upload) and `isDatasetLocked` (server lock)
+  // both refer to the same in-flight episode during the brief overlap
+  // between local upload finishing and the backend acquiring the processing
+  // lock — so combining them into a count would double-count. Treat any
+  // in-flight state as a single episode.
+  const hasInFlightEpisode = isSavingEpisode || isDatasetLocked;
+  const amberBanner = hasInFlightEpisode
+    ? { number: baseNextNumber, label: "Saving episode..." }
+    : null;
+
+  const recordingEpisodeNumber =
+    baseNextNumber + (hasInFlightEpisode ? 1 : 0);
+
   return (
     <>
-      {/* Recording in progress indicator */}
+      {/* Recording in progress indicator (shown on top of any processing ambers) */}
       {isRecording && (
         <div className="mb-2 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="relative overflow-hidden rounded-lg border border-red-500/50 bg-gradient-to-r from-red-500/10 via-red-500/5 to-red-500/10 pr-2 pl-2 shadow-[0_0_15px_rgba(239,68,68,0.3)]">
@@ -79,7 +96,7 @@ export const EpisodeList = ({
                   <span className="relative inline-flex h-1 w-1 items-center  rounded-full bg-red-500" />
                 </span>
                 <span className="font-semibold text-red-500">
-                  #{nextEpisodeNumber}
+                  #{recordingEpisodeNumber}
                 </span>
                 <span className="text-sm text-red-400">Recording...</span>
               </div>
@@ -90,8 +107,8 @@ export const EpisodeList = ({
           </div>
         </div>
       )}
-      {/* Saving episode indicator */}
-      {isSavingEpisode && !isRecording && (
+      {/* Saving indicator (stays visible while the episode is being processed) */}
+      {amberBanner && (
         <div className="mb-1 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-1 px-2">
             <svg
@@ -115,9 +132,9 @@ export const EpisodeList = ({
               ></path>
             </svg>
             <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-              #{nextEpisodeNumber}
+              #{amberBanner.number}
             </span>
-            <span className="text-xs text-amber-500">Saving episode...</span>
+            <span className="text-xs text-amber-500">{amberBanner.label}</span>
           </div>
         </div>
       )}
@@ -134,11 +151,13 @@ export const EpisodeList = ({
             episode={episode}
             index={index}
             isDeleting={isDeleting}
+            isBeingDeleted={deletingEpisodeId === episode.episode_index}
             formatDuration={formatDuration}
             onDelete={onPromptDeleteEpisode}
             onReview={onReviewEpisode}
             robotId={robotId}
             isViewing={viewingEpisodeIndex === Number(episode.episode_index)}
+            isDatasetLocked={isDatasetLocked}
           />
         ))
       )}

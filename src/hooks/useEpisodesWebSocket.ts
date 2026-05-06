@@ -6,6 +6,7 @@ import { loadStoredAuthSession } from "@/services/authApi";
 type EpisodesSnapshotMessage = {
   type: "episodes_snapshot";
   dataset_id: string;
+  dataset_status?: string;
   total_count: number;
   total_frames?: number;
   episodes: episodeApi.Episode[];

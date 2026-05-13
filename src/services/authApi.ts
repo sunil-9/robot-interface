@@ -7,6 +7,7 @@ export interface AuthUser {
   userId: number;
   email: string;
   fullName: string | null;
+  role: string;
   createdAt: string;
 }
 
@@ -14,6 +15,7 @@ interface AuthPayloadResponse {
   user_id: number;
   email: string;
   full_name: string | null;
+  role: string;
   created_at: string;
   access_token: string;
   token_type: string;
@@ -23,6 +25,7 @@ interface UserProfileResponse {
   user_id: number;
   email: string;
   full_name: string | null;
+  role: string;
   created_at: string;
 }
 
@@ -42,6 +45,7 @@ const mapAuthUser = (
   userId: payload.user_id,
   email: payload.email,
   fullName: payload.full_name,
+  role: payload.role,
   createdAt: payload.created_at,
 });
 
@@ -157,7 +161,9 @@ export const fetchCurrentUser = async (): Promise<AuthUser> => {
     auth: "always",
     headers: buildJsonHeaders(),
   });
-  const payload = await parseCloudApiResponse<UserProfileResponse | unknown>(response);
+  const payload = await parseCloudApiResponse<UserProfileResponse | unknown>(
+    response,
+  );
   if (!response.ok) {
     throw new Error(formatApiError(payload, "Failed to load current user."));
   }
@@ -187,8 +193,6 @@ export const resetPassword = async (input: {
     }),
   });
   if (!response.ok) {
-    throw new Error(
-      await parseError(response, "Failed to update password."),
-    );
+    throw new Error(await parseError(response, "Failed to update password."));
   }
 };

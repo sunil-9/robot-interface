@@ -32,10 +32,11 @@ const STEP_OPTIONS = [
   { value: 500_000, label: "500k" },
 ];
 
+// Values must match lerobot policy types: act, diffusion, tdmpc, vqbet, pi0, pi05, sac, smolvla, reward_classifier, groot
+// Backend presets currently exist only for: act, smolvla
 const ALGORITHM_OPTIONS = [
-  { value: "ACT", label: "ACT" },
-  { value: "Diffusion Policy", label: "Diffusion Policy" },
-  { value: "pi0 (finetune)", label: "pi0 (finetune)" },
+  { value: "act", label: "ACT" },
+  { value: "smolvla", label: "SmolVLA" },
 ];
 
 export const ModelTrainingSection = ({

@@ -1,6 +1,8 @@
-import { FolderPlus, Trash2 } from "lucide-react";
+import { Check, FolderPlus, Pencil, Trash2, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -18,6 +20,10 @@ interface DatasetSelectorProps {
   isLoading: boolean;
   onRequestCreate: () => void;
   onRequestDelete: (dataset: string) => void;
+  onDescriptionSave: (
+    datasetId: string | number,
+    description: string,
+  ) => Promise<void>;
 }
 
 const CREATE_NEW_VALUE = "__create_new__";
@@ -28,13 +34,23 @@ export const DatasetSelector = ({
   isLoading,
   onRequestCreate,
   onRequestDelete,
+  onDescriptionSave,
 }: DatasetSelectorProps) => {
   const { selectedDataset, setSelectedDataset } = useEpisodeControlContext();
   const datasetItemByName = new Map(
     datasetItems.map((item) => [item.name, item]),
   );
+  const selectedDatasetItem = datasetItemByName.get(selectedDataset) ?? null;
   const selectedDatasetDescription =
-    datasetItemByName.get(selectedDataset)?.description?.trim() ?? "";
+    selectedDatasetItem?.description?.trim() ?? "";
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [isSavingDescription, setIsSavingDescription] = useState(false);
+
+  useEffect(() => {
+    setDescriptionDraft(selectedDatasetDescription);
+    setIsEditingDescription(false);
+  }, [selectedDataset, selectedDatasetDescription]);
 
   const handleValueChange = (value: string) => {
     if (value === CREATE_NEW_VALUE) {
@@ -42,6 +58,25 @@ export const DatasetSelector = ({
       return;
     }
     setSelectedDataset(value);
+  };
+
+  const handleSaveDescription = async () => {
+    if (!selectedDatasetItem) {
+      return;
+    }
+
+    setIsSavingDescription(true);
+    try {
+      await onDescriptionSave(selectedDatasetItem.id, descriptionDraft.trim());
+      setIsEditingDescription(false);
+    } finally {
+      setIsSavingDescription(false);
+    }
+  };
+
+  const handleCancelDescription = () => {
+    setDescriptionDraft(selectedDatasetDescription);
+    setIsEditingDescription(false);
   };
 
   return (
@@ -85,11 +120,7 @@ export const DatasetSelector = ({
                   >
                     <div className="min-w-0 py-1">
                       <div className="truncate font-medium">{dataset}</div>
-                      {description && (
-                        <div className="mt-1 max-w-[250px] truncate text-xs text-muted-foreground">
-                          {description}
-                        </div>
-                      )}
+                      
                     </div>
                   </SelectItem>
                   <Button
@@ -123,15 +154,71 @@ export const DatasetSelector = ({
       </div>
       {selectedDataset && (
         <>
+          <div className="mt-2 flex items-start gap-2">
+            {isEditingDescription ? (
+              <Input
+                value={descriptionDraft}
+                onChange={(event) => setDescriptionDraft(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void handleSaveDescription();
+                  }
+                  if (event.key === "Escape") {
+                    handleCancelDescription();
+                  }
+                }}
+                placeholder="Add dataset description"
+                disabled={isSavingDescription}
+                className="h-8 flex-1 border-border bg-background text-xs text-foreground"
+              />
+            ) : (
+              <p className="line-clamp-2 flex-1 text-xs text-muted-foreground">
+                {selectedDatasetDescription || "No description"}
+              </p>
+            )}
+            {isEditingDescription ? (
+              <div className="flex shrink-0 items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCancelDescription}
+                  disabled={isSavingDescription}
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  aria-label="Cancel description edit"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => void handleSaveDescription()}
+                  disabled={isSavingDescription}
+                  className="h-8 w-8 text-primary hover:text-primary"
+                  aria-label="Save description"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEditingDescription(true)}
+                disabled={!selectedDatasetItem}
+                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                aria-label="Edit description"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Episodes will be saved to:{" "}
             <span className="text-primary">{selectedDataset}</span>
           </p>
-          {selectedDatasetDescription && (
-            <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
-              {selectedDatasetDescription}
-            </p>
-          )}
           <p className="mt-2 text-xs text-muted-foreground">
             Minimum of <span className="text-primary">10 episodes</span>{" "}
             required to start training.

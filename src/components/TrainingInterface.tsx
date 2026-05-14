@@ -12,6 +12,7 @@ import {
   fetchDatasets,
   fetchRobotCameras,
   type RobotCameraConfig,
+  updateDatasetDescription,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -687,6 +688,35 @@ export const TrainingInterface = ({
     }
   };
 
+  const handleDatasetDescriptionSave = async (
+    datasetId: string | number,
+    description: string,
+  ) => {
+    try {
+      await updateDatasetDescription(datasetId, description);
+      setDatasetItems((items) =>
+        items.map((item) =>
+          String(item.id) === String(datasetId)
+            ? { ...item, description }
+            : item,
+        ),
+      );
+      toast({
+        title: "Description updated",
+        description: "Dataset description saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to update dataset description: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   // Fetch episodes
   const fetchEpisodes = async (datasetIdOverride?: string | number) => {
     const datasetId =
@@ -1327,6 +1357,7 @@ export const TrainingInterface = ({
                 formatDuration,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
+                onDatasetDescriptionSave: handleDatasetDescriptionSave,
                 onPromptDeleteEpisode: promptDeleteEpisode,
                 selectedDatasetRouteId,
                 robotId,

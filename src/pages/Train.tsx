@@ -118,6 +118,25 @@ export default function TrainPage() {
     [navigate, location.search],
   );
 
+  const handleHeaderRobotChange = useCallback(
+    (robotId: string) => {
+      setCurrentRobot(robotId);
+      setCurrentControl(null);
+
+      const newParams = new URLSearchParams(location.search);
+      newParams.set("robot", robotId);
+      newParams.delete("controller");
+      navigate(`/?${newParams.toString()}`, { replace: true });
+
+      setSessionRobotData({
+        robot: robotId,
+        controller: null,
+        mode: "train",
+      });
+    },
+    [navigate, location.search],
+  );
+
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
     let disposed = false;
@@ -304,6 +323,7 @@ export default function TrainPage() {
         selectedRobot={selectedRobot || undefined}
         selectedControl={selectedControl || undefined}
         onOpenSettings={() => setShowSelectionDialog(true)}
+        onRobotChange={handleHeaderRobotChange}
         onSelectionStart={handleSelectionConfirm}
       />
 

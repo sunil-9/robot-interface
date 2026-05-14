@@ -24,6 +24,10 @@ interface EpisodeManagementSidebarProps {
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
   onRequestDeleteDataset: (dataset: string) => void;
+  onDatasetDescriptionSave: (
+    datasetId: string | number,
+    description: string,
+  ) => Promise<void>;
   onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
   selectedDatasetRouteId?: string | null;
   robotId?: string | null;
@@ -50,6 +54,7 @@ export const EpisodeManagementContent = ({
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
+  onDatasetDescriptionSave,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
@@ -79,6 +84,7 @@ export const EpisodeManagementContent = ({
           isLoading={isLoadingDatasets}
           onRequestCreate={onRequestCreateDataset}
           onRequestDelete={onRequestDeleteDataset}
+          onDescriptionSave={onDatasetDescriptionSave}
         />
       </div>
 
@@ -121,6 +127,7 @@ export const EpisodeManagementSidebar = ({
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
+  onDatasetDescriptionSave,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
@@ -154,6 +161,7 @@ export const EpisodeManagementSidebar = ({
             formatDuration={formatDuration}
             onRequestCreateDataset={onRequestCreateDataset}
             onRequestDeleteDataset={onRequestDeleteDataset}
+            onDatasetDescriptionSave={onDatasetDescriptionSave}
             onPromptDeleteEpisode={onPromptDeleteEpisode}
             selectedDatasetRouteId={selectedDatasetRouteId}
             robotId={robotId}

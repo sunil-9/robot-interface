@@ -197,6 +197,37 @@ export const createDataset = async (
   }
 };
 
+export const updateDatasetDescription = async (
+  datasetId: string | number,
+  description: string,
+): Promise<void> => {
+  try {
+    const response = await apiFetch(
+      `/datasets/${encodeURIComponent(datasetId)}/description`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ description }),
+      },
+    );
+
+    if (!response.ok) {
+      const detail = await parseCloudApiResponse<unknown>(response);
+      throw new Error(
+        formatApiError(
+          detail,
+          `Failed to update dataset description (${response.status})`,
+        ),
+      );
+    }
+  } catch (error) {
+    console.error("Failed to update dataset description:", error);
+    throw error;
+  }
+};
+
 export const deleteDataset = async (datasetId: string | number): Promise<void> => {
   try {
     const response = await apiFetch(`/datasets/${encodeURIComponent(datasetId)}`, {

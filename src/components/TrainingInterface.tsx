@@ -616,13 +616,16 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    setDatasetStatus(null);
-    if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
-      fetchEpisodes();
-    }
-    if (episodePanelActive) {
-      loadDatasets();
-    }
+    const loadData = async () => {
+      setDatasetStatus(null);
+      if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
+        fetchEpisodes();
+      }
+      if (episodePanelActive) {
+        await loadDatasets();
+      }
+    };
+    void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodePanelActive, robotId, selectedDatasetRouteId]);
 
@@ -1310,6 +1313,7 @@ export const TrainingInterface = ({
               selectedDatasetDbId={selectedDatasetDbId}
               episodeManagementProps={{
                 datasets,
+                datasetItems,
                 isLoadingDatasets,
                 episodes,
                 isDeleting,

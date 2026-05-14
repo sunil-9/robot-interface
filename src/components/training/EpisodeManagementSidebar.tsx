@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useCallback } from "react";
 
 import { cn } from "@/lib/utils";
+import { type DatasetListItem } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ interface EpisodeManagementSidebarProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   datasets: string[];
+  datasetItems: DatasetListItem[];
   isLoadingDatasets: boolean;
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
@@ -40,6 +42,7 @@ interface EpisodeManagementContentProps extends Omit<
 
 export const EpisodeManagementContent = ({
   datasets,
+  datasetItems,
   isLoadingDatasets,
   episodes,
   isDeleting,
@@ -72,6 +75,7 @@ export const EpisodeManagementContent = ({
       <div className="flex-shrink-0">
         <DatasetSelector
           datasets={datasets}
+          datasetItems={datasetItems}
           isLoading={isLoadingDatasets}
           onRequestCreate={onRequestCreateDataset}
           onRequestDelete={onRequestDeleteDataset}
@@ -109,6 +113,7 @@ export const EpisodeManagementSidebar = ({
   isOpen,
   onOpenChange,
   datasets,
+  datasetItems,
   isLoadingDatasets,
   episodes,
   isDeleting,
@@ -141,6 +146,7 @@ export const EpisodeManagementSidebar = ({
           <EpisodeManagementContent
             className="h-full overflow-hidden"
             datasets={datasets}
+            datasetItems={datasetItems}
             isLoadingDatasets={isLoadingDatasets}
             episodes={episodes}
             isDeleting={isDeleting}

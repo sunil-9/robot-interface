@@ -9,14 +9,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 interface CreateDatasetDialogProps {
   open: boolean;
   newDatasetName: string;
+  newDatasetDescription: string;
   selectedRobotId: string | null;
   isCreating: boolean;
   onOpenChange: (open: boolean) => void;
   onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
   onSubmit: () => void;
   onCancel: () => void;
 }
@@ -24,10 +27,12 @@ interface CreateDatasetDialogProps {
 export const CreateDatasetDialog = ({
   open,
   newDatasetName,
+  newDatasetDescription,
   selectedRobotId,
   isCreating,
   onOpenChange,
   onNameChange,
+  onDescriptionChange,
   onSubmit,
   onCancel,
 }: CreateDatasetDialogProps) => (
@@ -67,6 +72,19 @@ export const CreateDatasetDialog = ({
               }
             }}
             className="border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/30"
+            disabled={isCreating}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="dataset-description" className="text-foreground">
+            Description
+          </Label>
+          <Textarea
+            id="dataset-description"
+            placeholder="Describe the dataset"
+            value={newDatasetDescription}
+            onChange={(event) => onDescriptionChange(event.target.value)}
+            className="min-h-24 border-border bg-background text-foreground placeholder:text-muted-foreground focus:border-primary/60 focus:ring-2 focus:ring-primary/30"
             disabled={isCreating}
           />
         </div>

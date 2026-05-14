@@ -174,6 +174,7 @@ export const fetchDatasets = async (
 export const createDataset = async (
   datasetName: string,
   robotId: string,
+  description: string,
 ): Promise<void> => {
   try {
     const response = await apiFetch(`/datasets/create/${datasetName}`, {
@@ -181,7 +182,7 @@ export const createDataset = async (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ robot_id: robotId }),
+      body: JSON.stringify({ robot_id: robotId, description }),
     });
 
     if (!response.ok) {

@@ -152,6 +152,7 @@ export const TrainingInterface = ({
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
+  const [newDatasetDescription, setNewDatasetDescription] = useState("");
   const [isCreatingDataset, setIsCreatingDataset] = useState(false);
   const [deleteDatasetConfirmOpen, setDeleteDatasetConfirmOpen] =
     useState(false);
@@ -659,12 +660,17 @@ export const TrainingInterface = ({
 
     setIsCreatingDataset(true);
     try {
-      await createDataset(newDatasetName.trim(), robotId);
+      await createDataset(
+        newDatasetName.trim(),
+        robotId,
+        newDatasetDescription.trim(),
+      );
       toast({
         title: "Success",
         description: `Dataset "${newDatasetName}" created successfully`,
       });
       setNewDatasetName("");
+      setNewDatasetDescription("");
       setIsCreateDialogOpen(false);
       // Reload datasets and select the new one
       await loadDatasets();
@@ -1342,13 +1348,16 @@ export const TrainingInterface = ({
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         newDatasetName={newDatasetName}
+        newDatasetDescription={newDatasetDescription}
         selectedRobotId={robotId}
         isCreating={isCreatingDataset}
         onNameChange={setNewDatasetName}
+        onDescriptionChange={setNewDatasetDescription}
         onSubmit={handleCreateDataset}
         onCancel={() => {
           setIsCreateDialogOpen(false);
           setNewDatasetName("");
+          setNewDatasetDescription("");
         }}
       />
 

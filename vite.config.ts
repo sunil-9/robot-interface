@@ -5,8 +5,7 @@ import fs from "fs/promises";
 import { componentTagger } from "lovable-tagger";
 
 const DATASET_ROOT =
-  process.env.VITE_LOCAL_DATASET_PATH ||
-  "/home/sunil/opt/im/im-cloud-backend/datasets";
+  process.env.VITE_LOCAL_DATASET_PATH || path.resolve(__dirname, "./datasets");
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({

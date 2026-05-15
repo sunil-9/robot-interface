@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useCallback } from "react";
 
 import { cn } from "@/lib/utils";
+import { type DatasetListItem } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ interface EpisodeManagementSidebarProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   datasets: string[];
+  datasetItems: DatasetListItem[];
   isLoadingDatasets: boolean;
   episodes: episodeApi.Episode[];
   isDeleting: boolean;
@@ -22,6 +24,10 @@ interface EpisodeManagementSidebarProps {
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
   onRequestDeleteDataset: (dataset: string) => void;
+  onDatasetDescriptionSave: (
+    datasetId: string | number,
+    description: string,
+  ) => Promise<void>;
   onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
   selectedDatasetRouteId?: string | null;
   robotId?: string | null;
@@ -40,6 +46,7 @@ interface EpisodeManagementContentProps extends Omit<
 
 export const EpisodeManagementContent = ({
   datasets,
+  datasetItems,
   isLoadingDatasets,
   episodes,
   isDeleting,
@@ -47,6 +54,7 @@ export const EpisodeManagementContent = ({
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
+  onDatasetDescriptionSave,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
@@ -72,9 +80,11 @@ export const EpisodeManagementContent = ({
       <div className="flex-shrink-0">
         <DatasetSelector
           datasets={datasets}
+          datasetItems={datasetItems}
           isLoading={isLoadingDatasets}
           onRequestCreate={onRequestCreateDataset}
           onRequestDelete={onRequestDeleteDataset}
+          onDescriptionSave={onDatasetDescriptionSave}
         />
       </div>
 
@@ -109,6 +119,7 @@ export const EpisodeManagementSidebar = ({
   isOpen,
   onOpenChange,
   datasets,
+  datasetItems,
   isLoadingDatasets,
   episodes,
   isDeleting,
@@ -116,6 +127,7 @@ export const EpisodeManagementSidebar = ({
   formatDuration,
   onRequestCreateDataset,
   onRequestDeleteDataset,
+  onDatasetDescriptionSave,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
@@ -141,6 +153,7 @@ export const EpisodeManagementSidebar = ({
           <EpisodeManagementContent
             className="h-full overflow-hidden"
             datasets={datasets}
+            datasetItems={datasetItems}
             isLoadingDatasets={isLoadingDatasets}
             episodes={episodes}
             isDeleting={isDeleting}
@@ -148,6 +161,7 @@ export const EpisodeManagementSidebar = ({
             formatDuration={formatDuration}
             onRequestCreateDataset={onRequestCreateDataset}
             onRequestDeleteDataset={onRequestDeleteDataset}
+            onDatasetDescriptionSave={onDatasetDescriptionSave}
             onPromptDeleteEpisode={onPromptDeleteEpisode}
             selectedDatasetRouteId={selectedDatasetRouteId}
             robotId={robotId}

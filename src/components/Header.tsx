@@ -42,6 +42,7 @@ interface HeaderProps {
   selectedRobot?: string;
   selectedControl?: string;
   onOpenSettings?: () => void;
+  onRobotChange?: (robotId: string) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
 }
 
@@ -49,6 +50,7 @@ interface TrainHeaderProps {
   selectedRobot?: string;
   selectedControl?: string;
   onOpenSettings?: () => void;
+  onRobotChange?: (robotId: string) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   mode: AppMode;
   getModeLabel: () => string;
@@ -60,6 +62,7 @@ const TrainHeader = ({
   selectedRobot,
   selectedControl,
   onOpenSettings,
+  onRobotChange,
   onSelectionStart,
   mode,
   getModeLabel,
@@ -182,6 +185,7 @@ const TrainHeader = ({
 
     setRobotSelection(value);
     setControlSelection("");
+    onRobotChange?.(value);
   };
 
   const handleClaimRobot = async () => {
@@ -199,8 +203,10 @@ const TrainHeader = ({
       setClaimRobotLoading(true);
       setClaimRobotError(null);
       const claimResult = await robotService.claimRobot(normalizedHash);
-      setRobotSelection(String(claimResult.robot_id));
+      const claimedRobotId = String(claimResult.robot_id);
+      setRobotSelection(claimedRobotId);
       setControlSelection("");
+      onRobotChange?.(claimedRobotId);
       setClaimRobotHash("");
       setClaimRobotOpen(false);
       refreshRobots();
@@ -471,6 +477,7 @@ export const Header = ({
   selectedRobot,
   selectedControl,
   onOpenSettings,
+  onRobotChange,
   onSelectionStart,
 }: HeaderProps) => {
   const { getModeLabel, mode } = useModeContext();
@@ -545,6 +552,7 @@ export const Header = ({
       selectedRobot={selectedRobot}
       selectedControl={selectedControl}
       onOpenSettings={onOpenSettings}
+      onRobotChange={onRobotChange}
       onSelectionStart={onSelectionStart}
       mode={mode}
       getModeLabel={getModeLabel}

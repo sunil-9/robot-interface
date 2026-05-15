@@ -103,16 +103,17 @@ export const fetchRobotCameras = async (
 export interface DatasetListItem {
   id: number;
   name: string;
+  description?: string | null;
 }
 
 interface ApiDatasetItem {
   dataset_id: number;
   dataset_name: string;
+  dataset_description?: string | null;
 }
 
 export interface DatasetsListResponse {
-  datasets?: string[] | ApiDatasetItem[];
-  dataset_items?: DatasetListItem[];
+  datasets?: ApiDatasetItem[];
 }
 
 export interface DatasetListResult {
@@ -141,7 +142,7 @@ export const fetchDatasets = async (
       );
     }
 
-    const datasetItemsFromApi = Array.isArray(payload.datasets)
+    const datasetItems = Array.isArray(payload.datasets)
       ? payload.datasets.filter(
           (item): item is ApiDatasetItem =>
             !!item &&
@@ -151,30 +152,14 @@ export const fetchDatasets = async (
             typeof (item as ApiDatasetItem).dataset_id === "number" &&
             typeof (item as ApiDatasetItem).dataset_name === "string"
         )
+        .map((item) => ({
+          id: item.dataset_id,
+          name: item.dataset_name,
+          description: item.dataset_description,
+        }))
       : [];
 
-    const datasetItemsFromList = Array.isArray(payload.dataset_items)
-      ? payload.dataset_items.filter(
-          (item): item is DatasetListItem =>
-            !!item &&
-            typeof item === "object" &&
-            typeof item.id === "number" &&
-            typeof item.name === "string"
-        )
-      : [];
-
-    const datasetItems =
-      datasetItemsFromApi.length > 0
-        ? datasetItemsFromApi.map((item) => ({
-            id: item.dataset_id,
-            name: item.dataset_name,
-          }))
-        : datasetItemsFromList;
-
-    const datasets =
-      Array.isArray(payload.datasets) && payload.datasets.every((item) => typeof item === "string")
-        ? (payload.datasets as string[])
-        : datasetItems.map((item) => item.name);
+    const datasets = datasetItems.map((item) => item.name);
 
     return {
       datasets,
@@ -189,6 +174,7 @@ export const fetchDatasets = async (
 export const createDataset = async (
   datasetName: string,
   robotId: string,
+  description: string,
 ): Promise<void> => {
   try {
     const response = await apiFetch(`/datasets/create/${datasetName}`, {
@@ -196,7 +182,7 @@ export const createDataset = async (
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ robot_id: robotId }),
+      body: JSON.stringify({ robot_id: robotId, description }),
     });
 
     if (!response.ok) {
@@ -207,6 +193,37 @@ export const createDataset = async (
     }
   } catch (error) {
     console.error("Failed to create dataset:", error);
+    throw error;
+  }
+};
+
+export const updateDatasetDescription = async (
+  datasetId: string | number,
+  description: string,
+): Promise<void> => {
+  try {
+    const response = await apiFetch(
+      `/datasets/${encodeURIComponent(datasetId)}/description`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ description }),
+      },
+    );
+
+    if (!response.ok) {
+      const detail = await parseCloudApiResponse<unknown>(response);
+      throw new Error(
+        formatApiError(
+          detail,
+          `Failed to update dataset description (${response.status})`,
+        ),
+      );
+    }
+  } catch (error) {
+    console.error("Failed to update dataset description:", error);
     throw error;
   }
 };

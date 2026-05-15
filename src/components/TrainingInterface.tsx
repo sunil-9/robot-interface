@@ -12,6 +12,7 @@ import {
   fetchDatasets,
   fetchRobotCameras,
   type RobotCameraConfig,
+  updateDatasetDescription,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -152,6 +153,7 @@ export const TrainingInterface = ({
   const [isLoadingDatasets, setIsLoadingDatasets] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newDatasetName, setNewDatasetName] = useState("");
+  const [newDatasetDescription, setNewDatasetDescription] = useState("");
   const [isCreatingDataset, setIsCreatingDataset] = useState(false);
   const [deleteDatasetConfirmOpen, setDeleteDatasetConfirmOpen] =
     useState(false);
@@ -616,13 +618,16 @@ export const TrainingInterface = ({
 
   // Fetch episodes when sidebar opens or selected dataset changes
   useEffect(() => {
-    setDatasetStatus(null);
-    if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
-      fetchEpisodes();
-    }
-    if (episodePanelActive) {
-      loadDatasets();
-    }
+    const loadData = async () => {
+      setDatasetStatus(null);
+      if (episodePanelActive && selectedDatasetRouteId && !episodesWsEnabled) {
+        fetchEpisodes();
+      }
+      if (episodePanelActive) {
+        await loadDatasets();
+      }
+    };
+    void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [episodePanelActive, robotId, selectedDatasetRouteId]);
 
@@ -656,12 +661,17 @@ export const TrainingInterface = ({
 
     setIsCreatingDataset(true);
     try {
-      await createDataset(newDatasetName.trim(), robotId);
+      await createDataset(
+        newDatasetName.trim(),
+        robotId,
+        newDatasetDescription.trim(),
+      );
       toast({
         title: "Success",
         description: `Dataset "${newDatasetName}" created successfully`,
       });
       setNewDatasetName("");
+      setNewDatasetDescription("");
       setIsCreateDialogOpen(false);
       // Reload datasets and select the new one
       await loadDatasets();
@@ -675,6 +685,35 @@ export const TrainingInterface = ({
       });
     } finally {
       setIsCreatingDataset(false);
+    }
+  };
+
+  const handleDatasetDescriptionSave = async (
+    datasetId: string | number,
+    description: string,
+  ) => {
+    try {
+      await updateDatasetDescription(datasetId, description);
+      setDatasetItems((items) =>
+        items.map((item) =>
+          String(item.id) === String(datasetId)
+            ? { ...item, description }
+            : item,
+        ),
+      );
+      toast({
+        title: "Description updated",
+        description: "Dataset description saved successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to update dataset description: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        variant: "destructive",
+      });
+      throw error;
     }
   };
 
@@ -1310,6 +1349,7 @@ export const TrainingInterface = ({
               selectedDatasetDbId={selectedDatasetDbId}
               episodeManagementProps={{
                 datasets,
+                datasetItems,
                 isLoadingDatasets,
                 episodes,
                 isDeleting,
@@ -1317,6 +1357,7 @@ export const TrainingInterface = ({
                 formatDuration,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
                 onRequestDeleteDataset: promptDeleteDataset,
+                onDatasetDescriptionSave: handleDatasetDescriptionSave,
                 onPromptDeleteEpisode: promptDeleteEpisode,
                 selectedDatasetRouteId,
                 robotId,
@@ -1338,13 +1379,16 @@ export const TrainingInterface = ({
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         newDatasetName={newDatasetName}
+        newDatasetDescription={newDatasetDescription}
         selectedRobotId={robotId}
         isCreating={isCreatingDataset}
         onNameChange={setNewDatasetName}
+        onDescriptionChange={setNewDatasetDescription}
         onSubmit={handleCreateDataset}
         onCancel={() => {
           setIsCreateDialogOpen(false);
           setNewDatasetName("");
+          setNewDatasetDescription("");
         }}
       />
 

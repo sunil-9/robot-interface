@@ -13,7 +13,6 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import NotFound from "./pages/NotFound";
 import Test from "./pages/Test";
 import Train from "./pages/Train";
-import VisualizationPage from "./pages/Visualization";
 import WebRTCDebug from "./pages/WebRTCDebug";
 
 const queryClient = new QueryClient();
@@ -41,14 +40,9 @@ const App = () => (
                 <BrowserRouter>
                   <Routes>
                     <Route path="/" element={<Train />} />
-                    <Route path="/train" element={<Train />} />
                     <Route path="/test" element={<Test />} />
-
                     <Route path="/webrtc-debug" element={<WebRTCDebug />} />
-                    <Route
-                      path="/visualization/:robotid/:datasetid"
-                      element={<VisualizationPage />}
-                    />
+                    
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
                   </Routes>

@@ -1,8 +1,9 @@
-import { defineConfig } from "vite";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
 import fs from "fs/promises";
 import { componentTagger } from "lovable-tagger";
+import path from "path";
+import { defineConfig } from "vite";
 
 const DATASET_ROOT =
   process.env.VITE_LOCAL_DATASET_PATH || path.resolve(__dirname, "./datasets");
@@ -19,7 +20,11 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     {
       name: "visualization-static-datasets",
-      configureServer(server) {
+      configureServer(server: {
+        middlewares: {
+          use: (arg0: (req: any, res: any, next: any) => Promise<any>) => void;
+        };
+      }) {
         server.middlewares.use(async (req, res, next) => {
           if (!req.url?.startsWith("/visualization/")) return next();
 
@@ -71,7 +76,9 @@ export default defineConfig(({ mode }) => ({
               }
               console.error("[visualization middleware] error", err);
               res.statusCode = 500;
-              res.end(JSON.stringify({ error: "Failed to serve dataset file" }));
+              res.end(
+                JSON.stringify({ error: "Failed to serve dataset file" }),
+              );
               return;
             }
           }

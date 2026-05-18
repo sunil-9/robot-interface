@@ -12,6 +12,7 @@ const VisualizationPage = () => {
   const { robotid, datasetid } = useParams<RouteParams>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [data, setData] = useState<any>();
   const [error, setError] = useState<string>();
   const [loading, setLoading] = useState(false);

@@ -141,11 +141,6 @@ export const getWebSocketUrl = (): string => {
   return inferFromApiBase(path);
 };
 
-// Get topic by role
-export const getTopicByRole = (role: string): Topic | undefined => {
-  const config = getWebSocketConfig();
-  return config.topics.find((topic) => topic.role === role);
-};
 
 // Get role by topic name
 export const getRoleByTopicName = (topicName: string): string | undefined => {
@@ -161,23 +156,6 @@ export const getTopicNameByRole = (role: string): string | undefined => {
   return topic?.name;
 };
 
-// Get all available roles
-export const getAllRoles = (): string[] => {
-  const config = getWebSocketConfig();
-  return config.topics.map((topic) => topic.role);
-};
-
-// Get all available topic names
-export const getAllTopicNames = (): string[] => {
-  const config = getWebSocketConfig();
-  return config.topics.map((topic) => topic.name);
-};
-
-// Get buffer size
-export const getMaxBufferSize = (): number => {
-  const config = getWebSocketConfig();
-  return config.maxBuffer;
-};
 
 // Robot configuration functions
 export const getRobotInfo = () => {
@@ -223,9 +201,4 @@ export const getCameras = (): Camera[] => {
 export const getCameraByName = (name: string): Camera | undefined => {
   const config = getWebSocketConfig();
   return config.cameras?.find((camera) => camera.name === name);
-};
-
-export const getCameraTopics = (): string[] => {
-  const config = getWebSocketConfig();
-  return config.cameras?.map((camera) => camera.topic) || [];
 };

@@ -7,7 +7,6 @@ A comprehensive web-based interface for robot teaching and control, featuring re
 - **Model Training UI**: Added comprehensive model training interface with status tracking and controls
 - **Dynamic Robot Configuration**: Added JSON-based robot configuration system
 - **New Utility Functions**: Added `websocketConfig.ts` with configuration access methods
-- **Robot Config Hook**: Created `useRobotConfig` hook for accessing robot specifications
 - **Camera System Update**: Updated camera references to use head/left/right naming
 - **Documentation**: Added detailed [robot configuration docs](./docs/robot-config.md)
 
@@ -46,7 +45,6 @@ The interface discovers available robots and configures itself based on their sp
 - `src/config/api.ts`: Central API configuration
 - `src/data/websocket-config.json`: Default robot configuration
 - `src/hooks/useRobots.ts`: Hook for fetching robot list
-- `src/hooks/useRobotConfig.ts`: Hook for accessing robot capabilities
 - `src/services/robotService.ts`: API service layer
 
 ### Module Details
@@ -58,7 +56,6 @@ The interface discovers available robots and configures itself based on their sp
 
 1. **Discovery**: User visits Home -> `useRobots` calls `robotService` -> Fetches active robots.
 2. **Selection**: User selects a robot -> App loads Control Page.
-3. **Configuration**: Control Page uses `useRobotConfig` -> Reads config -> Renders UI.
 
 ## 🔌 WebSocket Configuration System
 

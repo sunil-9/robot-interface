@@ -46,10 +46,11 @@ export default function TrainPage() {
     params.get("controller") ||
     sessionRobotData?.controller ||
     null;
+  const canStartWebRTC = Boolean(selectedRobot && selectedControl);
 
   const session = useWebRTCSession({
-    robotId: selectedRobot || "unknown",
-    controllerId: selectedControl || "unknown",
+    robotId: canStartWebRTC ? selectedRobot : null,
+    controllerId: canStartWebRTC ? selectedControl : null,
   });
 
   useEffect(() => {

@@ -2,7 +2,6 @@ import { EpisodeViewerProvider } from "@/components/training/EpisodeViewerContex
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BridgeProvider } from "@/context/BridgeContext";
 import { EpisodeControlProvider } from "@/context/EpisodeControlContext";
 import { ModeProvider } from "@/context/ModeContext";
 import { AuthSessionProvider } from "@/context/AuthSessionContext";
@@ -31,26 +30,24 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ModeProvider>
       <AuthSessionProvider>
-        <BridgeProvider>
-          <EpisodeControlWithMode>
-            <EpisodeViewerProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <Routes>
-                    <Route path="/" element={<Train />} />
-                    <Route path="/test" element={<Test />} />
-                    <Route path="/webrtc-debug" element={<WebRTCDebug />} />
-                    
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </BrowserRouter>
-              </TooltipProvider>
-            </EpisodeViewerProvider>
-          </EpisodeControlWithMode>
-        </BridgeProvider>
+        <EpisodeControlWithMode>
+          <EpisodeViewerProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/" element={<Train />} />
+                  <Route path="/test" element={<Test />} />
+                  <Route path="/webrtc-debug" element={<WebRTCDebug />} />
+
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </BrowserRouter>
+            </TooltipProvider>
+          </EpisodeViewerProvider>
+        </EpisodeControlWithMode>
       </AuthSessionProvider>
     </ModeProvider>
   </QueryClientProvider>

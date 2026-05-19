@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useWebSocket } from "@/hooks/useWebSocket";
-import { getTopicNameByRole } from "@/utils/websocketConfig";
 import {
   BarElement,
   CategoryScale,
@@ -24,7 +23,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  annotationPlugin
+  annotationPlugin,
 );
 
 interface ActionVarianceChartProps {
@@ -45,23 +44,16 @@ export const ActionVarianceChart = ({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [usingWebSocketData, setUsingWebSocketData] = useState(false);
 
-  // Get action variance topic name from configuration
-  const actionVarianceTopicName = getTopicNameByRole("action_variance");
-
   // WebSocket message handler
   const handleWebSocketMessage = useCallback(
     (message: { topic: string; normalized?: { data?: number[] } }) => {
       try {
-        if (
-          actionVarianceTopicName &&
-          message.topic === actionVarianceTopicName &&
-          message.normalized?.data
-        ) {
+        if (message.topic && message.normalized?.data) {
           const newData = message.normalized.data;
           // Ensure we have exactly 10 data points and they are numbers
           if (Array.isArray(newData) && newData.length === 10) {
             const validData = newData.map((val) =>
-              typeof val === "number" ? Math.max(0, Math.min(0.05, val)) : 0
+              typeof val === "number" ? Math.max(0, Math.min(0.05, val)) : 0,
             );
             setData(validData);
             setUsingWebSocketData(true);
@@ -71,7 +63,7 @@ export const ActionVarianceChart = ({
         console.error("Error processing action variance data:", error);
       }
     },
-    [actionVarianceTopicName]
+    [],
   );
 
   // WebSocket connection (no need to specify URL - will use config)
@@ -146,10 +138,7 @@ export const ActionVarianceChart = ({
                       data.length > 0
                         ? [...data]
                             .sort((a, b) => a - b)
-                            [
-                              // eslint-disable-next-line no-unexpected-multiline
-                              Math.floor(data.length / 2)
-                            ].toFixed(3)
+                            [Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
@@ -264,7 +253,7 @@ export const ActionVarianceChart = ({
           data: data,
           backgroundColor: generateBarColors(data),
           borderColor: generateBarColors(data).map((color) =>
-            color.replace("0.8", "1")
+            color.replace("0.8", "1"),
           ),
           borderWidth: 1,
           borderRadius: 2,
@@ -272,7 +261,7 @@ export const ActionVarianceChart = ({
         },
       ],
     }),
-    [data]
+    [data],
   );
 
   const ChartComponent = (

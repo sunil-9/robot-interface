@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getRoleByTopicName, getWebSocketUrl } from "../utils/websocketConfig";
 
 interface WebSocketMessage {
   topic: string;
@@ -44,8 +43,7 @@ export const useWebSocket = ({
   const [lastMessage, setLastMessage] = useState(null);
   const [error, setError] = useState(null);
 
-  // Use the URL from config if no custom URL is provided
-  const url = customUrl || getWebSocketUrl();
+  const url = customUrl ;
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectCount = useRef(0);
@@ -104,11 +102,6 @@ export const useWebSocket = ({
           // if the type of message is string then change it to json object
           if (typeof message === "string") {
             message = JSON.parse(message);
-          }
-
-          // Make sure the role is assigned from config mapping if not provided
-          if (message.topic && !message.role) {
-            message.role = getRoleByTopicName(message.topic);
           }
 
           // Log ALL messages to debug

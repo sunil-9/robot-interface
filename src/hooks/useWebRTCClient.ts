@@ -45,10 +45,6 @@ function notifyData(msg: unknown) {
   dataListeners.forEach((l) => l(msg));
 }
 
-export function getWebRTCConnected() {
-  return connected;
-}
-
 export function getCameraStream(id: CameraId): MediaStream | null {
   const track = tracks[id];
   return track ? new MediaStream([track]) : null;

@@ -5,9 +5,7 @@ A comprehensive web-based interface for robot teaching and control, featuring re
 ## 📝 Recent Updates
 
 - **Model Training UI**: Added comprehensive model training interface with status tracking and controls
-- **Dynamic Robot Configuration**: Added JSON-based robot configuration system
-- **New Utility Functions**: Added `websocketConfig.ts` with configuration access methods
-- **Robot Config Hook**: Created `useRobotConfig` hook for accessing robot specifications
+- **Dynamic Robot Configuration**: Robot configuration is loaded from backend services
 - **Camera System Update**: Updated camera references to use head/left/right naming
 - **Documentation**: Added detailed [robot configuration docs](./docs/robot-config.md)
 
@@ -44,9 +42,7 @@ The interface discovers available robots and configures itself based on their sp
 ### File Structure
 
 - `src/config/api.ts`: Central API configuration
-- `src/data/websocket-config.json`: Default robot configuration
 - `src/hooks/useRobots.ts`: Hook for fetching robot list
-- `src/hooks/useRobotConfig.ts`: Hook for accessing robot capabilities
 - `src/services/robotService.ts`: API service layer
 
 ### Module Details
@@ -58,21 +54,14 @@ The interface discovers available robots and configures itself based on their sp
 
 1. **Discovery**: User visits Home -> `useRobots` calls `robotService` -> Fetches active robots.
 2. **Selection**: User selects a robot -> App loads Control Page.
-3. **Configuration**: Control Page uses `useRobotConfig` -> Reads config -> Renders UI.
 
 ## 🔌 WebSocket Configuration System
 
-Manages WebSocket connections and topics dynamically via `src/data/websocket-config.json`.
-
-### Key Components
-
-- **Configuration File**: `src/data/websocket-config.json`
-- **Utility Functions**: `src/utils/websocketConfig.ts`
-- **Context API**: `BridgeContext` for app-wide access
+Manages WebSocket connections via environment/API config. Topic roles should come from server messages.
 
 ### Camera System
 
-Supports dynamic camera views (Head, Left Hand, Right Hand) identified by roles in the configuration.
+Supports dynamic camera views (Head, Left Hand, Right Hand) identified by roles from server messages.
 
 ## 🎮 Gamepad Control
 

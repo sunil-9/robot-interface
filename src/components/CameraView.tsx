@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import clsx from "clsx";
-import { Camera, Wifi, WifiOff } from "lucide-react";
+import { Camera, Maximize2, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface CameraViewProps {
@@ -11,6 +11,7 @@ interface CameraViewProps {
   showTitle?: boolean;
   className?: string;
   position: "main" | "right" | "left" | "extra";
+  onSwapWithMain?: () => void;
 }
 
 export const CameraView = ({
@@ -21,6 +22,7 @@ export const CameraView = ({
   showTitle = true,
   className,
   position = "main",
+  onSwapWithMain,
 }: CameraViewProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -60,6 +62,7 @@ export const CameraView = ({
 
   const hasVideo = Boolean(stream);
   const hasFallback = Boolean(fallbackImage);
+  const canSwapWithMain = position !== "main" && Boolean(onSwapWithMain);
 
   const alignmentClasses = clsx(
     "relative flex h-full w-full bg-background",
@@ -140,6 +143,18 @@ export const CameraView = ({
                 </span>
               </span>
             </div>
+          )}
+
+          {canSwapWithMain && (
+            <button
+              type="button"
+              onClick={onSwapWithMain}
+              className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-background/85 text-foreground shadow-sm backdrop-blur transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              aria-label={`Show ${title} in main view`}
+              title="Show in main view"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>

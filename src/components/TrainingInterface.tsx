@@ -537,6 +537,38 @@ export const TrainingInterface = ({
   const fixedLeftSlot = leftSlots[0] ?? null;
   const fixedRightSlot = rightSlots[0] ?? null;
   const sidebarSlots = extraSlots;
+  const visibleCameraSlots = useMemo(
+    () =>
+      [mainSlot, fixedLeftSlot, fixedRightSlot, ...sidebarSlots].filter(
+        (slot): slot is CameraSlot => Boolean(slot),
+      ),
+    [fixedLeftSlot, fixedRightSlot, mainSlot, sidebarSlots],
+  );
+  const [promotedCameraKey, setPromotedCameraKey] = useState<string | null>(
+    null,
+  );
+  const promotedCameraSlot =
+    visibleCameraSlots.find((slot) => slot.key === promotedCameraKey) ?? null;
+  const displayMainSlot = promotedCameraSlot ?? mainSlot;
+  const displacedMainSlot = promotedCameraSlot && mainSlot ? mainSlot : null;
+
+  useEffect(() => {
+    if (
+      promotedCameraKey &&
+      !visibleCameraSlots.some((slot) => slot.key === promotedCameraKey)
+    ) {
+      setPromotedCameraKey(null);
+    }
+  }, [promotedCameraKey, visibleCameraSlots]);
+
+  const handleSwapCameraWithMain = useCallback((cameraKey: string) => {
+    setPromotedCameraKey((current) =>
+      current === cameraKey ? null : cameraKey,
+    );
+  }, []);
+
+  const displaySlotForSecondarySlot = (slot: CameraSlot) =>
+    promotedCameraSlot?.key === slot.key ? displacedMainSlot : slot;
 
   const fallbackImageForPosition = (
     position: "main" | "left" | "right" | "extra",
@@ -568,17 +600,26 @@ export const TrainingInterface = ({
     return (
       <div className="space-y-3">
         {slots.map((slot) => (
-          <CameraView
-            key={slot.key}
-            title={slot.title}
-            stream={slot.stream}
-            fallbackImage={fallbackImageForPosition(
-              slot.position === "extra" ? fallbackPosition : slot.position,
-            )}
-            position={slot.position ?? "extra"}
-            isConnected={Boolean(slot.stream)}
-            className="h-[170px] rounded-2xl border border-border bg-card/80 shadow-sm"
-          />
+          (() => {
+            const displaySlot = displaySlotForSecondarySlot(slot);
+            if (!displaySlot) {
+              return null;
+            }
+            return (
+              <CameraView
+                key={`${slot.key}-${displaySlot.key}`}
+                title={displaySlot.title}
+                stream={displaySlot.stream}
+                fallbackImage={fallbackImageForPosition(displaySlot.position)}
+                position={
+                  slot.position === "extra" ? fallbackPosition : slot.position
+                }
+                isConnected={Boolean(displaySlot.stream)}
+                className="h-[170px] rounded-2xl border border-border bg-card/80 shadow-sm"
+                onSwapWithMain={() => handleSwapCameraWithMain(slot.key)}
+              />
+            );
+          })()
         ))}
       </div>
     );
@@ -1274,14 +1315,14 @@ export const TrainingInterface = ({
               <EpisodeViewerPanel className="h-full" />
             ) : (
               <CameraView
-                key={mainSlot?.key ?? "main"}
-                title={mainSlot?.title ?? "Main Camera"}
-                stream={mainSlot?.stream ?? null}
+                key={displayMainSlot?.key ?? "main"}
+                title={displayMainSlot?.title ?? "Main Camera"}
+                stream={displayMainSlot?.stream ?? null}
                 fallbackImage={fallbackImageForPosition(
-                  mainSlot?.position ?? "main",
+                  displayMainSlot?.position ?? "main",
                 )}
-                position={mainSlot?.position ?? "main"}
-                isConnected={Boolean(mainSlot?.stream)}
+                position="main"
+                isConnected={Boolean(displayMainSlot?.stream)}
                 showTitle={true}
                 className="h-full rounded-[32px] border-none bg-transparent"
               />
@@ -1289,33 +1330,57 @@ export const TrainingInterface = ({
 
             {fixedLeftSlot && (
               <div className="absolute bottom-4 left-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
-                <CameraView
-                  key={fixedLeftSlot.key}
-                  title={fixedLeftSlot.title ?? "Left Camera"}
-                  stream={fixedLeftSlot.stream ?? mainSlot?.stream ?? null}
-                  fallbackImage={fallbackImageForPosition("left")}
-                  position="left"
-                  isConnected={Boolean(
-                    fixedLeftSlot.stream ?? mainSlot?.stream,
-                  )}
-                  className="h-full w-full"
-                />
+                {(() => {
+                  const displaySlot =
+                    displaySlotForSecondarySlot(fixedLeftSlot);
+                  if (!displaySlot) {
+                    return null;
+                  }
+                  return (
+                    <CameraView
+                      key={`${fixedLeftSlot.key}-${displaySlot.key}`}
+                      title={displaySlot.title ?? "Left Camera"}
+                      stream={displaySlot.stream ?? null}
+                      fallbackImage={fallbackImageForPosition(
+                        displaySlot.position,
+                      )}
+                      position="left"
+                      isConnected={Boolean(displaySlot.stream)}
+                      className="h-full w-full"
+                      onSwapWithMain={() =>
+                        handleSwapCameraWithMain(fixedLeftSlot.key)
+                      }
+                    />
+                  );
+                })()}
               </div>
             )}
 
             {fixedRightSlot && (
               <div className="absolute bottom-4 right-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
-                <CameraView
-                  key={fixedRightSlot.key}
-                  title={fixedRightSlot.title ?? "Right Camera"}
-                  stream={fixedRightSlot.stream ?? mainSlot?.stream}
-                  fallbackImage={fallbackImageForPosition("right")}
-                  position="right"
-                  isConnected={Boolean(
-                    fixedRightSlot.stream ?? mainSlot?.stream,
-                  )}
-                  className="h-full w-full"
-                />
+                {(() => {
+                  const displaySlot =
+                    displaySlotForSecondarySlot(fixedRightSlot);
+                  if (!displaySlot) {
+                    return null;
+                  }
+                  return (
+                    <CameraView
+                      key={`${fixedRightSlot.key}-${displaySlot.key}`}
+                      title={displaySlot.title ?? "Right Camera"}
+                      stream={displaySlot.stream ?? null}
+                      fallbackImage={fallbackImageForPosition(
+                        displaySlot.position,
+                      )}
+                      position="right"
+                      isConnected={Boolean(displaySlot.stream)}
+                      className="h-full w-full"
+                      onSwapWithMain={() =>
+                        handleSwapCameraWithMain(fixedRightSlot.key)
+                      }
+                    />
+                  );
+                })()}
               </div>
             )}
           </div>

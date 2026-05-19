@@ -166,8 +166,8 @@ export const useWebRTCSession = ({
   robotId,
   controllerId,
 }: {
-  robotId: string;
-  controllerId: string;
+  robotId: string | null;
+  controllerId?: string | null;
 }): WebRTCSession => {
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
@@ -328,7 +328,7 @@ export const useWebRTCSession = ({
 
   // Build or tear down the full WebRTC stack whenever the selected robot changes.
   useEffect(() => {
-    if (!robotId) {
+    if (!robotId || !controllerId) {
       closeResources();
       resetState();
       return;
@@ -834,7 +834,7 @@ export const useWebRTCSession = ({
       closeResources();
       resetState();
     };
-  }, [robotId, cameraInfos, expectedCameras, closeResources, resetState]);
+  }, [robotId, controllerId, cameraInfos, expectedCameras, closeResources, resetState]);
 
   // Allow callers to subscribe to decoded telemetry payloads.
   const onTelemetry = useCallback((listener: TelemetryListener) => {

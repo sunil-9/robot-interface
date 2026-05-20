@@ -1,6 +1,63 @@
 import { robotService } from "@/services/robotService";
 import { AppRobot, ControlDevice, Robot } from "@/types/robot";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+export function useControlDevices(
+  robotId: string | null,
+  accessToken: string | null = null,
+) {
+  const [controlDevices, setControlDevices] = useState<ControlDevice[]>([]);
+  const [loadingDevices, setLoadingDevices] = useState(false);
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+
+  const fetchControlDevices = useCallback(async () => {
+    if (!accessToken || !robotId) {
+      setControlDevices([]);
+      setDeviceError(accessToken ? null : "Not authorized. Please log in.");
+      setLoadingDevices(false);
+      return;
+    }
+
+    try {
+      setLoadingDevices(true);
+      setDeviceError(null);
+
+      const fetchedDevices = await robotService.fetchOperatorDevices(robotId);
+      setControlDevices(fetchedDevices);
+    } catch (err) {
+      console.error("Error fetching control devices:", err);
+      setDeviceError(
+        err instanceof Error ? err.message : "Failed to fetch control devices",
+      );
+      setControlDevices([]);
+    } finally {
+      setLoadingDevices(false);
+    }
+  }, [accessToken, robotId]);
+
+  useEffect(() => {
+    void fetchControlDevices();
+
+    if (!accessToken || !robotId) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      void fetchControlDevices();
+    }, 30000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [accessToken, fetchControlDevices, robotId]);
+
+  return {
+    controlDevices,
+    loadingDevices,
+    deviceError,
+    refreshControlDevices: fetchControlDevices,
+  };
+}
 
 export function useRobots(
   robotId: string,

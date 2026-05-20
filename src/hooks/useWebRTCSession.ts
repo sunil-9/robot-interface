@@ -6,6 +6,7 @@ import {
   type RobotCameraConfig,
 } from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
+import { normalizeSessionSelection } from "@/lib/sessionStore";
 
 type TelemetryListener = (message: unknown) => void;
 
@@ -328,7 +329,10 @@ export const useWebRTCSession = ({
 
   // Build or tear down the full WebRTC stack whenever the selected robot changes.
   useEffect(() => {
-    if (!robotId || !controllerId) {
+    const activeRobotId = normalizeSessionSelection(robotId);
+    const activeControllerId = normalizeSessionSelection(controllerId);
+
+    if (!activeRobotId || !activeControllerId) {
       closeResources();
       resetState();
       return;
@@ -344,7 +348,7 @@ export const useWebRTCSession = ({
     closeResources();
     resetState();
 
-    const currentRobotId = robotId;
+    const currentRobotId = activeRobotId;
     const operatorPeerId = createRuntimeSafeId("operator");
     let cancelled = false;
 
@@ -561,7 +565,7 @@ export const useWebRTCSession = ({
         const offerPayload: Record<string, unknown> = {
           type: "offer",
           target_id: target,
-          input_device:  controllerId,
+          input_device: activeControllerId,
           sdp: {
             type: offer.type,
             sdp: offer.sdp ?? "",

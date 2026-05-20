@@ -6,12 +6,15 @@ import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
+import { useControlDevices } from "@/hooks/useRobots";
 import { useWebRTCSession } from "@/hooks/useWebRTCSession";
 import { fetchSignalingConfig } from "@/lib/api";
 import { cloudConfig } from "@/lib/config";
 import {
   getSessionRobotData,
   getSignalingConfig,
+  isSessionControllerAvailable,
+  normalizeSessionSelection,
   setConnectionReady,
   setSessionRobotData,
   setSignalingConfig,
@@ -40,13 +43,29 @@ export default function TrainPage() {
 
   // Prioritize URL params over session storage, then local state for better user experience
   const selectedRobot: string | null =
-    currentRobot || params.get("robot") || sessionRobotData?.robot || null;
-  const selectedControl: string | null =
-    currentControl ||
-    params.get("controller") ||
+    normalizeSessionSelection(currentRobot) ||
+    normalizeSessionSelection(params.get("robot")) ||
+    sessionRobotData?.robot ||
+    null;
+  const candidateControl: string | null =
+    normalizeSessionSelection(currentControl) ||
+    normalizeSessionSelection(params.get("controller")) ||
     sessionRobotData?.controller ||
     null;
-  const canStartWebRTC = Boolean(selectedRobot && selectedControl);
+  const { controlDevices, loadingDevices, deviceError } = useControlDevices(
+    selectedRobot,
+    auth.accessToken,
+  );
+  const hasValidatedControl =
+    Boolean(candidateControl) &&
+    !loadingDevices &&
+    !deviceError &&
+    isSessionControllerAvailable(candidateControl, controlDevices);
+  const selectedControl =
+    candidateControl && (loadingDevices || deviceError || hasValidatedControl)
+      ? candidateControl
+      : null;
+  const canStartWebRTC = Boolean(selectedRobot && hasValidatedControl);
 
   const session = useWebRTCSession({
     robotId: canStartWebRTC ? selectedRobot : null,
@@ -274,7 +293,7 @@ export default function TrainPage() {
       }
 
       // Show selection dialog if robot or controller is missing instead of redirecting
-      if (!selectedRobot || !selectedControl) {
+      if (!canStartWebRTC) {
         return;
       }
 
@@ -306,7 +325,7 @@ export default function TrainPage() {
     return () => {
       disposed = true;
     };
-  }, [auth.accessToken, selectedRobot, selectedControl, sessionRobotData, navigate]);
+  }, [auth.accessToken, canStartWebRTC, selectedRobot, selectedControl, navigate]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">

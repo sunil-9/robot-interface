@@ -30,11 +30,63 @@ const LOCAL_KEYS = {
   LEGACY_CONTROL_TYPE: "controlType",
 } as const;
 
+const PLACEHOLDER_SELECTIONS = new Set([
+  "",
+  "unknown",
+  "undefined",
+  "null",
+  "none",
+]);
+
+export const normalizeSessionSelection = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+  const trimmed = value.trim();
+  return PLACEHOLDER_SELECTIONS.has(trimmed.toLowerCase()) ? null : trimmed;
+};
+
+const normalizeControllerKey = (value: unknown): string | null => {
+  const selection = normalizeSessionSelection(value);
+  if (!selection) {
+    return null;
+  }
+  const normalized = selection.toLowerCase().replace(/[^a-z0-9]/g, "");
+  return normalized || null;
+};
+
+export const isSessionControllerAvailable = (
+  controllerId: unknown,
+  devices: Array<{ id?: unknown }>,
+): boolean => {
+  const normalizedControllerId = normalizeControllerKey(controllerId);
+  if (!normalizedControllerId) {
+    return false;
+  }
+
+  return devices.some(
+    (device) => normalizeControllerKey(device.id) === normalizedControllerId,
+  );
+};
+
+const hasOwn = <T extends object>(value: T, key: keyof T): boolean =>
+  Object.prototype.hasOwnProperty.call(value, key);
+
 // Robot Session Data
 export const getSessionRobotData = (): SessionRobotData | null => {
   try {
     const stored = sessionStorage.getItem(KEYS.SESSION_ROBOT_DATA);
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    return {
+      robot: normalizeSessionSelection(parsed.robot),
+      controller: normalizeSessionSelection(parsed.controller),
+      mode: parsed.mode ?? null,
+      timestamp: parsed.timestamp ?? "",
+    };
   } catch (e) {
     console.error("Failed to parse session robot data", e);
     return null;
@@ -44,9 +96,13 @@ export const getSessionRobotData = (): SessionRobotData | null => {
 export const setSessionRobotData = (data: Partial<SessionRobotData>): void => {
   const current = getSessionRobotData();
   const updated: SessionRobotData = {
-    robot: data.robot ?? current?.robot ?? null,
-    controller: data.controller ?? current?.controller ?? null,
-    mode: data.mode ?? current?.mode ?? null,
+    robot: hasOwn(data, "robot")
+      ? normalizeSessionSelection(data.robot)
+      : (current?.robot ?? null),
+    controller: hasOwn(data, "controller")
+      ? normalizeSessionSelection(data.controller)
+      : (current?.controller ?? null),
+    mode: hasOwn(data, "mode") ? (data.mode ?? null) : (current?.mode ?? null),
     timestamp: new Date().toISOString(),
   };
   sessionStorage.setItem(KEYS.SESSION_ROBOT_DATA, JSON.stringify(updated));

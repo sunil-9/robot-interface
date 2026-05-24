@@ -280,6 +280,7 @@ const TrainHeader = ({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-3 rounded-md px-3 py-2"
+              disabled={!auth.user}
               onSelect={() => onOpenSettings?.("models")}
             >
               <Package className="h-4 w-4" />
@@ -287,6 +288,7 @@ const TrainHeader = ({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-3 rounded-md px-3 py-2"
+              disabled={!auth.user}
               onSelect={() => onOpenSettings?.("training")}
             >
               <Activity className="h-4 w-4" />
@@ -294,6 +296,7 @@ const TrainHeader = ({
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-3 rounded-md px-3 py-2"
+              disabled={!auth.user}
               onSelect={() => onOpenSettings?.("security")}
             >
               <ShieldCheck className="h-4 w-4" />

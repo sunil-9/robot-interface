@@ -2,22 +2,35 @@ import { AppMode } from "@/context/ModeContextDef";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
+import type { ControlCenterTab } from "@/components/control-center/types";
 import { robotService } from "@/services/robotService";
 import { toast } from "@/components/ui/use-toast";
 import {
+  Activity,
   CheckCircle2,
   Circle,
   CircleUserRound,
   Link2,
+  LogIn,
+  LogOut,
   Moon,
+  Package,
   Play,
   RefreshCcw,
-  Settings,
+  ShieldCheck,
   Sun,
+  UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -41,7 +54,7 @@ interface HeaderProps {
   page: string;
   selectedRobot?: string;
   selectedControl?: string;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
 }
@@ -49,7 +62,7 @@ interface HeaderProps {
 interface TrainHeaderProps {
   selectedRobot?: string;
   selectedControl?: string;
-  onOpenSettings?: () => void;
+  onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   mode: AppMode;
@@ -69,7 +82,6 @@ const TrainHeader = ({
   modeColors,
   ThemeToggle,
 }: TrainHeaderProps) => {
-  const navigate = useNavigate();
   const auth = useAuthSession();
   const [robotSelection, setRobotSelection] = useState<string>(
     selectedRobot ?? "",
@@ -112,6 +124,8 @@ const TrainHeader = ({
         ) ?? null
       : null;
   const visibleControlDevices = hasSelectedRobot ? controlDevices : [];
+  const userDisplayName =
+    auth.user?.fullName?.trim() || auth.user?.email || "Operator";
 
   useEffect(() => {
     setRobotSelection(selectedRobot ?? "");
@@ -229,14 +243,82 @@ const TrainHeader = ({
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
       <div className="container mx-auto flex flex-wrap items-center gap-3 px-4 py-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={() => navigate("/")}
-        >
-          <CircleUserRound />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Open user menu"
+            >
+              <CircleUserRound />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-64 border-border bg-popover p-2 text-popover-foreground"
+          >
+            <DropdownMenuLabel className="px-3 py-2">
+              <span className="block text-sm font-semibold text-foreground">
+                {auth.user ? userDisplayName : "Operator menu"}
+              </span>
+              <span className="block truncate text-xs font-normal text-muted-foreground">
+                {auth.user?.email ?? "Sign in to manage your workspace"}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="gap-3 rounded-md px-3 py-2"
+              onSelect={() => onOpenSettings?.("account")}
+            >
+              {auth.user ? (
+                <UserRound className="h-4 w-4" />
+              ) : (
+                <LogIn className="h-4 w-4" />
+              )}
+              <span>{auth.user ? "Account" : "Login"}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-3 rounded-md px-3 py-2"
+              onSelect={() => onOpenSettings?.("models")}
+            >
+              <Package className="h-4 w-4" />
+              <span>Models</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-3 rounded-md px-3 py-2"
+              onSelect={() => onOpenSettings?.("training")}
+            >
+              <Activity className="h-4 w-4" />
+              <span>Active Training</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-3 rounded-md px-3 py-2"
+              onSelect={() => onOpenSettings?.("security")}
+            >
+              <ShieldCheck className="h-4 w-4" />
+              <span>Security</span>
+            </DropdownMenuItem>
+            {auth.user ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-3 rounded-md px-3 py-2 text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                  onSelect={() => {
+                    auth.logout();
+                    toast({
+                      title: "Signed out",
+                      description: "Your local operator session was cleared.",
+                    });
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Log Out</span>
+                </DropdownMenuItem>
+              </>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="min-w-[220px] px-1">
           <div className="flex flex-col">
@@ -405,15 +487,6 @@ const TrainHeader = ({
             <Play className="mr-1 h-3.5 w-3.5" />
             Start
           </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenSettings}
-              aria-label="Open settings"
-              className="h-10 w-10 text-muted-foreground hover:text-foreground"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
           <ThemeToggle />
         </div>
       </div>

@@ -1,6 +1,9 @@
 import { Header } from "@/components/Header";
 import { InputTracker } from "@/components/InputTracker";
-import { RobotSelectionDialog } from "@/components/RobotSelectionDialog";
+import {
+  RobotSelectionDialog,
+  type ControlCenterTab,
+} from "@/components/RobotSelectionDialog";
 import { TrainingInterface } from "@/components/TrainingInterface";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
@@ -32,6 +35,8 @@ export default function TrainPage() {
 
   // State for robot selection dialog
   const [showSelectionDialog, setShowSelectionDialog] = useState(false);
+  const [controlCenterTab, setControlCenterTab] =
+    useState<ControlCenterTab>("account");
   const [currentRobot, setCurrentRobot] = useState<string | null>(null);
   const [currentControl, setCurrentControl] = useState<string | null>(null);
 
@@ -315,6 +320,7 @@ export default function TrainPage() {
         onOpenChange={setShowSelectionDialog}
         initialRobot={selectedRobot}
         initialController={selectedControl}
+        initialTab={controlCenterTab}
         onConfirm={handleSelectionConfirm}
       />
 
@@ -323,7 +329,10 @@ export default function TrainPage() {
         page={"train"}
         selectedRobot={selectedRobot || undefined}
         selectedControl={selectedControl || undefined}
-        onOpenSettings={() => setShowSelectionDialog(true)}
+        onOpenSettings={(tab = "account") => {
+          setControlCenterTab(tab);
+          setShowSelectionDialog(true);
+        }}
         onRobotChange={handleHeaderRobotChange}
         onSelectionStart={handleSelectionConfirm}
       />

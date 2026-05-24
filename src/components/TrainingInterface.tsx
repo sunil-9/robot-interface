@@ -165,7 +165,7 @@ export const TrainingInterface = ({
   // isDeploying, deployRequestPending, deployDatasetId, deployStatusPopupOpen, deployStatusMessage
   // come from episodeControl context
   const { setMode } = useModeContext();
-  const episodePanelActive = isSidebarOpen || sidebarTab === "episodes";
+  const episodePanelActive = true; // For now, we always show the episode panel in the sidebar
   const selectedDatasetRef = useRef<string | null>(selectedDataset);
   const selectedDatasetRouteIdRef = useRef<string | null>(null);
   const datasetNameByIdRef = useRef<Map<string, string>>(new Map());
@@ -802,11 +802,6 @@ export const TrainingInterface = ({
     setIsLoading(true);
     try {
       console.log("This function will be implemented later");
-      // await fetch(`${EPISODES_API_URL}/rewind`, { method: "POST" });
-      // // Update episodes list if sidebar is open
-      // if (isSidebarOpen) {
-      //   fetchEpisodes();
-      // }
       toast({
         title: "Info",
         description: "Rewind functionality is not implemented yet",

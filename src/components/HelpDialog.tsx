@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 interface HelpDialogProps {
   className?: string;
   children?: React.ReactNode;
+  inline?: boolean;
 }
 
-export function HelpDialog({ className, children }: HelpDialogProps) {
+export function HelpDialog({ className, children, inline = false }: HelpDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const location = useLocation();
@@ -25,7 +26,13 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
       : "/help/default.png";
 
   return (
-    <div className="fixed bottom-0 left-1/2 z-50 -translate-x-1/2">
+    <div
+      className={cn(
+        inline
+          ? "relative"
+          : "fixed bottom-0 left-1/2 z-50 -translate-x-1/2",
+      )}
+    >
       {/* Collapsed state - just the button */}
       <div
         className={cn(
@@ -37,7 +44,9 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
           variant="outline"
           onClick={() => setIsOpen(true)}
           className={cn(
-            "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
+            inline
+              ? "rounded-full bg-slate-600 text-slate-200 border-0 backdrop-blur-sm hover:bg-slate-500 hover:text-white"
+              : "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
             children ? "" : "h-9 w-9",
             className,
           )}
@@ -51,9 +60,10 @@ export function HelpDialog({ className, children }: HelpDialogProps) {
       {/* Expanded panel */}
       <div
         className={cn(
-          "absolute bottom-0 left-1/2 -translate-x-1/2 w-auto transition-all duration-300 ease-in-out",
+          "absolute left-1/2 -translate-x-1/2 w-auto transition-all duration-300 ease-in-out",
+          inline ? "bottom-full mb-3" : "bottom-0",
           isOpen
-            ? "translate-y-0 opacity-70"
+            ? "translate-y-0 opacity-95"
             : "translate-y-full opacity-0 pointer-events-none"
         )}
       >

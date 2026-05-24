@@ -1387,27 +1387,6 @@ export const TrainingInterface = ({
           </div>
 
           <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-1 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
-            <RecordingControls
-              isRecording={isRecording}
-              isLoading={isLoading}
-              isDeploying={isDeploying}
-              isDeployingRequest={deployRequestPending}
-              onStart={startEpisode}
-              onStop={endEpisode}
-              onRewind={rewindEpisode}
-              onDeploy={onDeploy}
-              style={RecordingControlStyle.COMPACT}
-            >
-              <MemoriseRestorePose
-                memorisedPose={memorisedPose}
-                isLoading={poseLoading}
-                isRestoring={isRestoring}
-                isCompact
-                onMemorise={handleMemorisePose}
-                onRestore={handleRestorePose}
-                onClear={handleClearPose}
-              />
-            </RecordingControls>
             <SidebarTabs
               tab={sidebarTab}
               onTabChange={handleTabChange}
@@ -1437,9 +1416,37 @@ export const TrainingInterface = ({
         </div>
       </section>
 
-      <HelpDialog className="h-10 rounded-t-2xl border-primary/40 px-6 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.22)]">
-        Help
-      </HelpDialog>
+      <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.22)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+        <RecordingControls
+          isRecording={isRecording}
+          isLoading={isLoading}
+          isDeploying={isDeploying}
+          isDeployingRequest={deployRequestPending}
+          onStart={startEpisode}
+          onStop={endEpisode}
+          onRewind={rewindEpisode}
+          onDeploy={onDeploy}
+          style={RecordingControlStyle.COMPACT}
+          embedded
+        />
+        <div className="h-7 w-px bg-border" />
+        <MemoriseRestorePose
+          memorisedPose={memorisedPose}
+          isLoading={poseLoading}
+          isRestoring={isRestoring}
+          isCompact
+          onMemorise={handleMemorisePose}
+          onRestore={handleRestorePose}
+          onClear={handleClearPose}
+        />
+        <div className="h-7 w-px bg-border" />
+        <HelpDialog
+          inline
+          className="h-7 px-3 text-xs font-semibold uppercase tracking-wide"
+        >
+          Help
+        </HelpDialog>
+      </div>
 
       <CreateDatasetDialog
         open={isCreateDialogOpen}

@@ -17,6 +17,7 @@ interface RecordingControlsProps {
   onRewind: () => void;
   onDeploy: () => void;
   style?: RecordingControlStyle;
+  embedded?: boolean;
   children?: React.ReactNode;
 }
 
@@ -30,11 +31,59 @@ export const RecordingControls = ({
   onRewind,
   onDeploy,
   style = RecordingControlStyle.DEFAULT,
+  embedded = false,
   children,
 }: RecordingControlsProps) => {
   const isCompact = style === RecordingControlStyle.COMPACT;
   const containerPadding = isCompact ? "px-3 py-1" : "px-4 py-2.5";
-  const gap = isCompact ? "gap-3" : "gap-3";
+  const gap = isCompact ? "gap-1" : "gap-3";
+  const controls = (
+    <div className={`flex items-center ${gap}`}>
+      <Button
+        onClick={isRecording ? onStop : onStart}
+        disabled={isLoading}
+        className={`rounded-full font-semibold uppercase tracking-wide transition-all duration-200 ${
+          isRecording
+            ? "bg-destructive hover:bg-destructive/80 hover:shadow-lg hover:shadow-destructive/25 hover:scale-105"
+            : "bg-emerald-500 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105"
+        } text-white ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
+      >
+        {isRecording ? (
+          <Square className="h-4 w-4" />
+        ) : (
+          <Play className="h-4 w-4" />
+        )}
+        {isCompact ? "" : isRecording ? "Stop" : "Record"}
+      </Button>
+
+      <Button
+        onClick={onRewind}
+        variant="ghost"
+        className={`rounded-full font-semibold uppercase tracking-wide bg-slate-600 text-slate-200 border-0 transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105 ${
+          isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"
+        }`}
+      >
+        <RotateCcw className="h-4 w-4" />
+        {isCompact ? "" : "Rewind"}
+      </Button>
+      <Button
+        onClick={onDeploy}
+        disabled={isLoading || isDeployingRequest}
+        className={`rounded-full font-semibold uppercase tracking-wide border-0 transition-all duration-200 ${
+          isDeploying
+            ? "bg-amber-500 text-white hover:bg-amber-400 hover:shadow-lg hover:shadow-amber-500/30 hover:scale-105"
+            : "bg-primary text-primary-foreground hover:bg-primary/80 hover:shadow-lg hover:shadow-primary/30 hover:scale-105"
+        } ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
+      >
+        <Rocket className="h-4 w-4" />
+        {isCompact ? "" : isDeploying ? "Stop" : "Deploy"}
+      </Button>
+    </div>
+  );
+
+  if (embedded) {
+    return controls;
+  }
 
   return (
     <div
@@ -47,47 +96,7 @@ export const RecordingControls = ({
       <div
         className={`pointer-events-auto flex flex-col gap-1 rounded-xl border border-border bg-card ${containerPadding} shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]`}
       >
-        <div className={`flex items-center ${gap}`}>
-        <Button
-          onClick={isRecording ? onStop : onStart}
-          disabled={isLoading}
-          className={`rounded-full font-semibold uppercase tracking-wide transition-all duration-200 ${
-            isRecording
-              ? "bg-destructive hover:bg-destructive/80 hover:shadow-lg hover:shadow-destructive/25 hover:scale-105"
-              : "bg-emerald-500 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-105"
-          } text-white ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
-        >
-          {isRecording ? (
-            <Square className="h-4 w-4" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          {isRecording ? "Stop" : "Record"}
-        </Button>
-
-        <Button
-          onClick={onRewind}
-          variant="ghost"
-          className={`rounded-full font-semibold uppercase tracking-wide bg-slate-600 text-slate-200 border-0 transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105 ${
-            isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"
-          }`}
-        >
-          <RotateCcw className="h-4 w-4" />
-          Rewind
-        </Button>
-        <Button
-          onClick={onDeploy}
-          disabled={isLoading || isDeployingRequest}
-          className={`rounded-full font-semibold uppercase tracking-wide border-0 transition-all duration-200 ${
-            isDeploying
-              ? "bg-amber-500 text-white hover:bg-amber-400 hover:shadow-lg hover:shadow-amber-500/30 hover:scale-105"
-              : "bg-primary text-primary-foreground hover:bg-primary/80 hover:shadow-lg hover:shadow-primary/30 hover:scale-105"
-          } ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
-        >
-          <Rocket className="h-4 w-4" />
-          {isDeploying ? "Stop" : "Deploy"}
-        </Button>
-        </div>
+        {controls}
         {children && <div className="flex items-center">{children}</div>}
       </div>
     </div>

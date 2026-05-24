@@ -278,14 +278,14 @@ const TrainHeader = ({
               )}
               <span>{auth.user ? "Account" : "Login"}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem
+            {/* <DropdownMenuItem
               className="gap-3 rounded-md px-3 py-2"
               disabled={!auth.user}
               onSelect={() => onOpenSettings?.("models")}
             >
               <Package className="h-4 w-4" />
               <span>Models</span>
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuItem
               className="gap-3 rounded-md px-3 py-2"
               disabled={!auth.user}

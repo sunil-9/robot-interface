@@ -167,7 +167,12 @@ export const ModelTrainingSection = ({
     model.active_job_status === "training";
 
   return (
-    <div className={cn("border-t border-border bg-card p-3", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card/70 p-3 shadow-none",
+        className,
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">

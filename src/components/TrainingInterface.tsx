@@ -22,7 +22,7 @@ import { CameraView } from "./CameraView";
 import { HelpDialog } from "./HelpDialog";
 import { RecordingControls, RecordingControlStyle } from "./RecordingControls";
 import { MemoriseRestorePose } from "./MemoriseRestorePose";
-import { SidebarTabs } from "./SidebarTabs";
+import { SidebarTabs, type SidebarTab } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
@@ -128,8 +128,14 @@ export const TrainingInterface = ({
     () => new URLSearchParams(location.search),
     [location.search],
   );
-  const tabFromUrl = params.get("tab") as "secondary" | "episodes" | null;
-  const [sidebarTab, setSidebarTab] = useState<"secondary" | "episodes">(
+  const requestedTab = params.get("tab");
+  const tabFromUrl: SidebarTab | null =
+    requestedTab === "secondary" ||
+    requestedTab === "episodes" ||
+    requestedTab === "models"
+      ? requestedTab
+      : null;
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>(
     tabFromUrl || "secondary",
   );
 
@@ -192,7 +198,7 @@ export const TrainingInterface = ({
 
   // Handle tab changes and update URL
   const handleTabChange = useCallback(
-    (newTab: "secondary" | "episodes") => {
+    (newTab: SidebarTab) => {
       setSidebarTab(newTab);
 
       // Update URL params

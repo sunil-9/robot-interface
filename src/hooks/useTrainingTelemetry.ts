@@ -1,0 +1,429 @@
+import { AppMode } from "@/context/ModeContextDef";
+import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import { useEffect, useRef } from "react";
+import { toast } from "../components/ui/use-toast";
+
+type MemorisedPose = { topics: Record<string, unknown> } | null;
+
+interface UseTrainingTelemetryOptions {
+  session: WebRTCSession;
+  userId?: number;
+  selectedDataset: string;
+  selectedDatasetRouteId: string | null;
+  datasetNameById: Map<string, string>;
+  deployDatasetId: string | null;
+  isRecording: boolean;
+  isSavingEpisode: boolean;
+  episodesWsEnabled: boolean;
+  fetchEpisodes: (datasetIdOverride?: string | number) => Promise<void>;
+  setMode: (mode: AppMode) => void;
+  setSelectedDataset: (datasetName: string) => void;
+  setIsRecording: (recording: boolean) => void;
+  setIsSavingEpisode: (saving: boolean) => void;
+  setIsDeploying: (deploying: boolean) => void;
+  setDeployRequestPending: (pending: boolean) => void;
+  setDeployDatasetId: (datasetId: string | null) => void;
+  setDeployStatusPopupOpen: (open: boolean) => void;
+  setDeployStatusMessage: (message: string | null) => void;
+  setMemorisedPose: (pose: MemorisedPose) => void;
+  setIsRestoring: (restoring: boolean) => void;
+}
+
+export function useTrainingTelemetry({
+  session,
+  userId,
+  selectedDataset,
+  selectedDatasetRouteId,
+  datasetNameById,
+  deployDatasetId,
+  isRecording,
+  isSavingEpisode,
+  episodesWsEnabled,
+  fetchEpisodes,
+  setMode,
+  setSelectedDataset,
+  setIsRecording,
+  setIsSavingEpisode,
+  setIsDeploying,
+  setDeployRequestPending,
+  setDeployDatasetId,
+  setDeployStatusPopupOpen,
+  setDeployStatusMessage,
+  setMemorisedPose,
+  setIsRestoring,
+}: UseTrainingTelemetryOptions) {
+  const selectedDatasetRef = useRef(selectedDataset);
+  const selectedDatasetRouteIdRef = useRef<string | null>(
+    selectedDatasetRouteId,
+  );
+  const datasetNameByIdRef = useRef(datasetNameById);
+  const deployDatasetRef = useRef<string | null>(deployDatasetId);
+  const isRecordingRef = useRef(isRecording);
+  const isSavingEpisodeRef = useRef(isSavingEpisode);
+  const episodesWsEnabledRef = useRef(episodesWsEnabled);
+  const fetchEpisodesRef = useRef(fetchEpisodes);
+
+  useEffect(() => {
+    selectedDatasetRef.current = selectedDataset;
+  }, [selectedDataset]);
+
+  useEffect(() => {
+    selectedDatasetRouteIdRef.current = selectedDatasetRouteId;
+  }, [selectedDatasetRouteId]);
+
+  useEffect(() => {
+    datasetNameByIdRef.current = datasetNameById;
+  }, [datasetNameById]);
+
+  useEffect(() => {
+    deployDatasetRef.current = deployDatasetId;
+  }, [deployDatasetId]);
+
+  useEffect(() => {
+    isRecordingRef.current = isRecording;
+  }, [isRecording]);
+
+  useEffect(() => {
+    isSavingEpisodeRef.current = isSavingEpisode;
+  }, [isSavingEpisode]);
+
+  useEffect(() => {
+    episodesWsEnabledRef.current = episodesWsEnabled;
+  }, [episodesWsEnabled]);
+
+  useEffect(() => {
+    fetchEpisodesRef.current = fetchEpisodes;
+  }, [fetchEpisodes]);
+
+  useEffect(() => {
+    if (!selectedDatasetRouteId || !session.telemetryOpen) {
+      return;
+    }
+    if (typeof userId !== "number") {
+      return;
+    }
+    session.sendControl({
+      type: "dataset",
+      payload: {
+        action: "activate",
+        datasetId: selectedDatasetRouteId,
+        userId: String(userId),
+      },
+    });
+  }, [selectedDatasetRouteId, session, session.telemetryOpen, userId]);
+
+  useEffect(() => {
+    const unsubscribe = session.onTelemetry((payload) => {
+      if (!payload || typeof payload !== "object") {
+        return;
+      }
+
+      const record = payload as Record<string, unknown>;
+      const type = typeof record.type === "string" ? record.type : null;
+      const rawPayload = record.payload;
+      if (!rawPayload || typeof rawPayload !== "object") {
+        return;
+      }
+
+      if (type === "dataset") {
+        const datasetPayload = rawPayload as Record<string, unknown>;
+        const action =
+          typeof datasetPayload.action === "string"
+            ? datasetPayload.action.toLowerCase()
+            : null;
+        const message =
+          typeof datasetPayload.message === "string"
+            ? datasetPayload.message
+            : null;
+        const datasetId =
+          typeof datasetPayload.datasetId === "string"
+            ? datasetPayload.datasetId
+            : typeof datasetPayload.dataset_id === "string"
+              ? datasetPayload.dataset_id
+              : null;
+        const datasetName = datasetId
+          ? (datasetNameByIdRef.current.get(datasetId) ?? null)
+          : null;
+        const datasetLabel =
+          datasetName ?? selectedDatasetRef.current ?? datasetId ?? null;
+
+        if (datasetName && selectedDatasetRef.current !== datasetName) {
+          setSelectedDataset(datasetName);
+          selectedDatasetRef.current = datasetName;
+        }
+
+        if (action === "collection_start_ack") {
+          console.log("started with", datasetPayload.datasetId);
+          if (!isRecordingRef.current) {
+            setIsRecording(true);
+            setMode(AppMode.RECORDING);
+          }
+          toast({
+            title: "Recording started",
+            description: datasetLabel
+              ? `Recording episode for dataset "${datasetLabel}"`
+              : "Episode recording has started",
+          });
+          return;
+        }
+
+        if (action === "collection_start_nack") {
+          setIsRecording(false);
+          setMode(AppMode.EXPLORATION);
+          toast({
+            title: "Failed to start recording",
+            description: message
+              ? `${message.charAt(0).toUpperCase() + message.slice(1)}${datasetLabel ? ` (Dataset: ${datasetLabel})` : ""}`
+              : datasetLabel
+                ? `Could not start recording for dataset "${datasetLabel}"`
+                : "Could not start recording. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        if (action === "collection_stop_ack") {
+          setIsRecording(false);
+          setMode(AppMode.EXPLORATION);
+
+          if (!isSavingEpisodeRef.current) {
+            setIsSavingEpisode(true);
+          }
+
+          if (!episodesWsEnabledRef.current) {
+            setIsSavingEpisode(false);
+            void fetchEpisodesRef.current(datasetId ?? undefined);
+          }
+          toast({
+            title: "Recording stopped",
+            description: datasetLabel
+              ? `Episode will be saved for dataset "${datasetLabel}"`
+              : "Episode recording will be saved",
+          });
+          return;
+        }
+
+        if (action === "collection_stop_nack") {
+          setIsSavingEpisode(false);
+          toast({
+            title: "Failed to stop recording",
+            description: message
+              ? `${message}${datasetLabel ? ` (Dataset: ${datasetLabel})` : ""}`
+              : datasetLabel
+                ? `Could not stop recording for dataset "${datasetLabel}"`
+                : "Could not stop recording. Please try again.",
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      if (type === "pose") {
+        const posePayload = rawPayload as Record<string, unknown>;
+        const action =
+          typeof posePayload.action === "string" ? posePayload.action : null;
+        const poseMsg =
+          typeof posePayload.message === "string" ? posePayload.message : null;
+
+        if (action === "pose_memorise_ack") {
+          const poseData = posePayload.pose as
+            | { topics: Record<string, unknown> }
+            | null
+            | undefined;
+          console.log("[pose] memorise_ack, pose=", poseData);
+          if (poseData) setMemorisedPose(poseData);
+          toast({ title: "Pose memorised", description: "Saved successfully" });
+          return;
+        }
+        if (action === "pose_get_ack") {
+          const poseData = posePayload.pose as
+            | { topics: Record<string, unknown> }
+            | null
+            | undefined;
+          console.log("[pose] get_ack, pose=", poseData);
+          setMemorisedPose(poseData ?? null);
+          return;
+        }
+        if (action === "pose_clear_ack") {
+          console.log("[pose] clear_ack");
+          toast({ title: "Pose cleared" });
+          return;
+        }
+        if (action === "pose_restore_ack") {
+          const result = posePayload.result as
+            | Record<string, unknown>
+            | undefined;
+          console.log(
+            "[pose] restore_ack, msg=",
+            poseMsg,
+            "max_error_rad=",
+            result?.max_abs_error_rad,
+            "final_positions=",
+            result?.final_positions,
+          );
+          setIsRestoring(false);
+          toast({
+            title: "Pose restored",
+            description: poseMsg ?? "Robot returned to memorised pose",
+          });
+          return;
+        }
+        if (action?.endsWith("_nack")) {
+          console.log(
+            "[pose] nack, action=",
+            action,
+            "msg=",
+            poseMsg,
+            "full=",
+            posePayload,
+          );
+          setIsRestoring(false);
+          toast({
+            title: "Pose error",
+            description: poseMsg ?? "Pose action failed",
+            variant: "destructive",
+          });
+          return;
+        }
+        console.log("[pose] unhandled action=", action, "full=", posePayload);
+        return;
+      }
+
+      if (type !== "deploy") {
+        return;
+      }
+
+      const deployPayload = rawPayload as Record<string, unknown>;
+      const action =
+        typeof deployPayload.action === "string"
+          ? deployPayload.action.toLowerCase()
+          : null;
+      const status =
+        typeof deployPayload.status === "string"
+          ? deployPayload.status.toLowerCase()
+          : null;
+      const message =
+        typeof deployPayload.message === "string"
+          ? deployPayload.message
+          : null;
+      const datasetId =
+        typeof deployPayload.datasetId === "string"
+          ? deployPayload.datasetId
+          : typeof deployPayload.dataset_id === "string"
+            ? deployPayload.dataset_id
+            : null;
+      const datasetName = datasetId
+        ? (datasetNameByIdRef.current.get(datasetId) ?? null)
+        : null;
+
+      const resolvedDataset =
+        datasetName ??
+        (deployDatasetRef.current
+          ? (datasetNameByIdRef.current.get(deployDatasetRef.current) ??
+            deployDatasetRef.current)
+          : null) ??
+        selectedDatasetRef.current ??
+        datasetId ??
+        undefined;
+
+      setDeployRequestPending(false);
+
+      if (action === "deploy_ack") {
+        console.log("Response deployment webrtc", deployPayload);
+        const active = status === "deploying";
+        setIsDeploying(active);
+        setDeployDatasetId(
+          datasetId ?? selectedDatasetRouteIdRef.current ?? null,
+        );
+        toast({
+          title: active ? "Deployment accepted" : "Deployment updated",
+          description:
+            message ??
+            (resolvedDataset
+              ? `Dataset "${resolvedDataset}" status: ${status ?? "updated"}.`
+              : `Deployment status: ${status ?? "updated"}.`),
+        });
+        return;
+      }
+
+      if (action === "deploy_nack" || status === "error") {
+        if (message?.toLowerCase() === "no active deployment") {
+          setIsDeploying(false);
+          setDeployDatasetId(null);
+        }
+        toast({
+          title: "Deployment failed",
+          description:
+            message ??
+            "Deployment request was rejected. Check deployment services and try again.",
+          variant: "destructive",
+        });
+
+        return;
+      }
+      if (action === "deploy_stop_ack" || status === "stopped") {
+        setIsDeploying(false);
+        setDeployDatasetId(null);
+
+        toast({
+          title: "Deployment stopped",
+          description: message ?? "Deployment has been stopped successfully.",
+          variant: "default",
+        });
+
+        return;
+      }
+
+      if (action === "deploy_status") {
+        const deployingDataset =
+          datasetName ??
+          (deployDatasetRef.current
+            ? (datasetNameByIdRef.current.get(deployDatasetRef.current) ??
+              deployDatasetRef.current)
+            : null) ??
+          selectedDatasetRef.current ??
+          datasetId ??
+          undefined;
+
+        if (status === "deploying") {
+          setIsDeploying(true);
+          setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
+          setDeployStatusMessage(message ?? "Downloading checkpoint...");
+          setDeployStatusPopupOpen(true);
+          toast({
+            title: "Deployment in progress",
+            description:
+              message ?? `Deploying dataset "${deployingDataset}"...`,
+          });
+        } else if (status === "deployed") {
+          setDeployStatusPopupOpen(false);
+          setDeployStatusMessage(null);
+          setIsDeploying(true);
+          setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
+          toast({
+            title: "Deployment complete",
+            description:
+              message ?? `Dataset "${deployingDataset}" deployed successfully.`,
+          });
+        }
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [
+    session,
+    setDeployDatasetId,
+    setDeployRequestPending,
+    setDeployStatusMessage,
+    setDeployStatusPopupOpen,
+    setIsDeploying,
+    setIsRecording,
+    setIsRestoring,
+    setIsSavingEpisode,
+    setMemorisedPose,
+    setMode,
+    setSelectedDataset,
+  ]);
+}

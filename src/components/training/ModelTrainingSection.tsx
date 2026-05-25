@@ -173,7 +173,7 @@ export const ModelTrainingSection = ({
         className,
       )}
     >
-      {/* Header */}
+      {/* Header
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />
@@ -186,7 +186,7 @@ export const ModelTrainingSection = ({
             models.length
           )}
         </Badge>
-      </div>
+      </div> */}
 
       {/* Error */}
       {error && (

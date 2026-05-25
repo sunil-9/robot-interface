@@ -52,7 +52,7 @@ export function TrainingControlsBar({
         style={RecordingControlStyle.COMPACT}
         embedded
       />
-      <div className="h-7 w-px bg-border" />
+      {/* <div className="h-7 w-px bg-border" /> */}
       <MemoriseRestorePose
         memorisedPose={memorisedPose}
         isLoading={poseLoading}
@@ -62,7 +62,7 @@ export function TrainingControlsBar({
         onRestore={onRestore}
         onClear={onClear}
       />
-      <div className="h-7 w-px bg-border" />
+      {/* <div className="h-7 w-px bg-border" /> */}
       <HelpDialog
         inline
         className="h-7 px-3 text-xs font-semibold uppercase tracking-wide"

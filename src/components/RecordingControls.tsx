@@ -66,7 +66,7 @@ export const RecordingControls = ({
         <RotateCcw className="h-4 w-4" />
         {isCompact ? "" : "Rewind"}
       </Button>
-      <Button
+      {/* <Button
         onClick={onDeploy}
         disabled={isLoading || isDeployingRequest}
         className={`rounded-full font-semibold uppercase tracking-wide border-0 transition-all duration-200 ${
@@ -77,7 +77,7 @@ export const RecordingControls = ({
       >
         <Rocket className="h-4 w-4" />
         {isCompact ? "" : isDeploying ? "Stop" : "Deploy"}
-      </Button>
+      </Button> */}
     </div>
   );
 

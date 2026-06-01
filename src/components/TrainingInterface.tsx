@@ -29,12 +29,30 @@ import {
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
+import type { PointerEvent as ReactPointerEvent } from "react";
 
 interface TrainingInterfaceProps {
   robotId: string | null;
   controllerId: string | null;
   session: WebRTCSession;
 }
+
+const SECONDARY_CAMERA_BASE_WIDTH = 230;
+const SECONDARY_CAMERA_BASE_HEIGHT = 170;
+const SECONDARY_CAMERA_MIN_SCALE = 1;
+const SECONDARY_CAMERA_MAX_SCALE = 2;
+
+type SecondaryCameraSide = "left" | "right";
+type SecondaryCameraResizeDirection = {
+  x: -1 | 0 | 1;
+  y: -1 | 0 | 1;
+};
+
+const clampSecondaryCameraScale = (value: number) =>
+  Math.min(
+    SECONDARY_CAMERA_MAX_SCALE,
+    Math.max(SECONDARY_CAMERA_MIN_SCALE, value),
+  );
 
 export const TrainingInterface = ({
   robotId,
@@ -110,6 +128,12 @@ export const TrainingInterface = ({
   );
   const [elapsedTime, setElapsedTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [secondaryCameraScales, setSecondaryCameraScales] = useState<
+    Record<SecondaryCameraSide, number>
+  >({
+    left: SECONDARY_CAMERA_MIN_SCALE,
+    right: SECONDARY_CAMERA_MIN_SCALE,
+  });
 
   // Initialize sidebarTab from URL params, default to "secondary"
   const params = useMemo(
@@ -236,6 +260,113 @@ export const TrainingInterface = ({
     fallbackImageForPosition,
     handleSwapCameraWithMain,
   } = useTrainingCameraLayout(robotId, session);
+
+  const handleSecondaryCameraResizeStart = useCallback(
+    (
+      side: SecondaryCameraSide,
+      direction: SecondaryCameraResizeDirection,
+    ) =>
+      (event: ReactPointerEvent<HTMLElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const startX = event.clientX;
+        const startY = event.clientY;
+        const startScale = secondaryCameraScales[side];
+
+        const handlePointerMove = (moveEvent: PointerEvent) => {
+          const deltas: number[] = [];
+
+          if (direction.x !== 0) {
+            deltas.push(
+              ((moveEvent.clientX - startX) * direction.x) /
+                SECONDARY_CAMERA_BASE_WIDTH,
+            );
+          }
+
+          if (direction.y !== 0) {
+            deltas.push(
+              ((moveEvent.clientY - startY) * direction.y) /
+                SECONDARY_CAMERA_BASE_HEIGHT,
+            );
+          }
+
+          const scaleDelta = deltas.reduce((largest, delta) => {
+            if (Math.abs(delta) > Math.abs(largest)) {
+              return delta;
+            }
+            return largest;
+          }, 0);
+
+          setSecondaryCameraScales((current) => ({
+            ...current,
+            [side]: clampSecondaryCameraScale(startScale + scaleDelta),
+          }));
+        };
+
+        const handlePointerUp = () => {
+          window.removeEventListener("pointermove", handlePointerMove);
+          window.removeEventListener("pointerup", handlePointerUp);
+        };
+
+        window.addEventListener("pointermove", handlePointerMove);
+        window.addEventListener("pointerup", handlePointerUp);
+      },
+    [secondaryCameraScales],
+  );
+
+  const renderSecondaryCameraResizeHandles = useCallback(
+    (side: SecondaryCameraSide) => {
+      const handleClass =
+        "absolute z-40 touch-none bg-border/80 opacity-60 shadow-sm transition hover:bg-primary hover:opacity-100";
+      const horizontalDirection = side === "left" ? 1 : -1;
+      const horizontalEdgeClass =
+        side === "left"
+          ? "-right-1.5 bottom-0 top-0 w-1.5 cursor-ew-resize rounded-r-2xl"
+          : "-left-1.5 bottom-0 top-0 w-1.5 cursor-ew-resize rounded-l-2xl";
+      const diagonalClass =
+        side === "left"
+          ? "absolute -right-3 -top-3 z-50 h-8 w-8 touch-none cursor-nesw-resize bg-transparent"
+          : "absolute -left-3 -top-3 z-50 h-8 w-8 touch-none cursor-nwse-resize bg-transparent";
+      const diagonalIconClass =
+        side === "left"
+          ? "pointer-events-none absolute -right-0.5 -top-0.5 z-50 h-4 w-4 text-foreground/70"
+          : "pointer-events-none absolute -left-0.5 -top-0.5 z-50 h-4 w-4 rotate-90 text-foreground/70";
+
+      return (
+        <>
+          <div
+            role="separator"
+            aria-label={`Resize ${side} camera from top edge`}
+            onPointerDown={handleSecondaryCameraResizeStart(side, {
+              x: 0,
+              y: -1,
+            })}
+            className={`${handleClass} -top-1.5 left-0 right-0 h-1.5 cursor-ns-resize rounded-t-2xl`}
+          />
+          <div
+            role="separator"
+            aria-label={`Resize ${side} camera from side edge`}
+            onPointerDown={handleSecondaryCameraResizeStart(side, {
+              x: horizontalDirection,
+              y: 0,
+            })}
+            className={`${handleClass} ${horizontalEdgeClass}`}
+          />
+          <div
+            role="separator"
+            aria-label={`Resize ${side} camera diagonally from top corner`}
+            onPointerDown={handleSecondaryCameraResizeStart(side, {
+              x: horizontalDirection,
+              y: -1,
+            })}
+            className={diagonalClass}
+          />
+        </>
+      );
+    },
+    [handleSecondaryCameraResizeStart],
+  );
 
   const renderSecondaryStack = (
     slots: CameraSlot[],
@@ -448,7 +579,15 @@ export const TrainingInterface = ({
             )}
 
             {fixedLeftSlot && (
-              <div className="absolute bottom-4 left-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
+              <div
+                className="absolute bottom-4 left-4 z-30 overflow-visible rounded-2xl border border-border bg-black shadow-2xl"
+                style={{
+                  width:
+                    SECONDARY_CAMERA_BASE_WIDTH * secondaryCameraScales.left,
+                  height:
+                    SECONDARY_CAMERA_BASE_HEIGHT * secondaryCameraScales.left,
+                }}
+              >
                 {(() => {
                   const displaySlot =
                     displaySlotForSecondarySlot(fixedLeftSlot);
@@ -466,17 +605,27 @@ export const TrainingInterface = ({
                       position="left"
                       isConnected={Boolean(displaySlot.stream)}
                       className="h-full w-full"
+                      fillSecondaryFrame
                       onSwapWithMain={() =>
                         handleSwapCameraWithMain(fixedLeftSlot.key)
                       }
                     />
                   );
                 })()}
+                {renderSecondaryCameraResizeHandles("left")}
               </div>
             )}
 
             {fixedRightSlot && (
-              <div className="absolute bottom-4 right-4 z-30  overflow-hidden rounded-2xl border border-border bg-black shadow-2xl">
+              <div
+                className="absolute bottom-4 right-4 z-30 overflow-visible rounded-2xl border border-border bg-black shadow-2xl"
+                style={{
+                  width:
+                    SECONDARY_CAMERA_BASE_WIDTH * secondaryCameraScales.right,
+                  height:
+                    SECONDARY_CAMERA_BASE_HEIGHT * secondaryCameraScales.right,
+                }}
+              >
                 {(() => {
                   const displaySlot =
                     displaySlotForSecondarySlot(fixedRightSlot);
@@ -494,12 +643,14 @@ export const TrainingInterface = ({
                       position="right"
                       isConnected={Boolean(displaySlot.stream)}
                       className="h-full w-full"
+                      fillSecondaryFrame
                       onSwapWithMain={() =>
                         handleSwapCameraWithMain(fixedRightSlot.key)
                       }
                     />
                   );
                 })()}
+                {renderSecondaryCameraResizeHandles("right")}
               </div>
             )}
           </div>

@@ -12,6 +12,7 @@ interface CameraViewProps {
   className?: string;
   position: "main" | "right" | "left" | "extra";
   onSwapWithMain?: () => void;
+  fillSecondaryFrame?: boolean;
 }
 
 export const CameraView = ({
@@ -23,6 +24,7 @@ export const CameraView = ({
   className,
   position = "main",
   onSwapWithMain,
+  fillSecondaryFrame = false,
 }: CameraViewProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -80,7 +82,11 @@ export const CameraView = ({
     position === "main"
       ? "h-full w-full"
       : " w-full rounded-2xl shadow-sm",
-    position === "right" || position === "left" ? "h-[170px]" : "",
+    position === "right" || position === "left"
+      ? fillSecondaryFrame
+        ? "h-full"
+        : "h-[170px]"
+      : "",
     position === "extra" ? "extra" : "",
     position === "main" ? "main" : "",
     position === "right" ? "right" : "",

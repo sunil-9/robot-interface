@@ -69,6 +69,37 @@ export const isSessionControllerAvailable = (
   );
 };
 
+export const resolveControllerSessionGate = ({
+  candidateControl,
+  controlDevices,
+  loadingDevices,
+  deviceError,
+}: {
+  candidateControl: unknown;
+  controlDevices: Array<{ id?: unknown }>;
+  loadingDevices: boolean;
+  deviceError: unknown;
+}): { selectedControl: string | null; canStartWebRTC: boolean } => {
+  const normalizedControl = normalizeSessionSelection(candidateControl);
+  if (!normalizedControl) {
+    return { selectedControl: null, canStartWebRTC: false };
+  }
+
+  const hasKnownValidControl = isSessionControllerAvailable(
+    normalizedControl,
+    controlDevices,
+  );
+  const selectedControl =
+    loadingDevices || deviceError || hasKnownValidControl
+      ? normalizedControl
+      : null;
+
+  return {
+    selectedControl,
+    canStartWebRTC: hasKnownValidControl,
+  };
+};
+
 const hasOwn = <T extends object>(value: T, key: keyof T): boolean =>
   Object.prototype.hasOwnProperty.call(value, key);
 

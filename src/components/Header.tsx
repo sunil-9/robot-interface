@@ -2,24 +2,20 @@ import { AppMode } from "@/context/ModeContextDef";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
+import { headerControlCenterTabs } from "@/components/control-center/tabs";
 import type { ControlCenterTab } from "@/components/control-center/types";
 import { robotService } from "@/services/robotService";
 import { toast } from "@/components/ui/use-toast";
 import {
-  Activity,
   CheckCircle2,
   Circle,
   CircleUserRound,
   Link2,
-  LogIn,
   LogOut,
   Moon,
-  Package,
   Play,
   RefreshCcw,
-  ShieldCheck,
   Sun,
-  UserRound,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
@@ -267,41 +263,29 @@ const TrainHeader = ({
               </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="gap-3 rounded-md px-3 py-2"
-              onSelect={() => onOpenSettings?.("account")}
-            >
-              {auth.user ? (
-                <UserRound className="h-4 w-4" />
-              ) : (
-                <LogIn className="h-4 w-4" />
-              )}
-              <span>{auth.user ? "Account" : "Login"}</span>
-            </DropdownMenuItem>
-            {/* <DropdownMenuItem
-              className="gap-3 rounded-md px-3 py-2"
-              disabled={!auth.user}
-              onSelect={() => onOpenSettings?.("models")}
-            >
-              <Package className="h-4 w-4" />
-              <span>Models</span>
-            </DropdownMenuItem> */}
-            <DropdownMenuItem
-              className="gap-3 rounded-md px-3 py-2"
-              disabled={!auth.user}
-              onSelect={() => onOpenSettings?.("training")}
-            >
-              <Activity className="h-4 w-4" />
-              <span>Active Training</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="gap-3 rounded-md px-3 py-2"
-              disabled={!auth.user}
-              onSelect={() => onOpenSettings?.("security")}
-            >
-              <ShieldCheck className="h-4 w-4" />
-              <span>Security</span>
-            </DropdownMenuItem>
+            {headerControlCenterTabs.map((tab) => {
+              const isAccountTab = tab.id === "account";
+              const Icon =
+                !auth.user && tab.unauthenticatedIcon
+                  ? tab.unauthenticatedIcon
+                  : tab.icon;
+              const label =
+                !auth.user && tab.unauthenticatedLabel
+                  ? tab.unauthenticatedLabel
+                  : tab.label;
+
+              return (
+                <DropdownMenuItem
+                  key={tab.id}
+                  className="gap-3 rounded-md px-3 py-2"
+                  disabled={!auth.user && !isAccountTab}
+                  onSelect={() => onOpenSettings?.(tab.id)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </DropdownMenuItem>
+              );
+            })}
             {auth.user ? (
               <>
                 <DropdownMenuSeparator />

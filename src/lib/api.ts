@@ -106,6 +106,46 @@ export interface DatasetListItem {
   description?: string | null;
 }
 
+export interface DatasetMetadataOverview {
+  identity: {
+    dataset_id: number;
+    dataset_name: string;
+  };
+  ownership: {
+    user_ids: number[];
+  };
+  robot: {
+    robot_id: number | null;
+    robot_dataset_robot_ids: number[];
+  };
+  description: {
+    database_description: string | null;
+    tasks: Array<Record<string, unknown>>;
+  };
+  state: {
+    status: string;
+    status_updated_at: string | null;
+  };
+  size: {
+    total_episodes: number;
+    total_frames: number;
+  };
+  episodes: Array<Record<string, unknown>>;
+  ingestions: Array<Record<string, unknown>>;
+  training_usage: {
+    training_jobs: Array<Record<string, unknown>>;
+    models: Array<Record<string, unknown>>;
+  };
+  visualization: {
+    file_base_url: string;
+    metadata_url: string;
+    dataset_path: string;
+    version: string | null;
+    metadata: Record<string, unknown>;
+    metadata_error: string | null;
+  };
+}
+
 interface ApiDatasetItem {
   dataset_id: number;
   dataset_name: string;
@@ -226,6 +266,49 @@ export const updateDatasetDescription = async (
     console.error("Failed to update dataset description:", error);
     throw error;
   }
+};
+
+export const fetchDatasetMetadataOverview = async (
+  datasetId: string | number,
+): Promise<DatasetMetadataOverview> => {
+  const response = await apiFetch(
+    `/datasets/${encodeURIComponent(datasetId)}/metadata-overview`,
+  );
+  const payload = await parseCloudApiResponse<DatasetMetadataOverview>(response);
+
+  if (!response.ok) {
+    throw new Error(
+      formatApiError(
+        payload,
+        `Failed to fetch dataset metadata (${response.status})`,
+      ),
+    );
+  }
+
+  return payload;
+};
+
+export const cloneDataset = async (
+  datasetId: string | number,
+): Promise<{ dataset_id?: string; message?: string }> => {
+  const response = await apiFetch(
+    `/datasets/${encodeURIComponent(datasetId)}/clone`,
+    {
+      method: "POST",
+    },
+  );
+  const payload = await parseCloudApiResponse<{
+    dataset_id?: string;
+    message?: string;
+  }>(response);
+
+  if (!response.ok) {
+    throw new Error(
+      formatApiError(payload, `Failed to clone dataset (${response.status})`),
+    );
+  }
+
+  return payload;
 };
 
 export const deleteDataset = async (datasetId: string | number): Promise<void> => {

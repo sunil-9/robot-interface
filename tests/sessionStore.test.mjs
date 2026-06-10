@@ -46,6 +46,7 @@ const {
   getSessionRobotData,
   isSessionControllerAvailable,
   normalizeSessionSelection,
+  resolveControllerSessionGate,
   setSessionRobotData,
 } = module.exports;
 
@@ -108,3 +109,30 @@ assert.equal(
   false,
 );
 assert.equal(isSessionControllerAvailable("ps5joystick", []), false);
+
+const validGate = resolveControllerSessionGate({
+  candidateControl: "ps5joystick",
+  controlDevices: [{ id: "ps5joystick" }],
+  loadingDevices: false,
+  deviceError: null,
+});
+assert.equal(validGate.selectedControl, "ps5joystick");
+assert.equal(validGate.canStartWebRTC, true);
+
+const refreshingGate = resolveControllerSessionGate({
+  candidateControl: "ps5joystick",
+  controlDevices: [{ id: "ps5joystick" }],
+  loadingDevices: true,
+  deviceError: null,
+});
+assert.equal(refreshingGate.selectedControl, "ps5joystick");
+assert.equal(refreshingGate.canStartWebRTC, true);
+
+const invalidGate = resolveControllerSessionGate({
+  candidateControl: "oculus",
+  controlDevices: [{ id: "ps5joystick" }],
+  loadingDevices: false,
+  deviceError: null,
+});
+assert.equal(invalidGate.selectedControl, null);
+assert.equal(invalidGate.canStartWebRTC, false);

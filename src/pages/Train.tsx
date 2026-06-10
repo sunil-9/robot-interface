@@ -13,8 +13,8 @@ import { cloudConfig } from "@/lib/config";
 import {
   getSessionRobotData,
   getSignalingConfig,
-  isSessionControllerAvailable,
   normalizeSessionSelection,
+  resolveControllerSessionGate,
   setConnectionReady,
   setSessionRobotData,
   setSignalingConfig,
@@ -56,16 +56,18 @@ export default function TrainPage() {
     selectedRobot,
     auth.accessToken,
   );
-  const hasValidatedControl =
-    Boolean(candidateControl) &&
-    !loadingDevices &&
-    !deviceError &&
-    isSessionControllerAvailable(candidateControl, controlDevices);
-  const selectedControl =
-    candidateControl && (loadingDevices || deviceError || hasValidatedControl)
-      ? candidateControl
-      : null;
-  const canStartWebRTC = Boolean(selectedRobot && hasValidatedControl);
+  const {
+    selectedControl,
+    canStartWebRTC: hasValidatedSessionControl,
+  } = resolveControllerSessionGate({
+    candidateControl,
+    controlDevices,
+    loadingDevices,
+    deviceError,
+  });
+  const canStartWebRTC = Boolean(
+    selectedRobot && hasValidatedSessionControl,
+  );
 
   const session = useWebRTCSession({
     robotId: canStartWebRTC ? selectedRobot : null,

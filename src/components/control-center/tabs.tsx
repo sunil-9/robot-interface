@@ -1,12 +1,10 @@
 import { AccountPanel } from "@/components/control-center/AccountPanel";
 import { ActiveTrainingPanel } from "@/components/control-center/ActiveTrainingPanel";
-import { DatasetsPanel } from "@/components/control-center/DatasetsPanel";
 import { ModelsPanel } from "@/components/control-center/ModelsPanel";
 import { SecurityPanel } from "@/components/control-center/SecurityPanel";
 import type { ControlCenterTab } from "@/components/control-center/types";
 import {
   Activity,
-  Database,
   LogIn,
   Package,
   ShieldCheck,
@@ -17,7 +15,6 @@ import type { ReactNode } from "react";
 
 interface ControlCenterRenderContext {
   onClose: () => void;
-  robotId?: string | null;
 }
 
 export interface ControlCenterTabConfig {
@@ -43,15 +40,6 @@ export const controlCenterTabs: ControlCenterTabConfig[] = [
     description: "Manage your operator profile and browser session.",
     showInHeader: true,
     renderPanel: ({ onClose }) => <AccountPanel onClose={onClose} />,
-  },
-  {
-    id: "datasets",
-    label: "Datasets",
-    icon: Database,
-    title: "Datasets",
-    description: "Review dataset metadata and manage dataset copies.",
-    showInHeader: true,
-    renderPanel: ({ robotId }) => <DatasetsPanel robotId={robotId} />,
   },
   {
     id: "models",

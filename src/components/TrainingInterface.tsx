@@ -14,6 +14,7 @@ import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { SidebarTabs, type SidebarTab } from "./SidebarTabs";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
+import { CloneDatasetDialog } from "./training/dialogs/CloneDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { useEpisodeViewer } from "./training/EpisodeViewerContext";
@@ -174,12 +175,21 @@ export const TrainingInterface = ({
     newDatasetDescription,
     setNewDatasetDescription,
     isCreatingDataset,
+    cloneDatasetDialogOpen,
+    setCloneDatasetDialogOpen,
+    datasetToClone,
+    setDatasetToClone,
+    newCloneDatasetName,
+    setNewCloneDatasetName,
+    isCloningDataset,
     deleteDatasetConfirmOpen,
     setDeleteDatasetConfirmOpen,
     datasetToDelete,
     datasetEpisodesToShow,
     fetchEpisodes,
     handleCreateDataset,
+    promptCloneDataset,
+    confirmCloneDataset,
     handleDatasetDescriptionSave,
     promptDeleteEpisode,
     confirmDeleteEpisode,
@@ -670,6 +680,7 @@ export const TrainingInterface = ({
                 deletingEpisodeId,
                 formatDuration,
                 onRequestCreateDataset: () => setIsCreateDialogOpen(true),
+                onRequestCloneDataset: promptCloneDataset,
                 onRequestDeleteDataset: promptDeleteDataset,
                 onDatasetDescriptionSave: handleDatasetDescriptionSave,
                 onPromptDeleteEpisode: promptDeleteEpisode,
@@ -716,6 +727,21 @@ export const TrainingInterface = ({
           setIsCreateDialogOpen(false);
           setNewDatasetName("");
           setNewDatasetDescription("");
+        }}
+      />
+
+      <CloneDatasetDialog
+        open={cloneDatasetDialogOpen}
+        onOpenChange={setCloneDatasetDialogOpen}
+        sourceDatasetName={datasetToClone}
+        newDatasetName={newCloneDatasetName}
+        isCloning={isCloningDataset}
+        onNameChange={setNewCloneDatasetName}
+        onSubmit={confirmCloneDataset}
+        onCancel={() => {
+          setCloneDatasetDialogOpen(false);
+          setDatasetToClone(null);
+          setNewCloneDatasetName("");
         }}
       />
 

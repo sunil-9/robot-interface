@@ -497,6 +497,7 @@ export function useTrainingDatasetEpisodes({
     cloneDatasetDialogOpen,
     setCloneDatasetDialogOpen,
     datasetToClone,
+    setDatasetToClone,
     newCloneDatasetName,
     setNewCloneDatasetName,
     isCloningDataset,

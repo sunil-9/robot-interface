@@ -33,6 +33,7 @@ export function SidebarTabs({
           datasetItems={episodeManagementProps.datasetItems}
           isLoading={episodeManagementProps.isLoadingDatasets}
           onRequestCreate={episodeManagementProps.onRequestCreateDataset}
+          onRequestClone={episodeManagementProps.onRequestCloneDataset}
           onRequestDelete={episodeManagementProps.onRequestDeleteDataset}
           onDescriptionSave={episodeManagementProps.onDatasetDescriptionSave}
         />

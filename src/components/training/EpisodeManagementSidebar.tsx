@@ -23,6 +23,7 @@ interface EpisodeManagementSidebarProps {
   deletingEpisodeId?: string | null;
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
+  onRequestCloneDataset: (dataset: string) => void;
   onRequestDeleteDataset: (dataset: string) => void;
   onDatasetDescriptionSave: (
     datasetId: string | number,
@@ -55,6 +56,7 @@ export const EpisodeManagementContent = ({
   deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
+  onRequestCloneDataset,
   onRequestDeleteDataset,
   onDatasetDescriptionSave,
   onPromptDeleteEpisode,
@@ -86,6 +88,7 @@ export const EpisodeManagementContent = ({
             datasetItems={datasetItems}
             isLoading={isLoadingDatasets}
             onRequestCreate={onRequestCreateDataset}
+            onRequestClone={onRequestCloneDataset}
             onRequestDelete={onRequestDeleteDataset}
             onDescriptionSave={onDatasetDescriptionSave}
           />

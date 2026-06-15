@@ -1,6 +1,7 @@
 import { useEpisodesWebSocket } from "@/hooks/useEpisodesWebSocket";
 import {
   createDataset,
+  cloneDataset,
   deleteDataset,
   fetchDatasets,
   updateDatasetDescription,
@@ -45,6 +46,10 @@ export function useTrainingDatasetEpisodes({
   const [newDatasetName, setNewDatasetName] = useState("");
   const [newDatasetDescription, setNewDatasetDescription] = useState("");
   const [isCreatingDataset, setIsCreatingDataset] = useState(false);
+  const [cloneDatasetDialogOpen, setCloneDatasetDialogOpen] = useState(false);
+  const [datasetToClone, setDatasetToClone] = useState<string | null>(null);
+  const [newCloneDatasetName, setNewCloneDatasetName] = useState("");
+  const [isCloningDataset, setIsCloningDataset] = useState(false);
   const [deleteDatasetConfirmOpen, setDeleteDatasetConfirmOpen] =
     useState(false);
   const [datasetToDelete, setDatasetToDelete] = useState<string | null>(null);
@@ -392,6 +397,45 @@ export function useTrainingDatasetEpisodes({
     }
   };
 
+  const promptCloneDataset = (datasetName: string) => {
+    setDatasetToClone(datasetName);
+    setNewCloneDatasetName(`${datasetName}-clone`);
+    setCloneDatasetDialogOpen(true);
+  };
+
+  const confirmCloneDataset = async () => {
+    if (!datasetToClone) return;
+
+    const datasetId = datasetIdByName.get(datasetToClone);
+    const trimmedName = newCloneDatasetName.trim();
+    if (datasetId === undefined || !trimmedName) {
+      return;
+    }
+
+    setIsCloningDataset(true);
+    try {
+      await cloneDataset(datasetId, trimmedName);
+      toast({
+        title: "Success",
+        description: `Dataset "${trimmedName}" cloned successfully`,
+      });
+      setCloneDatasetDialogOpen(false);
+      setDatasetToClone(null);
+      setNewCloneDatasetName("");
+      await loadDatasets();
+      setSelectedDataset(trimmedName);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to clone dataset",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCloningDataset(false);
+    }
+  };
+
   const confirmDeleteDataset = async () => {
     if (!datasetToDelete || datasetToDeleteId === null) return;
 
@@ -450,6 +494,12 @@ export function useTrainingDatasetEpisodes({
     newDatasetDescription,
     setNewDatasetDescription,
     isCreatingDataset,
+    cloneDatasetDialogOpen,
+    setCloneDatasetDialogOpen,
+    datasetToClone,
+    newCloneDatasetName,
+    setNewCloneDatasetName,
+    isCloningDataset,
     deleteDatasetConfirmOpen,
     setDeleteDatasetConfirmOpen,
     datasetToDelete,
@@ -458,6 +508,8 @@ export function useTrainingDatasetEpisodes({
     fetchEpisodes,
     loadDatasets,
     handleCreateDataset,
+    promptCloneDataset,
+    confirmCloneDataset,
     handleDatasetDescriptionSave,
     promptDeleteEpisode,
     confirmDeleteEpisode,

@@ -290,11 +290,18 @@ export const fetchDatasetMetadataOverview = async (
 
 export const cloneDataset = async (
   datasetId: string | number,
+  datasetName?: string,
 ): Promise<{ dataset_id?: string; message?: string }> => {
   const response = await apiFetch(
     `/datasets/${encodeURIComponent(datasetId)}/clone`,
     {
       method: "POST",
+      ...(datasetName
+        ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ dataset_name: datasetName }),
+          }
+        : {}),
     },
   );
   const payload = await parseCloudApiResponse<{

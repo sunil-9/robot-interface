@@ -1,4 +1,4 @@
-import { Check, FolderPlus, Pencil, Trash2, X } from "lucide-react";
+import { Check, Copy, FolderPlus, Pencil, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ interface DatasetSelectorProps {
   datasetItems: DatasetListItem[];
   isLoading: boolean;
   onRequestCreate: () => void;
+  onRequestClone: (dataset: string) => void;
   onRequestDelete: (dataset: string) => void;
   onDescriptionSave: (
     datasetId: string | number,
@@ -33,6 +34,7 @@ export const DatasetSelector = ({
   datasetItems,
   isLoading,
   onRequestCreate,
+  onRequestClone,
   onRequestDelete,
   onDescriptionSave,
 }: DatasetSelectorProps) => {
@@ -127,6 +129,21 @@ export const DatasetSelector = ({
                     size="sm"
                     variant="ghost"
                     onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+
+                      onRequestClone(dataset);
+                    }}
+                    className="group cursor-pointer rounded-md bg-transparent px-3 py-2 text-primary transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:bg-primary/15 focus:text-primary focus:outline-none dark:hover:bg-primary/20 dark:focus:bg-primary/25"
+                    aria-label={`Clone dataset ${dataset}`}
+                    title="Clone dataset"
+                  >
+                    <Copy className="h-4 w-4 group-hover:scale-110" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onPointerDown={(event) => {
                       // Prevent the select from closing before we handle delete.
                       event.preventDefault();
                       event.stopPropagation();
@@ -134,6 +151,8 @@ export const DatasetSelector = ({
                       onRequestDelete(dataset);
                     }}
                     className="group cursor-pointer rounded-md px-3 py-2 transition-all  duration-200   text-primary  bg-transparent   hover:bg-primary/10  hover:text-primary   focus:bg-primary/15  focus:text-primary  focus:outline-none   data-[state=checked]:bg-primary/15  data-[state=checked]:text-primary   dark:hover:bg-primary/20  dark:focus:bg-primary/25  dark:data-[state=checked]:bg-primary/25 "
+                    aria-label={`Delete dataset ${dataset}`}
+                    title="Delete dataset"
                   >
                     <Trash2 className="h-4 w-4 group-hover:scale-110" />
                   </Button>

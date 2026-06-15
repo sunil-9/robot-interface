@@ -17,7 +17,6 @@ export type { ControlCenterTab };
 export function RobotSelectionDialog({
   open,
   onOpenChange,
-  initialRobot,
   initialTab = "account",
 }: RobotSelectionDialogProps) {
   const [activeTab, setActiveTab] = useState<ControlCenterTab>(initialTab);
@@ -39,7 +38,6 @@ export function RobotSelectionDialog({
     >
       {dialogContent.renderPanel({
         onClose: () => onOpenChange(false),
-        robotId: initialRobot,
       })}
     </ControlCenterDialog>
   );

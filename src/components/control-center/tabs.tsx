@@ -1,13 +1,11 @@
 import { AccountPanel } from "@/components/control-center/AccountPanel";
 import { ActiveTrainingPanel } from "@/components/control-center/ActiveTrainingPanel";
 import { ModelsPanel } from "@/components/control-center/ModelsPanel";
-import { SecurityPanel } from "@/components/control-center/SecurityPanel";
 import type { ControlCenterTab } from "@/components/control-center/types";
 import {
   Activity,
   LogIn,
   Package,
-  ShieldCheck,
   UserRound,
   type LucideIcon,
 } from "lucide-react";
@@ -58,15 +56,6 @@ export const controlCenterTabs: ControlCenterTabConfig[] = [
     description: "Review live training jobs and current training status.",
     showInHeader: true,
     renderPanel: () => <ActiveTrainingPanel />,
-  },
-  {
-    id: "security",
-    label: "Security",
-    icon: ShieldCheck,
-    title: "Security",
-    description: "Reset your password and manage account security settings.",
-    showInHeader: true,
-    renderPanel: () => <SecurityPanel />,
   },
 ];
 

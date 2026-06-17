@@ -29,11 +29,6 @@ interface UserProfileResponse {
   created_at: string;
 }
 
-interface ForgotPasswordResponse {
-  message: string;
-  reset_token: string | null;
-}
-
 export interface StoredAuthSession {
   accessToken: string;
   user: AuthUser | null;
@@ -170,29 +165,20 @@ export const fetchCurrentUser = async (): Promise<AuthUser> => {
   return mapAuthUser(payload as UserProfileResponse);
 };
 
-export const requestPasswordReset = async (
-  email: string,
-): Promise<ForgotPasswordResponse> =>
-  postJson<ForgotPasswordResponse>(
-    "/auth/forgot-password",
-    { email },
-    "Failed to request password reset.",
-  );
-
-export const resetPassword = async (input: {
-  resetToken: string;
+export const changePassword = async (input: {
+  currentPassword: string;
   newPassword: string;
 }): Promise<void> => {
-  const response = await apiFetch("/auth/reset-password", {
+  const response = await apiFetch("/auth/change-password", {
     method: "POST",
-    auth: "never",
+    auth: "always",
     headers: buildJsonHeaders(),
     body: JSON.stringify({
-      reset_token: input.resetToken,
+      current_password: input.currentPassword,
       new_password: input.newPassword,
     }),
   });
   if (!response.ok) {
-    throw new Error(await parseError(response, "Failed to update password."));
+    throw new Error(await parseError(response, "Failed to change password."));
   }
 };

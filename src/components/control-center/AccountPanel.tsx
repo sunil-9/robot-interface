@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { cn } from "@/lib/utils";
+import { changePassword } from "@/services/authApi";
 import { useEffect, useState } from "react";
 
 interface AccountPanelProps {
@@ -17,10 +18,17 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
   const [authPassword, setAuthPassword] = useState("");
   const [authFullName, setAuthFullName] = useState("");
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
 
   useEffect(() => {
     setAuthEmail(auth.user?.email ?? "");
     setAuthPassword("");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
   }, [auth.user]);
 
   const welcomeName =
@@ -62,6 +70,50 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
     }
   };
 
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "New password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "Confirm password must match the new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordSubmitting(true);
+    try {
+      await changePassword({
+        currentPassword,
+        newPassword,
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      toast({
+        title: "Password changed",
+        description: "Your password has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Password change failed",
+        description:
+          error instanceof Error ? error.message : "Failed to change password.",
+        variant: "destructive",
+      });
+    } finally {
+      setPasswordSubmitting(false);
+    }
+  };
+
   if (auth.isLoadingUser) {
     return (
       <div className="rounded-lg border border-border bg-muted/40 p-6 text-sm text-muted-foreground">
@@ -84,6 +136,62 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
             Signed in as {auth.user.email}
           </p>
         </div>
+
+        <div className="space-y-4 rounded-lg border border-border bg-background/50 p-5">
+          <p className="text-sm font-medium text-foreground">
+            Change Password
+          </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="account-current-password">Current password</Label>
+            <Input
+              id="account-current-password"
+              type="password"
+              value={currentPassword}
+              onChange={(event) => setCurrentPassword(event.target.value)}
+              className="border-border bg-background"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account-new-password">New password</Label>
+            <Input
+              id="account-new-password"
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              placeholder="At least 8 characters"
+              className="border-border bg-background"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="account-confirm-new-password">
+              Confirm new password
+            </Label>
+            <Input
+              id="account-confirm-new-password"
+              type="password"
+              value={confirmNewPassword}
+              onChange={(event) => setConfirmNewPassword(event.target.value)}
+              className="border-border bg-background"
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => void handleChangePassword()}
+            disabled={
+              passwordSubmitting ||
+              !currentPassword ||
+              !newPassword ||
+              !confirmNewPassword
+            }
+          >
+            {passwordSubmitting ? "Changing..." : "Change Password"}
+          </Button>
+        </div>
+
         <Button
           variant="outline"
           className="border-border bg-transparent text-foreground hover:bg-accent"

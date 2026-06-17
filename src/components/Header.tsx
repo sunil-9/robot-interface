@@ -17,7 +17,7 @@ import {
   RefreshCcw,
   Sun,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -52,6 +52,7 @@ interface HeaderProps {
   selectedControl?: string;
   onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
+  onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
 }
 
@@ -60,6 +61,7 @@ interface TrainHeaderProps {
   selectedControl?: string;
   onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
+  onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   mode: AppMode;
   getModeLabel: () => string;
@@ -72,6 +74,7 @@ const TrainHeader = ({
   selectedControl,
   onOpenSettings,
   onRobotChange,
+  onControlSelectionChange,
   onSelectionStart,
   mode,
   getModeLabel,
@@ -119,7 +122,10 @@ const TrainHeader = ({
           (robot) => String(robot.id) === normalizedSelectedRobotId,
         ) ?? null
       : null;
-  const visibleControlDevices = hasSelectedRobot ? controlDevices : [];
+  const visibleControlDevices = useMemo(
+    () => (hasSelectedRobot ? controlDevices : []),
+    [controlDevices, hasSelectedRobot],
+  );
   const userDisplayName =
     auth.user?.fullName?.trim() || auth.user?.email || "Operator";
 
@@ -135,13 +141,15 @@ const TrainHeader = ({
     if (!auth.accessToken) {
       setRobotSelection("");
       setControlSelection("");
+      onControlSelectionChange?.(null);
       return;
     }
 
     if (!loading && !hasSelectedRobot) {
       setControlSelection("");
+      onControlSelectionChange?.(null);
     }
-  }, [auth.accessToken, hasSelectedRobot, loading]);
+  }, [auth.accessToken, hasSelectedRobot, loading, onControlSelectionChange]);
 
   useEffect(() => {
     if (!auth.accessToken || loading || !hasSelectedRobot || loadingDevices) {
@@ -166,6 +174,7 @@ const TrainHeader = ({
 
     if (controlSelection) {
       setControlSelection("");
+      onControlSelectionChange?.(null);
     }
   }, [
     auth.accessToken,
@@ -173,6 +182,7 @@ const TrainHeader = ({
     hasSelectedRobot,
     loading,
     loadingDevices,
+    onControlSelectionChange,
     selectedControl,
     visibleControlDevices,
   ]);
@@ -195,6 +205,7 @@ const TrainHeader = ({
 
     setRobotSelection(value);
     setControlSelection("");
+    onControlSelectionChange?.(null);
     onRobotChange?.(value);
   };
 
@@ -216,6 +227,7 @@ const TrainHeader = ({
       const claimedRobotId = String(claimResult.robot_id);
       setRobotSelection(claimedRobotId);
       setControlSelection("");
+      onControlSelectionChange?.(null);
       onRobotChange?.(claimedRobotId);
       setClaimRobotHash("");
       setClaimRobotOpen(false);
@@ -234,6 +246,11 @@ const TrainHeader = ({
       return;
     }
     onSelectionStart?.(normalizedSelectedRobotId, controlSelection);
+  };
+
+  const handleControlChange = (value: string) => {
+    setControlSelection(value);
+    onControlSelectionChange?.(value || null);
   };
 
   return (
@@ -428,7 +445,7 @@ const TrainHeader = ({
                     ? controlSelection
                     : undefined
                 }
-                onValueChange={setControlSelection}
+                onValueChange={handleControlChange}
                 disabled={!auth.accessToken || !hasSelectedRobot || loadingDevices}
               >
                 <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
@@ -538,6 +555,7 @@ export const Header = ({
   selectedControl,
   onOpenSettings,
   onRobotChange,
+  onControlSelectionChange,
   onSelectionStart,
 }: HeaderProps) => {
   const { getModeLabel, mode } = useModeContext();
@@ -613,6 +631,7 @@ export const Header = ({
       selectedControl={selectedControl}
       onOpenSettings={onOpenSettings}
       onRobotChange={onRobotChange}
+      onControlSelectionChange={onControlSelectionChange}
       onSelectionStart={onSelectionStart}
       mode={mode}
       getModeLabel={getModeLabel}

@@ -39,6 +39,7 @@ export default function TrainPage() {
     useState<ControlCenterTab>("account");
   const [currentRobot, setCurrentRobot] = useState<string | null>(null);
   const [currentControl, setCurrentControl] = useState<string | null>(null);
+  const [pendingControl, setPendingControl] = useState<string | null>(null);
 
   // Get robot session data from URL params or from session storage
   const sessionRobotData = getSessionRobotData();
@@ -71,6 +72,7 @@ export default function TrainPage() {
     resetAuthSessionState();
     setCurrentRobot(null);
     setCurrentControl(null);
+    setPendingControl(null);
     setShowSelectionDialog(true);
 
     const nextParams = new URLSearchParams(location.search);
@@ -102,6 +104,7 @@ export default function TrainPage() {
     (robotId: string, controllerId: string) => {
       setCurrentRobot(robotId);
       setCurrentControl(controllerId);
+      setPendingControl(null);
 
       // Update URL params without navigation
       const newParams = new URLSearchParams(location.search);
@@ -128,6 +131,7 @@ export default function TrainPage() {
     (robotId: string) => {
       setCurrentRobot(robotId);
       setCurrentControl(null);
+      setPendingControl(null);
 
       const newParams = new URLSearchParams(location.search);
       newParams.set("robot", robotId);
@@ -334,6 +338,7 @@ export default function TrainPage() {
           setShowSelectionDialog(true);
         }}
         onRobotChange={handleHeaderRobotChange}
+        onControlSelectionChange={setPendingControl}
         onSelectionStart={handleSelectionConfirm}
       />
 
@@ -342,6 +347,7 @@ export default function TrainPage() {
         <TrainingInterface
           robotId={selectedRobot}
           controllerId={selectedControl}
+          pendingControllerId={pendingControl}
           session={session}
         />
       </main>

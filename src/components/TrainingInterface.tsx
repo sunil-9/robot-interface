@@ -35,6 +35,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 interface TrainingInterfaceProps {
   robotId: string | null;
   controllerId: string | null;
+  pendingControllerId?: string | null;
   session: WebRTCSession;
 }
 
@@ -58,6 +59,7 @@ const clampSecondaryCameraScale = (value: number) =>
 export const TrainingInterface = ({
   robotId,
   controllerId,
+  pendingControllerId = null,
   session,
 }: TrainingInterfaceProps) => {
   const navigate = useNavigate();
@@ -270,6 +272,13 @@ export const TrainingInterface = ({
     fallbackImageForPosition,
     handleSwapCameraWithMain,
   } = useTrainingCameraLayout(robotId, session);
+  const cameraGuidance = !robotId
+    ? "Select a robot to view cameras."
+    : !controllerId
+      ? pendingControllerId
+        ? "Click the Start button to connect cameras."
+        : "select control interface now."
+      : cameraError;
 
   const handleSecondaryCameraResizeStart = useCallback(
     (
@@ -563,9 +572,9 @@ export const TrainingInterface = ({
                   Loading camera config…
                 </span>
               )}
-              {cameraError && (
+              {cameraGuidance && (
                 <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] text-amber-700 shadow dark:border-amber-500/50 dark:bg-amber-900/40 dark:text-amber-100">
-                  {cameraError}
+                  {cameraGuidance}
                 </span>
               )}
             </div>

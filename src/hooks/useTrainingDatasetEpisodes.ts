@@ -1,4 +1,5 @@
 import { useEpisodesWebSocket } from "@/hooks/useEpisodesWebSocket";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import {
   createDataset,
   cloneDataset,
@@ -28,6 +29,7 @@ export function useTrainingDatasetEpisodes({
   setSelectedDatasetId,
   setIsSavingEpisode,
 }: UseTrainingDatasetEpisodesOptions) {
+  const { isAuthenticated } = useAuthSession();
   const [episodes, setEpisodes] = useState<episodeApi.Episode[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [episodeToDelete, setEpisodeToDelete] = useState<{
@@ -98,6 +100,16 @@ export function useTrainingDatasetEpisodes({
   }, [selectedDatasetRouteId, setSelectedDatasetId]);
 
   const loadDatasets = useCallback(async () => {
+    if (!isAuthenticated || !robotId?.trim()) {
+      setDatasets([]);
+      setDatasetItems([]);
+      setEpisodes([]);
+      setDatasetStatus(null);
+      setSelectedDataset("");
+      setIsLoadingDatasets(false);
+      return;
+    }
+
     setIsLoadingDatasets(true);
     try {
       const datasetList = await fetchDatasets(robotId);
@@ -125,7 +137,7 @@ export function useTrainingDatasetEpisodes({
     } finally {
       setIsLoadingDatasets(false);
     }
-  }, [robotId, setSelectedDataset]);
+  }, [isAuthenticated, robotId, setSelectedDataset]);
 
   const fetchEpisodes = useCallback(
     async (datasetIdOverride?: string | number) => {

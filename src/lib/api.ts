@@ -113,7 +113,7 @@ interface ApiDatasetItem {
 }
 
 export interface DatasetsListResponse {
-  datasets?: ApiDatasetItem[];
+  datasets?: unknown[];
 }
 
 export interface DatasetListResult {
@@ -121,18 +121,28 @@ export interface DatasetListResult {
   datasetItems: DatasetListItem[];
 }
 
+const isApiDatasetItem = (item: unknown): item is ApiDatasetItem =>
+  !!item &&
+  typeof item === "object" &&
+  typeof (item as ApiDatasetItem).dataset_id === "number" &&
+  typeof (item as ApiDatasetItem).dataset_name === "string";
+
 export const fetchDatasets = async (
   robotId?: string | null,
 ): Promise<DatasetListResult> => {
+  const normalizedRobotId = robotId?.trim();
+  if (!normalizedRobotId) {
+    return {
+      datasets: [],
+      datasetItems: [],
+    };
+  }
+
   try {
     const query = new URLSearchParams();
-    if (robotId) {
-      query.set("robot_id", robotId);
-    }
+    query.set("robot_id", normalizedRobotId);
 
-    const queryString = query.toString();
-    const datasetUrl = queryString ? `/datasets/?${queryString}` : "/datasets/";
-    const response = await apiFetch(datasetUrl);
+    const response = await apiFetch(`/datasets/?${query.toString()}`);
     const payload = await parseCloudApiResponse<DatasetsListResponse>(
       response
     );
@@ -143,16 +153,7 @@ export const fetchDatasets = async (
     }
 
     const datasetItems = Array.isArray(payload.datasets)
-      ? payload.datasets.filter(
-          (item): item is ApiDatasetItem =>
-            !!item &&
-            typeof item === "object" &&
-            "dataset_id" in item &&
-            "dataset_name" in item &&
-            typeof (item as ApiDatasetItem).dataset_id === "number" &&
-            typeof (item as ApiDatasetItem).dataset_name === "string"
-        )
-        .map((item) => ({
+      ? payload.datasets.filter(isApiDatasetItem).map((item) => ({
           id: item.dataset_id,
           name: item.dataset_name,
           description: item.dataset_description,
@@ -230,18 +231,14 @@ export const updateDatasetDescription = async (
 
 export const cloneDataset = async (
   datasetId: string | number,
-  datasetName?: string,
+  datasetName: string,
 ): Promise<{ dataset_id?: string; message?: string }> => {
   const response = await apiFetch(
     `/datasets/${encodeURIComponent(datasetId)}/clone`,
     {
       method: "POST",
-      ...(datasetName
-        ? {
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ dataset_name: datasetName }),
-          }
-        : {}),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dataset_name: datasetName }),
     },
   );
   const payload = await parseCloudApiResponse<{

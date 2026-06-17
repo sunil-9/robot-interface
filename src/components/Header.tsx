@@ -1,11 +1,11 @@
+import { headerControlCenterTabs } from "@/components/control-center/tabs";
+import type { ControlCenterTab } from "@/components/control-center/types";
+import { toast } from "@/components/ui/use-toast";
 import { AppMode } from "@/context/ModeContextDef";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
-import { headerControlCenterTabs } from "@/components/control-center/tabs";
-import type { ControlCenterTab } from "@/components/control-center/types";
 import { robotService } from "@/services/robotService";
-import { toast } from "@/components/ui/use-toast";
 import {
   CheckCircle2,
   Circle,
@@ -13,20 +13,11 @@ import {
   Link2,
   LogOut,
   Moon,
-  Play,
   RefreshCcw,
   Sun,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +26,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Input } from "./ui/input";
 import {
   Select,
@@ -50,6 +49,7 @@ interface HeaderProps {
   page: string;
   selectedRobot?: string;
   selectedControl?: string;
+  isConnected?: boolean;
   onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
   onControlSelectionChange?: (controllerId: string | null) => void;
@@ -59,6 +59,7 @@ interface HeaderProps {
 interface TrainHeaderProps {
   selectedRobot?: string;
   selectedControl?: string;
+  isConnected?: boolean;
   onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
   onControlSelectionChange?: (controllerId: string | null) => void;
@@ -72,6 +73,7 @@ interface TrainHeaderProps {
 const TrainHeader = ({
   selectedRobot,
   selectedControl,
+  isConnected = false,
   onOpenSettings,
   onRobotChange,
   onControlSelectionChange,
@@ -116,12 +118,11 @@ const TrainHeader = ({
     sortedRobots.some(
       (robot) => String(robot.id) === normalizedSelectedRobotId,
     );
-  const selectedRobotDetail =
-    normalizedSelectedRobotId
-      ? sortedRobots.find(
-          (robot) => String(robot.id) === normalizedSelectedRobotId,
-        ) ?? null
-      : null;
+  const selectedRobotDetail = normalizedSelectedRobotId
+    ? (sortedRobots.find(
+        (robot) => String(robot.id) === normalizedSelectedRobotId,
+      ) ?? null)
+    : null;
   const visibleControlDevices = useMemo(
     () => (hasSelectedRobot ? controlDevices : []),
     [controlDevices, hasSelectedRobot],
@@ -242,6 +243,9 @@ const TrainHeader = ({
   };
 
   const handleStart = () => {
+    if (isConnected) {
+      return;
+    }
     if (!hasSelectedRobot || !controlSelection) {
       return;
     }
@@ -351,9 +355,7 @@ const TrainHeader = ({
             </p>
             <div className="flex items-center gap-1">
               <Select
-                value={
-                  hasSelectedRobot ? normalizedSelectedRobotId : undefined
-                }
+                value={hasSelectedRobot ? normalizedSelectedRobotId : undefined}
                 onValueChange={handleRobotChange}
                 disabled={loading}
               >
@@ -446,7 +448,9 @@ const TrainHeader = ({
                     : undefined
                 }
                 onValueChange={handleControlChange}
-                disabled={!auth.accessToken || !hasSelectedRobot || loadingDevices}
+                disabled={
+                  !auth.accessToken || !hasSelectedRobot || loadingDevices
+                }
               >
                 <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
                   <SelectValue
@@ -454,10 +458,10 @@ const TrainHeader = ({
                       !auth.accessToken
                         ? "Log in to select"
                         : !hasSelectedRobot
-                        ? "Select robot first"
-                        : loadingDevices
-                          ? "Loading devices..."
-                          : "Select control device"
+                          ? "Select robot first"
+                          : loadingDevices
+                            ? "Loading devices..."
+                            : "Select control device"
                     }
                   />
                 </SelectTrigger>
@@ -485,11 +489,24 @@ const TrainHeader = ({
           <Button
             size="sm"
             onClick={handleStart}
-            disabled={!auth.accessToken || !hasSelectedRobot || !controlSelection}
-            className="h-10 px-4"
+            disabled={
+              !auth.accessToken || !hasSelectedRobot || !controlSelection
+            }
+            className={`h-10 px-4 ${
+              isConnected
+                ? "bg-emerald-600 text-white hover:bg-emerald-600"
+                : ""
+            }`}
           >
-            <Play className="mr-1 h-3.5 w-3.5" />
-            Start
+            <img
+              src={
+                isConnected ? "/robot-connected.svg" : "/robot-disconnected.svg"
+              }
+              alt=""
+              className="mr-1 h-3.5 w-3.5"
+              aria-hidden="true"
+            />
+            {isConnected ? "Connected" : "Connect"}
           </Button>
           <ThemeToggle />
         </div>
@@ -553,6 +570,7 @@ export const Header = ({
   page,
   selectedRobot,
   selectedControl,
+  isConnected = false,
   onOpenSettings,
   onRobotChange,
   onControlSelectionChange,
@@ -629,6 +647,7 @@ export const Header = ({
     <TrainHeader
       selectedRobot={selectedRobot}
       selectedControl={selectedControl}
+      isConnected={isConnected}
       onOpenSettings={onOpenSettings}
       onRobotChange={onRobotChange}
       onControlSelectionChange={onControlSelectionChange}

@@ -1,20 +1,21 @@
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
-import { type WebRTCSession } from "@/hooks/useWebRTCSession";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 import {
   useTrainingCameraLayout,
   type CameraSlot,
 } from "@/hooks/useTrainingCameraLayout";
 import { useTrainingDatasetEpisodes } from "@/hooks/useTrainingDatasetEpisodes";
 import { useTrainingTelemetry } from "@/hooks/useTrainingTelemetry";
+import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import type { PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { SidebarTabs, type SidebarTab } from "./SidebarTabs";
-import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { CloneDatasetDialog } from "./training/dialogs/CloneDatasetDialog";
+import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
 import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { useEpisodeViewer } from "./training/EpisodeViewerContext";
@@ -30,7 +31,6 @@ import {
 } from "./ui/alert-dialog";
 import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
-import type { PointerEvent as ReactPointerEvent } from "react";
 
 interface TrainingInterfaceProps {
   robotId: string | null;
@@ -276,15 +276,12 @@ export const TrainingInterface = ({
     ? "Select a robot to view cameras."
     : !controllerId
       ? pendingControllerId
-        ? "Click the Start button to connect cameras."
+        ? "Click the Connect button to connect cameras."
         : "select control interface now."
       : cameraError;
 
   const handleSecondaryCameraResizeStart = useCallback(
-    (
-      side: SecondaryCameraSide,
-      direction: SecondaryCameraResizeDirection,
-    ) =>
+    (side: SecondaryCameraSide, direction: SecondaryCameraResizeDirection) =>
       (event: ReactPointerEvent<HTMLElement>) => {
         event.preventDefault();
         event.stopPropagation();

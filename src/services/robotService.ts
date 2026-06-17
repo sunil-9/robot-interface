@@ -113,9 +113,7 @@ export const robotService = {
     }
   },
 
-  async claimRobot(
-    robotHash: string,
-  ): Promise<ClaimRobotResponse> {
+  async claimRobot(robotHash: string): Promise<ClaimRobotResponse> {
     const normalizedHash = robotHash.trim();
     if (!normalizedHash) {
       throw new Error("Robot hash is required");
@@ -187,7 +185,7 @@ function mapClaimedRobotToAppRobot(
     id: robotId,
     name,
     description: liveData
-      ? `Connected at ${liveData.address}`
+      ? `Robot Active at ${liveData.address}`
       : "Offline robot",
     image: `/robots/${robotId}.png`,
     capabilities: _capabilityMapping[robotId] ?? ["Remote Operation"],

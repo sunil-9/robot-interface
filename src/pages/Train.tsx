@@ -58,6 +58,7 @@ export default function TrainPage() {
     robotId: canStartWebRTC ? selectedRobot : null,
     controllerId: canStartWebRTC ? selectedControl : null,
   });
+  const isConnected = session.connectionState === "connected";
 
   useEffect(() => {
     if (auth.isLoadingUser) {
@@ -315,7 +316,13 @@ export default function TrainPage() {
     return () => {
       disposed = true;
     };
-  }, [auth.accessToken, selectedRobot, selectedControl, sessionRobotData, navigate]);
+  }, [
+    auth.accessToken,
+    selectedRobot,
+    selectedControl,
+    sessionRobotData,
+    navigate,
+  ]);
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
@@ -333,6 +340,7 @@ export default function TrainPage() {
         page={"train"}
         selectedRobot={selectedRobot || undefined}
         selectedControl={selectedControl || undefined}
+        isConnected={isConnected}
         onOpenSettings={(tab = "account") => {
           setControlCenterTab(tab);
           setShowSelectionDialog(true);

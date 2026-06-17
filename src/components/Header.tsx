@@ -503,7 +503,7 @@ const TrainHeader = ({
                 isConnected ? "/robot-connected.svg" : "/robot-disconnected.svg"
               }
               alt=""
-              className="mr-1 h-3.5 w-3.5"
+              className="mr-1 h-6 w-6"
               aria-hidden="true"
             />
             {isConnected ? "Connected" : "Connect"}

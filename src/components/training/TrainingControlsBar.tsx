@@ -32,8 +32,6 @@ export function TrainingControlsBar({
   isRestoring,
   onStart,
   onStop,
-  onRewind,
-  onDeploy,
   onMemorise,
   onRestore,
   onClear,
@@ -47,9 +45,7 @@ export function TrainingControlsBar({
         isDeployingRequest={deployRequestPending}
         onStart={onStart}
         onStop={onStop}
-        onRewind={onRewind}
-        onDeploy={onDeploy}
-        style={RecordingControlStyle.COMPACT}
+        style={RecordingControlStyle.DEFAULT}
         embedded
       />
       {/* <div className="h-7 w-px bg-border" /> */}
@@ -57,7 +53,7 @@ export function TrainingControlsBar({
         memorisedPose={memorisedPose}
         isLoading={poseLoading}
         isRestoring={isRestoring}
-        isCompact
+        isCompact={false}
         onMemorise={onMemorise}
         onRestore={onRestore}
         onClear={onClear}

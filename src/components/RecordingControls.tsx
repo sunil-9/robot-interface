@@ -1,4 +1,4 @@
-import { Play, Rocket, RotateCcw, Square } from "lucide-react";
+import { Play, Square } from "lucide-react";
 
 import { Button } from "./ui/button";
 
@@ -14,8 +14,6 @@ interface RecordingControlsProps {
   isDeployingRequest?: boolean;
   onStart: () => void;
   onStop: () => void;
-  onRewind: () => void;
-  onDeploy: () => void;
   style?: RecordingControlStyle;
   embedded?: boolean;
   children?: React.ReactNode;
@@ -24,12 +22,8 @@ interface RecordingControlsProps {
 export const RecordingControls = ({
   isRecording,
   isLoading,
-  isDeploying = false,
-  isDeployingRequest = false,
   onStart,
   onStop,
-  onRewind,
-  onDeploy,
   style = RecordingControlStyle.DEFAULT,
   embedded = false,
   children,
@@ -53,31 +47,8 @@ export const RecordingControls = ({
         ) : (
           <Play className="h-4 w-4" />
         )}
-        {isCompact ? "" : isRecording ? "Stop" : "Record"}
+        {isCompact ? "" : isRecording ? "Stop" : "Record episode"}
       </Button>
-
-      <Button
-        onClick={onRewind}
-        variant="ghost"
-        className={`rounded-full font-semibold uppercase tracking-wide bg-slate-600 text-slate-200 border-0 transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105 ${
-          isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"
-        }`}
-      >
-        <RotateCcw className="h-4 w-4" />
-        {isCompact ? "" : "Rewind"}
-      </Button>
-      {/* <Button
-        onClick={onDeploy}
-        disabled={isLoading || isDeployingRequest}
-        className={`rounded-full font-semibold uppercase tracking-wide border-0 transition-all duration-200 ${
-          isDeploying
-            ? "bg-amber-500 text-white hover:bg-amber-400 hover:shadow-lg hover:shadow-amber-500/30 hover:scale-105"
-            : "bg-primary text-primary-foreground hover:bg-primary/80 hover:shadow-lg hover:shadow-primary/30 hover:scale-105"
-        } ${isCompact ? "px-3 h-7 text-xs" : "px-5 h-9 text-sm"}`}
-      >
-        <Rocket className="h-4 w-4" />
-        {isCompact ? "" : isDeploying ? "Stop" : "Deploy"}
-      </Button> */}
     </div>
   );
 

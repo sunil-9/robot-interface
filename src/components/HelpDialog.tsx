@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { ChevronDown, ChevronUp, Gamepad2, HelpCircle } from "lucide-react";
+import { ChevronDown, Gamepad2, HelpCircle } from "lucide-react";
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 
@@ -11,7 +11,11 @@ interface HelpDialogProps {
   inline?: boolean;
 }
 
-export function HelpDialog({ className, children, inline = false }: HelpDialogProps) {
+export function HelpDialog({
+  className,
+  children,
+  inline = false,
+}: HelpDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const location = useLocation();
@@ -28,34 +32,24 @@ export function HelpDialog({ className, children, inline = false }: HelpDialogPr
   return (
     <div
       className={cn(
-        inline
-          ? "relative"
-          : "fixed bottom-0 left-1/2 z-50 -translate-x-1/2",
+        inline ? "relative" : "fixed bottom-0 left-1/2 z-50 -translate-x-1/2",
       )}
     >
       {/* Collapsed state - just the button */}
-      <div
+      <Button
+        variant="outline"
+        onClick={() => setIsOpen((current) => !current)}
         className={cn(
-          "transition-all duration-300 ease-in-out",
-          isOpen ? "opacity-0 pointer-events-none" : "opacity-100",
+          inline
+            ? "rounded-full bg-slate-600 text-slate-200 border-0 backdrop-blur-sm hover:bg-slate-500 hover:text-white"
+            : "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
+          children ? "" : "h-9 w-9",
+          className,
         )}
       >
-        <Button
-          variant="outline"
-          onClick={() => setIsOpen(true)}
-          className={cn(
-            inline
-              ? "rounded-full bg-slate-600 text-slate-200 border-0 backdrop-blur-sm hover:bg-slate-500 hover:text-white"
-              : "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
-            children ? "" : "h-9 w-9",
-            className,
-          )}
-        >
-          <HelpCircle
-            className={cn("h-5 w-5", children && "h-5 w-5")}
-          />
-        </Button>
-      </div>
+        <HelpCircle className={cn("h-5 w-5", children && "h-5 w-5")} />
+        Help
+      </Button>
 
       {/* Expanded panel */}
       <div
@@ -64,7 +58,7 @@ export function HelpDialog({ className, children, inline = false }: HelpDialogPr
           inline ? "bottom-full mb-3" : "bottom-0",
           isOpen
             ? "translate-y-0 opacity-95"
-            : "translate-y-full opacity-0 pointer-events-none"
+            : "translate-y-full opacity-0 pointer-events-none",
         )}
       >
         <div className="rounded-t-xl  bg-card/95 backdrop-blur-sm shadow-xl w-[450px]">
@@ -89,7 +83,7 @@ export function HelpDialog({ className, children, inline = false }: HelpDialogPr
 
           {/* Content */}
 
-          <div >
+          <div>
             {imageError ? (
               <div className="flex h-[350px] w-[450px] items-center justify-center bg-muted">
                 <p className="text-muted-foreground text-sm">No help found</p>

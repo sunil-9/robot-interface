@@ -29,6 +29,10 @@ interface UserProfileResponse {
   created_at: string;
 }
 
+interface ForgotPasswordResponse {
+  message: string;
+}
+
 export interface StoredAuthSession {
   accessToken: string;
   user: AuthUser | null;
@@ -163,6 +167,35 @@ export const fetchCurrentUser = async (): Promise<AuthUser> => {
     throw new Error(formatApiError(payload, "Failed to load current user."));
   }
   return mapAuthUser(payload as UserProfileResponse);
+};
+
+export const requestPasswordOtp = async (
+  email: string,
+): Promise<ForgotPasswordResponse> =>
+  postJson<ForgotPasswordResponse>(
+    "/auth/forgot-password",
+    { email },
+    "Failed to send password reset OTP.",
+  );
+
+export const resetPasswordWithOtp = async (input: {
+  email: string;
+  otp: string;
+  newPassword: string;
+}): Promise<void> => {
+  const response = await apiFetch("/auth/reset-password", {
+    method: "POST",
+    auth: "never",
+    headers: buildJsonHeaders(),
+    body: JSON.stringify({
+      email: input.email,
+      otp: input.otp,
+      new_password: input.newPassword,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Failed to reset password."));
+  }
 };
 
 export const changePassword = async (input: {

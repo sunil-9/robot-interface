@@ -4,7 +4,11 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { cn } from "@/lib/utils";
-import { changePassword } from "@/services/authApi";
+import {
+  changePassword,
+  requestPasswordOtp,
+  resetPasswordWithOtp,
+} from "@/services/authApi";
 import { useEffect, useState } from "react";
 
 interface AccountPanelProps {
@@ -13,11 +17,18 @@ interface AccountPanelProps {
 
 export function AccountPanel({ onClose }: AccountPanelProps) {
   const auth = useAuthSession();
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
+  const [authMode, setAuthMode] = useState<"login" | "signup" | "forgot">(
+    "login",
+  );
   const [authEmail, setAuthEmail] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authFullName, setAuthFullName] = useState("");
   const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [resetOtp, setResetOtp] = useState("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resetConfirmPassword, setResetConfirmPassword] = useState("");
+  const [resetOtpSent, setResetOtpSent] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
@@ -26,6 +37,10 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
   useEffect(() => {
     setAuthEmail(auth.user?.email ?? "");
     setAuthPassword("");
+    setResetOtp("");
+    setResetNewPassword("");
+    setResetConfirmPassword("");
+    setResetOtpSent(false);
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
@@ -67,6 +82,84 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
       });
     } finally {
       setAuthSubmitting(false);
+    }
+  };
+
+  const handleRequestPasswordOtp = async () => {
+    setResetSubmitting(true);
+    try {
+      const result = await requestPasswordOtp(authEmail.trim());
+      setResetOtpSent(true);
+      toast({
+        title: "OTP sent",
+        description: result.message,
+      });
+    } catch (error) {
+      toast({
+        title: "OTP request failed",
+        description:
+          error instanceof Error ? error.message : "Failed to send OTP.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (resetOtp.length !== 6 || !/^\d{6}$/.test(resetOtp)) {
+      toast({
+        title: "Invalid OTP",
+        description: "Enter the 6-digit OTP from your email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (resetNewPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "New password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (resetNewPassword !== resetConfirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "Confirm password must match the new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setResetSubmitting(true);
+    try {
+      await resetPasswordWithOtp({
+        email: authEmail.trim(),
+        otp: resetOtp,
+        newPassword: resetNewPassword,
+      });
+      setAuthMode("login");
+      setAuthPassword("");
+      setResetOtp("");
+      setResetNewPassword("");
+      setResetConfirmPassword("");
+      setResetOtpSent(false);
+      toast({
+        title: "Password reset",
+        description: "Your password has been updated. You can log in now.",
+      });
+    } catch (error) {
+      toast({
+        title: "Password reset failed",
+        description:
+          error instanceof Error ? error.message : "Failed to reset password.",
+        variant: "destructive",
+      });
+    } finally {
+      setResetSubmitting(false);
     }
   };
 
@@ -138,15 +231,14 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
         </div>
 
         <div className="space-y-4 rounded-lg border border-border bg-background/50 p-5">
-          <p className="text-sm font-medium text-foreground">
-            Change Password
-          </p>
+          <p className="text-sm font-medium text-foreground">Change Password</p>
 
           <div className="space-y-2">
             <Label htmlFor="account-current-password">Current password</Label>
             <Input
               id="account-current-password"
               type="password"
+              placeholder="Current password"
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
               className="border-border bg-background"
@@ -172,6 +264,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
             <Input
               id="account-confirm-new-password"
               type="password"
+              placeholder="At least 8 characters"
               value={confirmNewPassword}
               onChange={(event) => setConfirmNewPassword(event.target.value)}
               className="border-border bg-background"
@@ -236,61 +329,173 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
         </Button>
       </div>
 
-      {authMode === "signup" && (
-        <div className="space-y-2">
-          <Label htmlFor="auth-full-name">Full name</Label>
-          <Input
-            id="auth-full-name"
-            value={authFullName}
-            onChange={(event) => setAuthFullName(event.target.value)}
-            placeholder="Full Name"
-            className="border-border bg-background"
-          />
-        </div>
+      {authMode === "forgot" ? (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="reset-email">Email</Label>
+            <Input
+              id="reset-email"
+              type="email"
+              value={authEmail}
+              onChange={(event) => setAuthEmail(event.target.value)}
+              placeholder="operator@example.com"
+              className="border-border bg-background"
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => void handleRequestPasswordOtp()}
+            disabled={resetSubmitting || !authEmail.trim()}
+          >
+            {resetSubmitting && !resetOtpSent ? "Sending..." : "Send OTP"}
+          </Button>
+
+          {resetOtpSent && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="reset-otp">6-digit OTP</Label>
+                <Input
+                  id="reset-otp"
+                  value={resetOtp}
+                  onChange={(event) =>
+                    setResetOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
+                  }
+                  inputMode="numeric"
+                  maxLength={6}
+                  placeholder="000000"
+                  className="border-border bg-background"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reset-new-password">New password</Label>
+                <Input
+                  id="reset-new-password"
+                  type="password"
+                  value={resetNewPassword}
+                  onChange={(event) => setResetNewPassword(event.target.value)}
+                  placeholder="At least 8 characters"
+                  className="border-border bg-background"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="reset-confirm-password">
+                  Confirm new password
+                </Label>
+                <Input
+                  id="reset-confirm-password"
+                  type="password"
+                  value={resetConfirmPassword}
+                  onChange={(event) =>
+                    setResetConfirmPassword(event.target.value)
+                  }
+                  className="border-border bg-background"
+                />
+              </div>
+
+              <Button
+                type="button"
+                onClick={() => void handleResetPassword()}
+                disabled={
+                  resetSubmitting ||
+                  !authEmail.trim() ||
+                  resetOtp.length !== 6 ||
+                  !resetNewPassword ||
+                  !resetConfirmPassword
+                }
+              >
+                {resetSubmitting ? "Resetting..." : "Reset Password"}
+              </Button>
+            </>
+          )}
+
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-fit px-0 text-primary hover:bg-transparent hover:text-primary/80"
+            onClick={() => setAuthMode("login")}
+          >
+            Back to login
+          </Button>
+        </>
+      ) : (
+        <>
+          {authMode === "signup" && (
+            <div className="space-y-2">
+              <Label htmlFor="auth-full-name">Full name</Label>
+              <Input
+                id="auth-full-name"
+                value={authFullName}
+                onChange={(event) => setAuthFullName(event.target.value)}
+                placeholder="Full Name"
+                className="border-border bg-background"
+              />
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label htmlFor="auth-email">Email</Label>
+            <Input
+              id="auth-email"
+              type="email"
+              value={authEmail}
+              onChange={(event) => setAuthEmail(event.target.value)}
+              placeholder="operator@example.com"
+              className="border-border bg-background"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="auth-password">Password</Label>
+            <Input
+              id="auth-password"
+              type="password"
+              value={authPassword}
+              onChange={(event) => setAuthPassword(event.target.value)}
+              placeholder="At least 8 characters"
+              className="border-border bg-background"
+            />
+          </div>
+
+          <Button
+            type="button"
+            onClick={() => void handleAuthSubmit()}
+            disabled={
+              authSubmitting ||
+              !authEmail.trim() ||
+              !authPassword ||
+              (authMode === "signup" && !authFullName.trim())
+            }
+          >
+            {authSubmitting
+              ? authMode === "login"
+                ? "Signing In..."
+                : "Creating Account..."
+              : authMode === "login"
+                ? "Login"
+                : "Create Account"}
+          </Button>
+
+          {authMode === "login" && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-fit px-0 text-primary hover:bg-transparent hover:text-primary/80"
+              onClick={() => {
+                setAuthMode("forgot");
+                setResetOtp("");
+                setResetNewPassword("");
+                setResetConfirmPassword("");
+                setResetOtpSent(false);
+              }}
+            >
+              Forgot password?
+            </Button>
+          )}
+        </>
       )}
-
-      <div className="space-y-2">
-        <Label htmlFor="auth-email">Email</Label>
-        <Input
-          id="auth-email"
-          type="email"
-          value={authEmail}
-          onChange={(event) => setAuthEmail(event.target.value)}
-          placeholder="operator@example.com"
-          className="border-border bg-background"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="auth-password">Password</Label>
-        <Input
-          id="auth-password"
-          type="password"
-          value={authPassword}
-          onChange={(event) => setAuthPassword(event.target.value)}
-          placeholder="At least 8 characters"
-          className="border-border bg-background"
-        />
-      </div>
-
-      <Button
-        type="button"
-        onClick={() => void handleAuthSubmit()}
-        disabled={
-          authSubmitting ||
-          !authEmail.trim() ||
-          !authPassword ||
-          (authMode === "signup" && !authFullName.trim())
-        }
-      >
-        {authSubmitting
-          ? authMode === "login"
-            ? "Signing In..."
-            : "Creating Account..."
-          : authMode === "login"
-            ? "Login"
-            : "Create Account"}
-      </Button>
     </div>
   );
 }

@@ -102,100 +102,87 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="space-y-4 rounded-lg border border-border bg-card/70 p-5">
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant={authMode === "login" ? "default" : "outline"}
-            className={cn(
-              authMode !== "login" &&
-                "border-border bg-transparent text-foreground hover:bg-accent",
-            )}
-            onClick={() => setAuthMode("login")}
-          >
-            Login
-          </Button>
-          <Button
-            type="button"
-            variant={authMode === "signup" ? "default" : "outline"}
-            className={cn(
-              authMode !== "signup" &&
-                "border-border bg-transparent text-foreground hover:bg-accent",
-            )}
-            onClick={() => setAuthMode("signup")}
-          >
-            Sign Up
-          </Button>
-        </div>
-
-        {authMode === "signup" && (
-          <div className="space-y-2">
-            <Label htmlFor="auth-full-name">Full name</Label>
-            <Input
-              id="auth-full-name"
-              value={authFullName}
-              onChange={(event) => setAuthFullName(event.target.value)}
-              placeholder="Full Name"
-              className="border-border bg-background"
-            />
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label htmlFor="auth-email">Email</Label>
-          <Input
-            id="auth-email"
-            type="email"
-            value={authEmail}
-            onChange={(event) => setAuthEmail(event.target.value)}
-            placeholder="operator@example.com"
-            className="border-border bg-background"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="auth-password">Password</Label>
-          <Input
-            id="auth-password"
-            type="password"
-            value={authPassword}
-            onChange={(event) => setAuthPassword(event.target.value)}
-            placeholder="At least 8 characters"
-            className="border-border bg-background"
-          />
-        </div>
-
+    <div className="space-y-4 rounded-lg border border-border bg-card/70 p-5">
+      <div className="flex gap-2">
         <Button
           type="button"
-          onClick={() => void handleAuthSubmit()}
-          disabled={
-            authSubmitting ||
-            !authEmail.trim() ||
-            !authPassword ||
-            (authMode === "signup" && !authFullName.trim())
-          }
+          variant={authMode === "login" ? "default" : "outline"}
+          className={cn(
+            authMode !== "login" &&
+              "border-border bg-transparent text-foreground hover:bg-accent",
+          )}
+          onClick={() => setAuthMode("login")}
         >
-          {authSubmitting
-            ? authMode === "login"
-              ? "Signing In..."
-              : "Creating Account..."
-            : authMode === "login"
-              ? "Login"
-              : "Create Account"}
+          Login
+        </Button>
+        <Button
+          type="button"
+          variant={authMode === "signup" ? "default" : "outline"}
+          className={cn(
+            authMode !== "signup" &&
+              "border-border bg-transparent text-foreground hover:bg-accent",
+          )}
+          onClick={() => setAuthMode("signup")}
+        >
+          Sign Up
         </Button>
       </div>
 
-      <div className="rounded-lg border border-border bg-muted/20 p-5">
-        <p className="text-xs uppercase tracking-[0.24em] text-cyan-700 dark:text-cyan-200/70">
-          Why sign in
-        </p>
-        <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-          <li>Keep your operator identity available across sessions.</li>
-          <li>Unlock security management from the same control dialog.</li>
-          <li>Prepare the UI for future model and training ownership views.</li>
-        </ul>
+      {authMode === "signup" && (
+        <div className="space-y-2">
+          <Label htmlFor="auth-full-name">Full name</Label>
+          <Input
+            id="auth-full-name"
+            value={authFullName}
+            onChange={(event) => setAuthFullName(event.target.value)}
+            placeholder="Full Name"
+            className="border-border bg-background"
+          />
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="auth-email">Email</Label>
+        <Input
+          id="auth-email"
+          type="email"
+          value={authEmail}
+          onChange={(event) => setAuthEmail(event.target.value)}
+          placeholder="operator@example.com"
+          className="border-border bg-background"
+        />
       </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="auth-password">Password</Label>
+        <Input
+          id="auth-password"
+          type="password"
+          value={authPassword}
+          onChange={(event) => setAuthPassword(event.target.value)}
+          placeholder="At least 8 characters"
+          className="border-border bg-background"
+        />
+      </div>
+
+      <Button
+        type="button"
+        onClick={() => void handleAuthSubmit()}
+        disabled={
+          authSubmitting ||
+          !authEmail.trim() ||
+          !authPassword ||
+          (authMode === "signup" && !authFullName.trim())
+        }
+      >
+        {authSubmitting
+          ? authMode === "login"
+            ? "Signing In..."
+            : "Creating Account..."
+          : authMode === "login"
+            ? "Login"
+            : "Create Account"}
+      </Button>
     </div>
   );
 }

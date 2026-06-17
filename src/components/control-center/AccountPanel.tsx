@@ -284,20 +284,6 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
             {passwordSubmitting ? "Changing..." : "Change Password"}
           </Button>
         </div>
-
-        <Button
-          variant="outline"
-          className="border-border bg-transparent text-foreground hover:bg-accent"
-          onClick={() => {
-            auth.logout();
-            toast({
-              title: "Signed out",
-              description: "Your local operator session was cleared.",
-            });
-          }}
-        >
-          Sign Out
-        </Button>
       </div>
     );
   }
@@ -359,7 +345,9 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
                   id="reset-otp"
                   value={resetOtp}
                   onChange={(event) =>
-                    setResetOtp(event.target.value.replace(/\D/g, "").slice(0, 6))
+                    setResetOtp(
+                      event.target.value.replace(/\D/g, "").slice(0, 6),
+                    )
                   }
                   inputMode="numeric"
                   maxLength={6}
@@ -434,7 +422,6 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               />
             </div>
           )}
-
           <div className="space-y-2">
             <Label htmlFor="auth-email">Email</Label>
             <Input
@@ -446,7 +433,6 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               className="border-border bg-background"
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="auth-password">Password</Label>
             <Input
@@ -458,7 +444,6 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               className="border-border bg-background"
             />
           </div>
-
           <Button
             type="button"
             onClick={() => void handleAuthSubmit()}
@@ -476,8 +461,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               : authMode === "login"
                 ? "Login"
                 : "Create Account"}
-          </Button>
-
+          </Button>{" "}
           {authMode === "login" && (
             <Button
               type="button"

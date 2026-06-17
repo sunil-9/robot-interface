@@ -25,7 +25,7 @@ export const RecordingControls = ({
   onStart,
   onStop,
   style = RecordingControlStyle.DEFAULT,
-  embedded = false,
+  embedded ,
   children,
 }: RecordingControlsProps) => {
   const isCompact = style === RecordingControlStyle.COMPACT;

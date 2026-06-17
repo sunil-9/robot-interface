@@ -37,17 +37,17 @@ export function HelpDialog({
     >
       {/* Collapsed state - just the button */}
       <Button
-        variant="outline"
+        variant="ghost"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
           inline
-            ? "rounded-full bg-slate-600 text-slate-200 border-0 backdrop-blur-sm hover:bg-slate-500 hover:text-white"
+            ? "rounded-full border-0 bg-slate-600 text-slate-200 backdrop-blur-sm transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105"
             : "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
           children ? "" : "h-9 w-9",
           className,
         )}
       >
-        <HelpCircle className={cn("h-5 w-5", children && "h-5 w-5")} />
+        <HelpCircle className="h-4 w-4" />
         Help
       </Button>
 

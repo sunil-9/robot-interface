@@ -15,8 +15,6 @@ interface TrainingControlsBarProps {
   isRestoring: boolean;
   onStart: () => void;
   onStop: () => void;
-  onRewind: () => void;
-  onDeploy: () => void;
   onMemorise: () => void;
   onRestore: () => void;
   onClear: () => void;
@@ -46,7 +44,7 @@ export function TrainingControlsBar({
         onStart={onStart}
         onStop={onStop}
         style={RecordingControlStyle.DEFAULT}
-        embedded
+        embedded={true}
       />
       {/* <div className="h-7 w-px bg-border" /> */}
       <MemoriseRestorePose
@@ -61,7 +59,7 @@ export function TrainingControlsBar({
       {/* <div className="h-7 w-px bg-border" /> */}
       <HelpDialog
         inline
-        className="h-7 px-3 text-xs font-semibold uppercase tracking-wide"
+        className="h-9 px-5 text-sm font-semibold uppercase tracking-wide"
       >
         Help
       </HelpDialog>

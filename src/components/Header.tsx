@@ -249,6 +249,14 @@ const TrainHeader = ({
     if (!hasSelectedRobot || !controlSelection) {
       return;
     }
+    if (selectedRobotDetail && !selectedRobotDetail.is_live) {
+      toast({
+        title: "Robot offline",
+        description: "This robot is not live. Please select a live robot.",
+        variant: "destructive",
+      });
+      return;
+    }
     onSelectionStart?.(normalizedSelectedRobotId, controlSelection);
   };
 
@@ -490,7 +498,10 @@ const TrainHeader = ({
             size="sm"
             onClick={handleStart}
             disabled={
-              !auth.accessToken || !hasSelectedRobot || !controlSelection
+              !auth.accessToken ||
+              !hasSelectedRobot ||
+              !controlSelection ||
+              selectedRobotDetail?.is_live === false
             }
             className={`h-10 px-4 ${
               isConnected

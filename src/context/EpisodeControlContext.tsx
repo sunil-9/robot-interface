@@ -17,6 +17,14 @@ import {
 
 const SELECTED_DATASET_STORAGE_KEY = "im-selected-dataset";
 
+const normalizeDeployModelId = (modelId?: string | number | null) => {
+  if (modelId === null || modelId === undefined) {
+    return null;
+  }
+  const normalized = String(modelId).trim();
+  return normalized || null;
+};
+
 export interface EpisodeControlState {
   isRecording: boolean;
   currentEpisodeId: string | null;
@@ -27,6 +35,7 @@ export interface EpisodeControlState {
   isDeploying: boolean;
   deployRequestPending: boolean;
   deployDatasetId: string | null;
+  deployModelId: string | null;
   deployStatusPopupOpen: boolean;
   deployStatusMessage: string | null;
   // Pose state
@@ -49,11 +58,12 @@ export interface EpisodeControlActions {
   setIsRecording: (recording: boolean) => void;
   setCurrentEpisodeId: (episodeId: string | null) => void;
   // Deploy actions
-  handleDeploy: () => Promise<boolean>;
+  handleDeploy: (modelId?: string | number | null) => Promise<boolean>;
   handleForceStopDeploy: () => Promise<boolean>;
   setIsDeploying: (deploying: boolean) => void;
   setDeployRequestPending: (pending: boolean) => void;
   setDeployDatasetId: (datasetId: string | null) => void;
+  setDeployModelId: (modelId: string | null) => void;
   setDeployStatusPopupOpen: (open: boolean) => void;
   setDeployStatusMessage: (message: string | null) => void;
   // Pose actions
@@ -126,6 +136,7 @@ export function EpisodeControlProvider({
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployRequestPending, setDeployRequestPending] = useState(false);
   const [deployDatasetId, setDeployDatasetId] = useState<string | null>(null);
+  const [deployModelId, setDeployModelId] = useState<string | null>(null);
   const [deployStatusPopupOpen, setDeployStatusPopupOpen] = useState(false);
   const [deployStatusMessage, setDeployStatusMessage] = useState<string | null>(
     null,
@@ -149,6 +160,8 @@ export function EpisodeControlProvider({
   userRef.current = user;
   const deployDatasetRef = useRef(deployDatasetId);
   deployDatasetRef.current = deployDatasetId;
+  const deployModelRef = useRef(deployModelId);
+  deployModelRef.current = deployModelId;
 
   const setSession = useCallback((session: WebRTCSession | null) => {
     sessionRef.current = session;
@@ -300,86 +313,109 @@ export function EpisodeControlProvider({
     }
   }, [setMode, onRecordingEnd]);
 
-  const handleDeploy = useCallback(async (): Promise<boolean> => {
-    const datasetId = selectedDatasetIdRef.current;
-    const datasetLabel = selectedDatasetRef.current || datasetId;
-    const session = sessionRef.current;
-    const robotId = robotIdRef.current;
-    const controllerId = controllerIdRef.current;
+  const handleDeploy = useCallback(
+    async (modelId?: string | number | null): Promise<boolean> => {
+      const datasetId = selectedDatasetIdRef.current;
+      const datasetLabel = selectedDatasetRef.current || datasetId;
+      const session = sessionRef.current;
+      const robotId = robotIdRef.current;
+      const controllerId = controllerIdRef.current;
+      const requestedModelId = normalizeDeployModelId(modelId);
 
-    if (!datasetId) {
-      toast({
-        title: "Error",
-        description: "Select a dataset before deploying",
-        variant: "destructive",
-      });
-      return false;
-    }
+      if (!datasetId) {
+        toast({
+          title: "Error",
+          description: "Select a dataset before deploying",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    if (!robotId) {
-      toast({
-        title: "Error",
-        description: "Select a robot before deploying",
-        variant: "destructive",
-      });
-      return false;
-    }
+      if (!robotId) {
+        toast({
+          title: "Error",
+          description: "Select a robot before deploying",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    if (!controllerId) {
-      toast({
-        title: "Error",
-        description: "Select a control device before deploying",
-        variant: "destructive",
-      });
-      return false;
-    }
+      if (!controllerId) {
+        toast({
+          title: "Error",
+          description: "Select a control device before deploying",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    if (!session) {
-      toast({
-        title: "Error",
-        description: "No active session",
-        variant: "destructive",
-      });
-      return false;
-    }
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "No active session",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    const action = isDeploying ? "stop" : "start";
-    setDeployRequestPending(true);
-    setDeployDatasetId(datasetId);
+      const action = isDeploying ? "stop" : "start";
+      const targetModelId =
+        action === "start"
+          ? requestedModelId
+          : requestedModelId ?? deployModelRef.current;
+      const targetLabel = targetModelId
+        ? `model #${targetModelId} from dataset "${datasetLabel}"`
+        : `dataset "${datasetLabel}"`;
+      setDeployRequestPending(true);
+      setDeployDatasetId(datasetId);
+      setDeployModelId(targetModelId);
 
-    const sent = session.sendControl({
-      type: "deploy",
-      payload: {
+      const deployPayload: {
+        action: string;
+        datasetId: string;
+        modelId?: string;
+      } = {
         action,
         datasetId,
-      },
-    });
+      };
+      if (targetModelId) {
+        deployPayload.modelId = targetModelId;
+      }
 
-    if (!sent) {
-      setDeployRequestPending(false);
-      toast({
-        title: "Error",
-        description: "Failed to send deploy request to robot",
-        variant: "destructive",
+      const sent = session.sendControl({
+        type: "deploy",
+        payload: deployPayload,
       });
-      return false;
-    }
 
-    toast({
-      title: "Deployment request sent",
-      description:
-        action === "start"
-          ? `Deploying dataset "${datasetLabel}".`
-          : `Stopping deployment for dataset "${datasetLabel}".`,
-    });
+      if (!sent) {
+        setDeployRequestPending(false);
+        setDeployModelId(deployModelRef.current);
+        toast({
+          title: "Error",
+          description: "Failed to send deploy request to robot",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    return true;
-  }, [isDeploying]);
+      toast({
+        title: "Deployment request sent",
+        description:
+          action === "start"
+            ? `Deploying ${targetLabel}.`
+            : `Stopping deployment for ${targetLabel}.`,
+      });
+
+      return true;
+    },
+    [isDeploying],
+  );
 
   const handleForceStopDeploy = useCallback(async (): Promise<boolean> => {
     const session = sessionRef.current;
     const datasetToStop =
       deployDatasetRef.current ?? selectedDatasetIdRef.current;
+    const modelToStop = deployModelRef.current;
     const datasetLabel = selectedDatasetRef.current ?? datasetToStop;
 
     if (!session) {
@@ -391,12 +427,21 @@ export function EpisodeControlProvider({
       return false;
     }
 
+    const deployPayload: {
+      action: string;
+      datasetId: string | null;
+      modelId?: string;
+    } = {
+      action: "stop",
+      datasetId: datasetToStop,
+    };
+    if (modelToStop) {
+      deployPayload.modelId = modelToStop;
+    }
+
     const sent = session.sendControl({
       type: "deploy",
-      payload: {
-        action: "stop",
-        datasetId: datasetToStop,
-      },
+      payload: deployPayload,
     });
 
     if (!sent) {
@@ -413,11 +458,14 @@ export function EpisodeControlProvider({
     setDeployStatusMessage(null);
     setIsDeploying(false);
     setDeployDatasetId(null);
+    setDeployModelId(null);
     setDeployRequestPending(false);
 
     toast({
       title: "Force stop sent",
-      description: `Stopping deployment for dataset "${datasetLabel}".`,
+      description: modelToStop
+        ? `Stopping deployment for model #${modelToStop} from dataset "${datasetLabel}".`
+        : `Stopping deployment for dataset "${datasetLabel}".`,
     });
 
     return true;
@@ -492,6 +540,7 @@ export function EpisodeControlProvider({
     setIsDeploying(false);
     setDeployRequestPending(false);
     setDeployDatasetId(null);
+    setDeployModelId(null);
     setDeployStatusPopupOpen(false);
     setDeployStatusMessage(null);
     setMode?.(AppMode.EXPLORATION);
@@ -507,6 +556,7 @@ export function EpisodeControlProvider({
     isDeploying,
     deployRequestPending,
     deployDatasetId,
+    deployModelId,
     deployStatusPopupOpen,
     deployStatusMessage,
     // Actions
@@ -526,6 +576,7 @@ export function EpisodeControlProvider({
     setIsDeploying,
     setDeployRequestPending,
     setDeployDatasetId,
+    setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
     // Pose

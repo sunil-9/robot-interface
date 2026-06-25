@@ -54,7 +54,13 @@ export const ModelTrainingSection = ({
   className,
   selectedDatasetDbId = null,
 }: ModelTrainingSectionProps) => {
-  const { selectedDataset } = useEpisodeControlContext();
+  const {
+    selectedDataset,
+    handleDeploy,
+    isDeploying,
+    deployRequestPending,
+    deployModelId,
+  } = useEpisodeControlContext();
   const [models, setModels] = useState<modelsApi.ModelSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +159,13 @@ export const ModelTrainingSection = ({
     }
   };
 
+  const handleDeployModel = useCallback(
+    (modelId: number) => {
+      void handleDeploy(modelId);
+    },
+    [handleDeploy],
+  );
+
   const getProgressPercent = (model: modelsApi.ModelSummary) => {
     const target = model.max_target_steps ?? model.total_steps;
     if (target <= 0) return 0;
@@ -248,6 +261,9 @@ export const ModelTrainingSection = ({
             const percent = getProgressPercent(model);
             const selectedSteps =
               trainSteps[model.model_id] ?? STEP_OPTIONS[0].value;
+            const modelId = String(model.model_id);
+            const isDeployTarget = deployModelId === modelId;
+            const isDeployPending = deployRequestPending && isDeployTarget;
 
             return (
               <div
@@ -281,11 +297,24 @@ export const ModelTrainingSection = ({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 text-muted-foreground hover:text-primary"
+                      className={cn(
+                        "h-7 w-7 text-muted-foreground hover:text-primary",
+                        isDeployTarget && isDeploying && "text-primary",
+                      )}
                       aria-label={`Deploy model ${model.model_id}`}
-                      title="Deploy"
+                      title={
+                        isDeploying
+                          ? "Deployment already active"
+                          : `Deploy model ${model.model_id}`
+                      }
+                      disabled={deployRequestPending || isDeploying}
+                      onClick={() => handleDeployModel(model.model_id)}
                     >
-                      <Rocket className="h-3.5 w-3.5" />
+                      {isDeployPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Rocket className="h-3.5 w-3.5" />
+                      )}
                     </Button>
                     <Button
                       type="button"

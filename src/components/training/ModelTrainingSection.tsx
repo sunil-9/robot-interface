@@ -1,4 +1,4 @@
-import { Brain, Eye, Loader2, Plus, Rocket, Trash2, Zap } from "lucide-react";
+import { Brain, Eye, Loader2, Plus, Rocket, Square, Trash2, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -264,6 +264,7 @@ export const ModelTrainingSection = ({
             const modelId = String(model.model_id);
             const isDeployTarget = deployModelId === modelId;
             const isDeployPending = deployRequestPending && isDeployTarget;
+            const isStopTarget = isDeploying && isDeployTarget;
 
             return (
               <div
@@ -299,19 +300,27 @@ export const ModelTrainingSection = ({
                       size="icon"
                       className={cn(
                         "h-7 w-7 text-muted-foreground hover:text-primary",
-                        isDeployTarget && isDeploying && "text-primary",
+                        isStopTarget && "text-destructive hover:text-destructive",
                       )}
-                      aria-label={`Deploy model ${model.model_id}`}
+                      aria-label={
+                        isStopTarget
+                          ? `Stop deployment for model ${model.model_id}`
+                          : `Deploy model ${model.model_id}`
+                      }
                       title={
-                        isDeploying
+                        isStopTarget
+                          ? `Stop deployment for model ${model.model_id}`
+                          : isDeploying
                           ? "Deployment already active"
                           : `Deploy model ${model.model_id}`
                       }
-                      disabled={deployRequestPending || isDeploying}
+                      disabled={deployRequestPending || (isDeploying && !isDeployTarget)}
                       onClick={() => handleDeployModel(model.model_id)}
                     >
                       {isDeployPending ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : isStopTarget ? (
+                        <Square className="h-3.5 w-3.5" />
                       ) : (
                         <Rocket className="h-3.5 w-3.5" />
                       )}

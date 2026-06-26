@@ -272,6 +272,7 @@ export const TrainingInterface = ({
     fallbackImageForPosition,
     handleSwapCameraWithMain,
   } = useTrainingCameraLayout(robotId, session);
+  // todo - remove this and implement advance guide to select control interface with animation.
   const cameraGuidance = !robotId
     ? "Select a robot to view cameras."
     : !controllerId

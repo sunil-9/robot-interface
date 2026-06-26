@@ -10,10 +10,10 @@ import {
   CheckCircle2,
   Circle,
   CircleUserRound,
-  PencilLine,
   Link2,
   LogOut,
   Moon,
+  PencilLine,
   RefreshCcw,
   Sun,
 } from "lucide-react";
@@ -506,7 +506,6 @@ const TrainHeader = ({
                             }
                           >
                             <PencilLine className="h-3 w-3" />
-                            Change name
                           </button>
                         </div>
                       </SelectItem>

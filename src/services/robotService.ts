@@ -8,8 +8,8 @@ import {
   ControlDevice,
   OperatorDevicesResponse,
   Robot,
-  RobotsResponse,
   RobotRenameResponse,
+  RobotsResponse,
 } from "@/types/robot";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
@@ -225,9 +225,7 @@ function mapClaimedRobotToAppRobot(
     id: robotId,
     name,
     robotType: claimed.robot_type,
-    description: liveData
-      ? `Robot Active at ${liveData.address}`
-      : "Offline robot",
+    description: liveData ? `Online robot` : "Offline robot",
     image: `/robots/${robotId}.png`,
     capabilities: _capabilityMapping[robotId] ?? ["Remote Operation"],
     specifications: specs,

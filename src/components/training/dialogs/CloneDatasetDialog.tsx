@@ -31,8 +31,29 @@ export const CloneDatasetDialog = ({
   onSubmit,
   onCancel,
 }: CloneDatasetDialogProps) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent className="border-border bg-card text-foreground">
+  <Dialog
+    open={open}
+    onOpenChange={(nextOpen) => {
+      if (isCloning && !nextOpen) {
+        return;
+      }
+      onOpenChange(nextOpen);
+    }}
+  >
+    <DialogContent
+      showCloseButton={!isCloning}
+      onEscapeKeyDown={(event) => {
+        if (isCloning) {
+          event.preventDefault();
+        }
+      }}
+      onInteractOutside={(event) => {
+        if (isCloning) {
+          event.preventDefault();
+        }
+      }}
+      className="border-border bg-card text-foreground"
+    >
       <DialogHeader>
         <DialogTitle>Clone Dataset</DialogTitle>
         <DialogDescription className="text-muted-foreground">
@@ -59,9 +80,11 @@ export const CloneDatasetDialog = ({
         />
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onCancel} disabled={isCloning}>
-          Cancel
-        </Button>
+        {!isCloning && (
+          <Button variant="outline" onClick={onCancel}>
+            Cancel
+          </Button>
+        )}
         <Button
           onClick={onSubmit}
           disabled={isCloning || !newDatasetName.trim()}

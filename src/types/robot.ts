@@ -1,6 +1,7 @@
 // Types for robot data received from the API
 export interface Robot {
   robot_id: number;
+  robot_type?: string;
   address: string;
   heartbeat_interval: number;
   last_seen: string;
@@ -15,6 +16,7 @@ export interface Robot {
 
 export interface ClaimedRobot {
   robot_id: number;
+  robot_type: string;
   friendly_name: string | null;
   is_live: boolean;
 }
@@ -28,6 +30,7 @@ export interface RobotsResponse {
 export interface AppRobot {
   id: number;
   name: string;
+  robotType: string;
   description: string;
   image?: string;
   capabilities: string[];
@@ -66,4 +69,10 @@ export interface ClaimRobotResponse {
   user_id: number;
   robot_id: number;
   created: boolean;
+  friendly_name?: string | null;
+}
+
+export interface RobotRenameResponse {
+  robot_id: number;
+  friendly_name: string | null;
 }

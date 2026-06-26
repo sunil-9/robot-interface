@@ -9,6 +9,7 @@ import {
   OperatorDevicesResponse,
   Robot,
   RobotsResponse,
+  RobotRenameResponse,
 } from "@/types/robot";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
 
@@ -113,11 +114,15 @@ export const robotService = {
     }
   },
 
-  async claimRobot(robotHash: string): Promise<ClaimRobotResponse> {
+  async claimRobot(
+    robotHash: string,
+    friendlyName?: string | null,
+  ): Promise<ClaimRobotResponse> {
     const normalizedHash = robotHash.trim();
     if (!normalizedHash) {
       throw new Error("Robot hash is required");
     }
+    const normalizedFriendlyName = friendlyName?.trim() || null;
 
     const response = await apiFetch(
       `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOT_CLAIM}`,
@@ -127,7 +132,10 @@ export const robotService = {
           "content-type": "application/json",
           accept: "application/json",
         },
-        body: JSON.stringify({ robot_hash: normalizedHash }),
+        body: JSON.stringify({
+          robot_hash: normalizedHash,
+          friendly_name: normalizedFriendlyName,
+        }),
         signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
       },
     );
@@ -136,6 +144,38 @@ export const robotService = {
     if (!response.ok) {
       throw new Error(
         formatApiError(data, `Failed to claim robot: ${response.status}`),
+      );
+    }
+
+    return data;
+  },
+
+  async renameRobot(
+    robotId: string,
+    friendlyName?: string | null,
+  ): Promise<RobotRenameResponse> {
+    const normalizedRobotId = robotId.trim();
+    if (!normalizedRobotId) {
+      throw new Error("Robot ID is required");
+    }
+
+    const response = await apiFetch(
+      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOTS}/${normalizedRobotId}/friendly-name`,
+      {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({ friendly_name: friendlyName?.trim() || null }),
+        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
+      },
+    );
+
+    const data = await parseCloudApiResponse<RobotRenameResponse>(response);
+    if (!response.ok) {
+      throw new Error(
+        formatApiError(data, `Failed to rename robot: ${response.status}`),
       );
     }
 
@@ -184,6 +224,7 @@ function mapClaimedRobotToAppRobot(
   return {
     id: robotId,
     name,
+    robotType: claimed.robot_type,
     description: liveData
       ? `Robot Active at ${liveData.address}`
       : "Offline robot",

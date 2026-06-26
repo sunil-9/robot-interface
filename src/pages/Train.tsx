@@ -355,7 +355,6 @@ export default function TrainPage() {
         <TrainingInterface
           robotId={selectedRobot}
           controllerId={selectedControl}
-          pendingControllerId={pendingControl}
           session={session}
         />
       </main>

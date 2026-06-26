@@ -1,9 +1,6 @@
 import { useBridgeData } from "@/hooks/useBridgeData";
-import {
-  fetchRobotCameras,
-  type RobotCameraConfig,
-} from "@/lib/api";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import { fetchRobotCameras, type RobotCameraConfig } from "@/lib/api";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type CameraSlot = {
@@ -32,7 +29,7 @@ export function useTrainingCameraLayout(
 
     if (!robotId) {
       setCameraConfigs([]);
-      setCameraError("Select a robot to view cameras.");
+      setCameraError(null);
       setCameraLoading(false);
       return () => {
         cancelled = true;
@@ -49,9 +46,7 @@ export function useTrainingCameraLayout(
           return;
         }
         setCameraConfigs(configs);
-        setCameraError(
-          configs.length === 0 ? "No cameras configured for this robot." : null,
-        );
+        setCameraError(configs.length === 0 ? "No cameras configured." : null);
       } catch (error) {
         if (cancelled) {
           return;

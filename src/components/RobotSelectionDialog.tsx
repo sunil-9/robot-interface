@@ -35,6 +35,7 @@ export function RobotSelectionDialog({
       onOpenChange={onOpenChange}
       title={dialogContent.title}
       description={dialogContent.description}
+      size={activeTab === "account" ? "compact" : "default"}
     >
       {dialogContent.renderPanel({
         onClose: () => onOpenChange(false),

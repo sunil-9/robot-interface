@@ -217,23 +217,23 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
 
   if (auth.user) {
     return (
-      <div className="space-y-4 rounded-lg border border-border bg-card/70 p-6 shadow-none backdrop-blur-sm">
-        <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/10 p-5">
-          <p className="text-xs uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-200/70">
+      <div className="space-y-4">
+        <div className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
+          <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-200/70">
             Welcome
           </p>
-          <h3 className="mt-2 text-2xl font-semibold text-foreground">
+          <h3 className="mt-1.5 text-xl font-semibold text-foreground">
             {welcomeName}
           </h3>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Signed in as {auth.user.email}
           </p>
         </div>
 
-        <div className="space-y-4 rounded-lg border border-border bg-background/50 p-5">
+        <div className="space-y-3 rounded-md border border-border/80 bg-background/45 p-4">
           <p className="text-sm font-medium text-foreground">Change Password</p>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="account-current-password">Current password</Label>
             <Input
               id="account-current-password"
@@ -245,7 +245,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="account-new-password">New password</Label>
             <Input
               id="account-new-password"
@@ -257,7 +257,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="account-confirm-new-password">
               Confirm new password
             </Label>
@@ -289,7 +289,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
   }
 
   return (
-    <div className="space-y-4 rounded-lg border border-border bg-card/70 p-5">
+    <div className="space-y-4">
       <div className="flex gap-2">
         <Button
           type="button"
@@ -317,7 +317,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
 
       {authMode === "forgot" ? (
         <>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="reset-email">Email</Label>
             <Input
               id="reset-email"
@@ -339,7 +339,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
 
           {resetOtpSent && (
             <>
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="reset-otp">6-digit OTP</Label>
                 <Input
                   id="reset-otp"
@@ -356,7 +356,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="reset-new-password">New password</Label>
                 <Input
                   id="reset-new-password"
@@ -368,7 +368,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
                 />
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 <Label htmlFor="reset-confirm-password">
                   Confirm new password
                 </Label>
@@ -411,7 +411,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
       ) : (
         <>
           {authMode === "signup" && (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label htmlFor="auth-full-name">Full name</Label>
               <Input
                 id="auth-full-name"
@@ -422,7 +422,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               />
             </div>
           )}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="auth-email">Email</Label>
             <Input
               id="auth-email"
@@ -433,7 +433,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               className="border-border bg-background"
             />
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="auth-password">Password</Label>
             <Input
               id="auth-password"

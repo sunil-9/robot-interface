@@ -43,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const CLAIM_ROBOT_VALUE = "__claim__";
 
@@ -436,41 +437,46 @@ const TrainHeader = ({
               Robot
             </p>
             <div className="flex items-center gap-1">
-              <Select
-                value={hasSelectedRobot ? normalizedSelectedRobotId : undefined}
-                onValueChange={handleRobotChange}
-                disabled={loading || isConnected}
-              >
-                <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
-                  {selectedRobotDetail ? (
-                    <span className="flex min-w-0 flex-col items-start leading-tight">
-                      <span className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
-                        {selectedRobotDetail.is_live ? (
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                        ) : (
-                          <Circle className="h-3 w-3 text-red-500" />
-                        )}
-                        {formatRobotLabel(
-                          selectedRobotDetail.id,
-                          selectedRobotDetail.robotType,
-                          selectedRobotDetail.name,
-                        )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="min-w-0 flex-1">
+                <Select
+                  value={
+                    hasSelectedRobot ? normalizedSelectedRobotId : undefined
+                  }
+                  onValueChange={handleRobotChange}
+                  disabled={loading || isConnected}
+                >
+                  <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                    {selectedRobotDetail ? (
+                      <span className="flex min-w-0 flex-col items-start leading-tight">
+                        <span className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
+                          {selectedRobotDetail.is_live ? (
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          ) : (
+                            <Circle className="h-3 w-3 text-red-500" />
+                          )}
+                          {formatRobotLabel(
+                            selectedRobotDetail.id,
+                            selectedRobotDetail.robotType,
+                            selectedRobotDetail.name,
+                          )}
+                        </span>
+                        <span className="truncate text-xs text-muted-foreground">
+                          {selectedRobotDetail.is_live
+                            ? selectedRobotDetail.description
+                            : "Offline robot"}
+                        </span>
                       </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {selectedRobotDetail.is_live
-                          ? selectedRobotDetail.description
-                          : "Offline robot"}
-                      </span>
-                    </span>
-                  ) : (
-                    <SelectValue
-                      placeholder={
-                        loading ? "Loading robots..." : "Select robot"
-                      }
-                    />
-                  )}
-                </SelectTrigger>
-                <SelectContent className="border-border bg-card">
+                    ) : (
+                      <SelectValue
+                        placeholder={
+                          loading ? "Loading robots..." : "Select robot"
+                        }
+                      />
+                    )}
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-card">
                   <SelectItem
                     value={CLAIM_ROBOT_VALUE}
                     className="mb-1 items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary focus:bg-accent/30 focus:text-primary [&>span:first-child]:hidden"
@@ -566,8 +572,16 @@ const TrainHeader = ({
                       ) : null}
                     </div>
                   ))}
-                </SelectContent>
-              </Select>
+                  </SelectContent>
+                </Select>
+                  </div>
+                </TooltipTrigger>
+                {isConnected ? (
+                  <TooltipContent>
+                    Disconnect first to change robot.
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
               <Button
                 variant="ghost"
                 size="icon"
@@ -586,41 +600,52 @@ const TrainHeader = ({
               Control Device
             </p>
             <div className="flex items-center gap-1">
-              <Select
-                value={
-                  hasSelectedRobot && controlSelection
-                    ? controlSelection
-                    : undefined
-                }
-                onValueChange={handleControlChange}
-                disabled={
-                  !auth.accessToken ||
-                  !hasSelectedRobot ||
-                  loadingDevices ||
-                  isConnected
-                }
-              >
-                <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
-                  <SelectValue
-                    placeholder={
-                      !auth.accessToken
-                        ? "Log in to select"
-                        : !hasSelectedRobot
-                          ? "Select robot first"
-                          : loadingDevices
-                            ? "Loading devices..."
-                            : "Select control device"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-card">
-                  {visibleControlDevices.map((device) => (
-                    <SelectItem key={device.id} value={device.id}>
-                      {device.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="min-w-0 flex-1">
+                <Select
+                  value={
+                    hasSelectedRobot && controlSelection
+                      ? controlSelection
+                      : undefined
+                  }
+                  onValueChange={handleControlChange}
+                  disabled={
+                    !auth.accessToken ||
+                    !hasSelectedRobot ||
+                    loadingDevices ||
+                    isConnected
+                  }
+                >
+                  <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                    <SelectValue
+                      placeholder={
+                        !auth.accessToken
+                          ? "Log in to select"
+                          : !hasSelectedRobot
+                            ? "Select robot first"
+                            : loadingDevices
+                              ? "Loading devices..."
+                              : "Select control device"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="border-border bg-card">
+                    {visibleControlDevices.map((device) => (
+                      <SelectItem key={device.id} value={device.id}>
+                        {device.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                  </div>
+                </TooltipTrigger>
+                {isConnected ? (
+                  <TooltipContent>
+                    Disconnect first to change control device.
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
               <Button
                 variant="ghost"
                 size="icon"
@@ -658,11 +683,6 @@ const TrainHeader = ({
             />
             {isConnected ? "Connected" : "Connect"}
           </Button>
-          {isConnected ? (
-            <p className="basis-full text-right text-xs text-muted-foreground">
-              Disconnect first to change control device or robot.
-            </p>
-          ) : null}
         </div>
       </div>
 

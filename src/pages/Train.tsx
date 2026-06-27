@@ -40,6 +40,7 @@ export default function TrainPage() {
   const [currentRobot, setCurrentRobot] = useState<string | null>(null);
   const [currentControl, setCurrentControl] = useState<string | null>(null);
   const [pendingControl, setPendingControl] = useState<string | null>(null);
+  const [connectionRequested, setConnectionRequested] = useState(false);
 
   // Get robot session data from URL params or from session storage
   const sessionRobotData = getSessionRobotData();
@@ -52,7 +53,9 @@ export default function TrainPage() {
     params.get("controller") ||
     sessionRobotData?.controller ||
     null;
-  const canStartWebRTC = Boolean(selectedRobot && selectedControl);
+  const canStartWebRTC = Boolean(
+    connectionRequested && selectedRobot && selectedControl,
+  );
 
   const session = useWebRTCSession({
     robotId: canStartWebRTC ? selectedRobot : null,
@@ -74,6 +77,7 @@ export default function TrainPage() {
     setCurrentRobot(null);
     setCurrentControl(null);
     setPendingControl(null);
+    setConnectionRequested(false);
     setShowSelectionDialog(true);
 
     const nextParams = new URLSearchParams(location.search);
@@ -106,6 +110,7 @@ export default function TrainPage() {
       setCurrentRobot(robotId);
       setCurrentControl(controllerId);
       setPendingControl(null);
+      setConnectionRequested(true);
 
       // Update URL params without navigation
       const newParams = new URLSearchParams(location.search);
@@ -130,6 +135,7 @@ export default function TrainPage() {
 
   const handleHeaderRobotChange = useCallback(
     (robotId: string) => {
+      setConnectionRequested(false);
       setCurrentRobot(robotId);
       setCurrentControl(null);
       setPendingControl(null);

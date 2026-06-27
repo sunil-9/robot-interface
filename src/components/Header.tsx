@@ -439,7 +439,7 @@ const TrainHeader = ({
               <Select
                 value={hasSelectedRobot ? normalizedSelectedRobotId : undefined}
                 onValueChange={handleRobotChange}
-                disabled={loading}
+                disabled={loading || isConnected}
               >
                 <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
                   {selectedRobotDetail ? (
@@ -594,7 +594,10 @@ const TrainHeader = ({
                 }
                 onValueChange={handleControlChange}
                 disabled={
-                  !auth.accessToken || !hasSelectedRobot || loadingDevices
+                  !auth.accessToken ||
+                  !hasSelectedRobot ||
+                  loadingDevices ||
+                  isConnected
                 }
               >
                 <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
@@ -655,6 +658,11 @@ const TrainHeader = ({
             />
             {isConnected ? "Connected" : "Connect"}
           </Button>
+          {isConnected ? (
+            <p className="basis-full text-right text-xs text-muted-foreground">
+              Disconnect first to change control device or robot.
+            </p>
+          ) : null}
         </div>
       </div>
 

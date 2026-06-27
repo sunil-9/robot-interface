@@ -154,6 +154,12 @@ export default function TrainPage() {
     [navigate, location.search],
   );
 
+  const handleDisconnect = useCallback(() => {
+    // Removing the active IDs runs the WebRTC effect cleanup, which sends the
+    // signaling "leave" message before closing the socket and peer connection.
+    setConnectionRequested(false);
+  }, []);
+
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
     let disposed = false;
@@ -354,6 +360,7 @@ export default function TrainPage() {
         onRobotChange={handleHeaderRobotChange}
         onControlSelectionChange={setPendingControl}
         onSelectionStart={handleSelectionConfirm}
+        onDisconnect={handleDisconnect}
       />
 
       {/* Main content takes full height */}

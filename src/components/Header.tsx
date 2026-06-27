@@ -16,6 +16,7 @@ import {
   PencilLine,
   RefreshCcw,
   Sun,
+  Unplug,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
@@ -67,6 +68,7 @@ interface HeaderProps {
   onRobotChange?: (robotId: string) => void;
   onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
+  onDisconnect?: () => void;
 }
 
 interface TrainHeaderProps {
@@ -77,6 +79,7 @@ interface TrainHeaderProps {
   onRobotChange?: (robotId: string) => void;
   onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
+  onDisconnect?: () => void;
   mode: AppMode;
   getModeLabel: () => string;
   modeColors: Record<AppMode, string>;
@@ -92,6 +95,7 @@ const TrainHeader = ({
   onRobotChange,
   onControlSelectionChange,
   onSelectionStart,
+  onDisconnect,
   mode,
   getModeLabel,
   modeColors,
@@ -659,30 +663,49 @@ const TrainHeader = ({
             </div>
           </div>
 
-          <Button
-            size="sm"
-            onClick={handleStart}
-            disabled={
-              !auth.accessToken ||
-              !hasSelectedRobot ||
-              !controlSelection ||
-              selectedRobotDetail?.is_live === false
-            }
-            className={`h-10 px-4 ${
-              isConnected
-                ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                : ""
-            }`}
-          >
-            <img
-              src={
-                isConnected ? "/robot-connected.svg" : "/robot-disconnected.svg"              }
-              alt=""
-              className="mr-1 h-6 w-6"
-              aria-hidden="true"
-            />
-            {isConnected ? "Connected" : "Connect"}
-          </Button>
+          {isConnected ? (
+            <div className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white">
+              <div className="flex items-center px-4 text-sm font-medium">
+                <img
+                  src="/robot-connected.svg"
+                  alt=""
+                  className="mr-1 h-6 w-6"
+                  aria-hidden="true"
+                />
+                Connected
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                onClick={onDisconnect}
+                className="h-10 w-10 rounded-none border-l border-white/30 bg-emerald-700 text-white hover:bg-emerald-800"
+                aria-label="Disconnect"
+                title="Disconnect"
+              >
+                <Unplug className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              size="sm"
+              onClick={handleStart}
+              disabled={
+                !auth.accessToken ||
+                !hasSelectedRobot ||
+                !controlSelection ||
+                selectedRobotDetail?.is_live === false
+              }
+              className="h-10 px-4"
+            >
+              <img
+                src="/robot-disconnected.svg"
+                alt=""
+                className="mr-1 h-6 w-6"
+                aria-hidden="true"
+              />
+              Connect
+            </Button>
+          )}
         </div>
       </div>
 
@@ -761,6 +784,7 @@ export const Header = ({
   onRobotChange,
   onControlSelectionChange,
   onSelectionStart,
+  onDisconnect,
 }: HeaderProps) => {
   const { getModeLabel, mode } = useModeContext();
   const getStoredTheme = () => {
@@ -838,6 +862,7 @@ export const Header = ({
       onRobotChange={onRobotChange}
       onControlSelectionChange={onControlSelectionChange}
       onSelectionStart={onSelectionStart}
+      onDisconnect={onDisconnect}
       mode={mode}
       getModeLabel={getModeLabel}
       modeColors={modeColors}

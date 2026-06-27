@@ -79,7 +79,8 @@ interface TrainHeaderProps {
   mode: AppMode;
   getModeLabel: () => string;
   modeColors: Record<AppMode, string>;
-  ThemeToggle: () => JSX.Element;
+  theme: "light" | "dark";
+  toggleTheme: () => void;
 }
 
 const TrainHeader = ({
@@ -93,7 +94,8 @@ const TrainHeader = ({
   mode,
   getModeLabel,
   modeColors,
-  ThemeToggle,
+  theme,
+  toggleTheme,
 }: TrainHeaderProps) => {
   const auth = useAuthSession();
   const [robotSelection, setRobotSelection] = useState<string>(
@@ -375,6 +377,18 @@ const TrainHeader = ({
                 </DropdownMenuItem>
               );
             })}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="gap-3 rounded-md px-3 py-2"
+              onSelect={toggleTheme}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+              <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+            </DropdownMenuItem>
             {auth.user ? (
               <>
                 <DropdownMenuSeparator />
@@ -634,15 +648,13 @@ const TrainHeader = ({
           >
             <img
               src={
-                isConnected ? "/robot-connected.svg" : "/robot-disconnected.svg"
-              }
+                isConnected ? "/robot-connected.svg" : "/robot-disconnected.svg"              }
               alt=""
               className="mr-1 h-6 w-6"
               aria-hidden="true"
             />
             {isConnected ? "Connected" : "Connect"}
           </Button>
-          <ThemeToggle />
         </div>
       </div>
 
@@ -801,7 +813,8 @@ export const Header = ({
       mode={mode}
       getModeLabel={getModeLabel}
       modeColors={modeColors}
-      ThemeToggle={ThemeToggle}
+      theme={theme}
+      toggleTheme={toggleTheme}
     />
   ) : (
     <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur">

@@ -89,6 +89,7 @@ export function OperatorOnboarding({
   );
 
   const stopDriver = useCallback(() => {
+    document.documentElement.classList.remove("im-onboarding-interactive");
     transitioningRef.current = true;
     driverRef.current?.destroy();
     driverRef.current = null;
@@ -151,6 +152,7 @@ export function OperatorOnboarding({
       doneBtnText: "Finish",
       onPopoverRender: (popover) => addSkipButton(popover.footerButtons),
       onDestroyed: () => {
+        document.documentElement.classList.remove("im-onboarding-interactive");
         if (transitioningRef.current) return;
         setTourRunning(false);
         updateProgress({
@@ -312,6 +314,7 @@ export function OperatorOnboarding({
         showButtons: ["close"],
         disableActiveInteraction: false,
         onPopoverRender: (popover) => {
+          document.documentElement.classList.add("im-onboarding-interactive");
           addSkipButton(popover.footerButtons);
           const hint = document.createElement("span");
           hint.className = "im-tour-live-hint";
@@ -319,6 +322,9 @@ export function OperatorOnboarding({
           popover.footerButtons.appendChild(hint);
         },
         onDestroyed: () => {
+          document.documentElement.classList.remove(
+            "im-onboarding-interactive",
+          );
           if (!transitioningRef.current) {
             setTourRunning(false);
           }
@@ -330,7 +336,12 @@ export function OperatorOnboarding({
         popover: {
           title: copy.title,
           description: copy.description,
-          side: stage === "claim" ? "left" : "bottom",
+          side:
+            stage === "robot" || stage === "control"
+              ? "left"
+              : stage === "claim"
+                ? "right"
+                : "bottom",
           align: "start",
         },
       });

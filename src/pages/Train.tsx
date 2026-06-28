@@ -38,7 +38,9 @@ export default function TrainPage() {
   const [controlCenterTab, setControlCenterTab] =
     useState<ControlCenterTab>("account");
   const [currentRobot, setCurrentRobot] = useState<string | null>(null);
-  const [currentControl, setCurrentControl] = useState<string | null>(null);
+  const [currentControl, setCurrentControl] = useState<
+    string | null | undefined
+  >(undefined);
   const [pendingControl, setPendingControl] = useState<string | null>(null);
   const [connectionRequested, setConnectionRequested] = useState(false);
 
@@ -49,10 +51,9 @@ export default function TrainPage() {
   const selectedRobot: string | null =
     currentRobot || params.get("robot") || sessionRobotData?.robot || null;
   const selectedControl: string | null =
-    currentControl ||
-    params.get("controller") ||
-    sessionRobotData?.controller ||
-    null;
+    currentControl !== undefined
+      ? currentControl
+      : params.get("controller") || sessionRobotData?.controller || null;
   const canStartWebRTC = Boolean(
     connectionRequested && selectedRobot && selectedControl,
   );

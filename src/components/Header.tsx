@@ -73,6 +73,7 @@ interface HeaderProps {
   onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   onDisconnect?: () => void;
+  onClaimRobotOpenChange?: (open: boolean) => void;
 }
 
 interface TrainHeaderProps {
@@ -84,6 +85,7 @@ interface TrainHeaderProps {
   onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   onDisconnect?: () => void;
+  onClaimRobotOpenChange?: (open: boolean) => void;
   mode: AppMode;
   getModeLabel: () => string;
   modeColors: Record<AppMode, string>;
@@ -100,6 +102,7 @@ const TrainHeader = ({
   onControlSelectionChange,
   onSelectionStart,
   onDisconnect,
+  onClaimRobotOpenChange,
   mode,
   getModeLabel,
   modeColors,
@@ -230,6 +233,7 @@ const TrainHeader = ({
       }
 
       setClaimRobotOpen(true);
+      onClaimRobotOpenChange?.(true);
       setClaimRobotError(null);
       setClaimRobotFriendlyName("");
       return;
@@ -267,6 +271,7 @@ const TrainHeader = ({
       setClaimRobotHash("");
       setClaimRobotFriendlyName("");
       setClaimRobotOpen(false);
+      onClaimRobotOpenChange?.(false);
       refreshRobots();
     } catch (error) {
       setClaimRobotError(
@@ -452,7 +457,7 @@ const TrainHeader = ({
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1" data-tour="robot-select">
                     <Select
                       value={
                         hasSelectedRobot ? normalizedSelectedRobotId : undefined
@@ -489,7 +494,7 @@ const TrainHeader = ({
                           />
                         )}
                       </SelectTrigger>
-                      <SelectContent className="border-border bg-card">
+                      <SelectContent className="z-[100001] border-border bg-card">
                         <SelectItem
                           value={CLAIM_ROBOT_VALUE}
                           className="mb-1 items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary focus:bg-accent/30 focus:text-primary [&>span:first-child]:hidden"
@@ -619,7 +624,7 @@ const TrainHeader = ({
             <div className="flex items-center gap-1">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1" data-tour="control-select">
                     <Select
                       value={
                         hasSelectedRobot && controlSelection
@@ -647,7 +652,7 @@ const TrainHeader = ({
                           }
                         />
                       </SelectTrigger>
-                      <SelectContent className="border-border bg-card">
+                      <SelectContent className="z-[100001] border-border bg-card">
                         {visibleControlDevices.map((device) => (
                           <SelectItem key={device.id} value={device.id}>
                             {device.name}
@@ -700,6 +705,7 @@ const TrainHeader = ({
             </div>
           ) : (
             <Button
+              data-tour="connect-button"
               size="sm"
               onClick={handleStart}
               disabled={
@@ -726,6 +732,7 @@ const TrainHeader = ({
         open={claimRobotOpen}
         onOpenChange={(open) => {
           setClaimRobotOpen(open);
+          onClaimRobotOpenChange?.(open);
           if (!open) {
             setClaimRobotError(null);
             setClaimRobotHash("");
@@ -741,6 +748,7 @@ const TrainHeader = ({
             </DialogDescription>
           </DialogHeader>
           <Input
+            data-tour="robot-hash"
             placeholder="Enter robot hash"
             value={claimRobotHash}
             onChange={(event) => {
@@ -798,6 +806,7 @@ export const Header = ({
   onControlSelectionChange,
   onSelectionStart,
   onDisconnect,
+  onClaimRobotOpenChange,
 }: HeaderProps) => {
   const { getModeLabel, mode } = useModeContext();
   const getStoredTheme = () => {
@@ -876,6 +885,7 @@ export const Header = ({
       onControlSelectionChange={onControlSelectionChange}
       onSelectionStart={onSelectionStart}
       onDisconnect={onDisconnect}
+      onClaimRobotOpenChange={onClaimRobotOpenChange}
       mode={mode}
       getModeLabel={getModeLabel}
       modeColors={modeColors}

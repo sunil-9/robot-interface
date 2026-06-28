@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { cn } from "@/lib/utils";
+import { restartOnboarding } from "@/lib/onboarding";
 
 interface HelpDialogProps {
   className?: string;
@@ -37,6 +38,7 @@ export function HelpDialog({
     >
       {/* Collapsed state - just the button */}
       <Button
+        data-tour="help-button"
         variant="ghost"
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
@@ -96,6 +98,19 @@ export function HelpDialog({
                 onError={() => setImageError(true)}
               />
             )}
+          </div>
+          <div className="border-t border-border px-3 py-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-center"
+              onClick={() => {
+                setIsOpen(false);
+                restartOnboarding();
+              }}
+            >
+              Restart guided tour
+            </Button>
           </div>
         </div>
       </div>

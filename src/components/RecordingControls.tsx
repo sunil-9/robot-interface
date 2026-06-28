@@ -34,6 +34,7 @@ export const RecordingControls = ({
   const controls = (
     <div className={`flex items-center ${gap}`}>
       <Button
+        data-tour="record-episode"
         onClick={isRecording ? onStop : onStart}
         disabled={isLoading}
         className={`rounded-full font-semibold uppercase tracking-wide transition-all duration-200 ${

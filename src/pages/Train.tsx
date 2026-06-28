@@ -5,6 +5,7 @@ import {
   type ControlCenterTab,
 } from "@/components/RobotSelectionDialog";
 import { TrainingInterface } from "@/components/TrainingInterface";
+import { OperatorOnboarding } from "@/components/onboarding/OperatorOnboarding";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
@@ -43,6 +44,7 @@ export default function TrainPage() {
   >(undefined);
   const [pendingControl, setPendingControl] = useState<string | null>(null);
   const [connectionRequested, setConnectionRequested] = useState(false);
+  const [claimRobotOpen, setClaimRobotOpen] = useState(false);
 
   // Get robot session data from URL params or from session storage
   const sessionRobotData = getSessionRobotData();
@@ -362,6 +364,7 @@ export default function TrainPage() {
         onControlSelectionChange={setPendingControl}
         onSelectionStart={handleSelectionConfirm}
         onDisconnect={handleDisconnect}
+        onClaimRobotOpenChange={setClaimRobotOpen}
       />
 
       {/* Main content takes full height */}
@@ -375,6 +378,15 @@ export default function TrainPage() {
 
       {/* Input tracker overlay */}
       <InputTracker controlType={selectedControl} session={session} />
+
+      <OperatorOnboarding
+        enabled={Boolean(auth.accessToken) && !auth.isLoadingUser}
+        selectedRobot={selectedRobot}
+        selectedControl={selectedControl}
+        pendingControl={pendingControl}
+        isConnected={isConnected}
+        claimRobotOpen={claimRobotOpen}
+      />
     </div>
   );
 }

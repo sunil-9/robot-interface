@@ -46,18 +46,21 @@ export function SidebarTabs({
       >
         <TabsList className="grid w-full grid-cols-3 rounded-full bg-muted/40 p-1 h-10">
           <TabsTrigger
+            data-tour="more-streams-tab"
             value="secondary"
             className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
           >
             <Camera className="h-4 w-4" /> More Streams
           </TabsTrigger>
           <TabsTrigger
+            data-tour="episodes-tab"
             value="episodes"
             className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
           >
             <FileVideo className="h-4 w-4" /> Episodes
           </TabsTrigger>
           <TabsTrigger
+            data-tour="models-tab"
             value="models"
             className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
           >

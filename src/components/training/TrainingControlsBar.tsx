@@ -47,15 +47,17 @@ export function TrainingControlsBar({
         embedded={true}
       />
       {/* <div className="h-7 w-px bg-border" /> */}
-      <MemoriseRestorePose
-        memorisedPose={memorisedPose}
-        isLoading={poseLoading}
-        isRestoring={isRestoring}
-        isCompact={false}
-        onMemorise={onMemorise}
-        onRestore={onRestore}
-        onClear={onClear}
-      />
+      <div data-tour="pose-controls">
+        <MemoriseRestorePose
+          memorisedPose={memorisedPose}
+          isLoading={poseLoading}
+          isRestoring={isRestoring}
+          isCompact={false}
+          onMemorise={onMemorise}
+          onRestore={onRestore}
+          onClear={onClear}
+        />
+      </div>
       {/* <div className="h-7 w-px bg-border" /> */}
       <HelpDialog
         inline

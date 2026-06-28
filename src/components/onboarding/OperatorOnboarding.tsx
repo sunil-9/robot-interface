@@ -11,133 +11,155 @@ import {
   defaultOnboardingProgress,
   ONBOARDING_RESTART_EVENT,
   readOnboardingProgress,
-  type OnboardingProgress,
   writeOnboardingProgress,
 } from "@/lib/onboarding";
-import { Check, Circle, RadioTower, Sparkles } from "lucide-react";
+import { Check, PanelRight, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { driver, type Driver } from "driver.js";
+import { driver, type Driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 
 interface OperatorOnboardingProps {
   enabled: boolean;
-  selectedRobot: string | null;
-  selectedControl: string | null;
-  pendingControl: string | null;
-  isConnected: boolean;
-  claimRobotOpen: boolean;
 }
 
-type SetupStage = "robot" | "claim" | "control" | "connect";
+const walkthroughSteps: DriveStep[] = [
+  {
+    element: "[data-tour='robot-select']",
+    popover: {
+      title: "Header · Select or add a robot",
+      description:
+        "Open this list to select an existing robot. Choose <b>Add robot</b> when you need to claim a new robot using its hash.",
+      side: "bottom",
+      align: "start",
+    },
+  },
+  {
+    element: "[data-tour='control-select']",
+    popover: {
+      title: "Header · Control device",
+      description:
+        "After selecting a robot, choose the device you will use for teleoperation, then use <b>Connect</b> to begin.",
+      side: "bottom",
+      align: "start",
+    },
+  },
+  {
+    element: "[data-tour='record-episode']",
+    popover: {
+      title: "Footer · Record an episode",
+      description:
+        "Start a recording here. During recording, this same button becomes <b>Stop</b> so you can end and save the episode.",
+      side: "top",
+      align: "center",
+    },
+  },
+  {
+    element: "[data-tour='pose-controls']",
+    popover: {
+      title: "Footer · Memorise a pose",
+      description:
+        "Save the robot's current pose for later restoration. Once saved, the clear control lets you delete the memorised pose after confirmation.",
+      side: "top",
+      align: "center",
+    },
+  },
+  {
+    element: "[data-tour='help-button']",
+    popover: {
+      title: "Footer · Help",
+      description:
+        "Open the controller guide at any time. The Help panel also lets you restart this walkthrough.",
+      side: "top",
+      align: "center",
+    },
+  },
+  {
+    element: "[data-tour='dataset-selector']",
+    popover: {
+      title: "Sidebar · Select or create a dataset",
+      description:
+        "Choose the dataset that will receive recorded episodes, or create a new dataset for a different task.",
+      side: "left",
+      align: "start",
+    },
+  },
+  {
+    element: "[data-tour='dataset-selector']",
+    popover: {
+      title: "Sidebar · Dataset description",
+      description:
+        "Use the dataset menu to edit its description so operators know what task, environment, or collection protocol it represents.",
+      side: "left",
+      align: "start",
+    },
+  },
+  {
+    element: "[data-tour='more-streams-tab']",
+    popover: {
+      title: "Sidebar · More streams",
+      description:
+        "Open additional camera streams published by the robot and swap a secondary stream into the main view.",
+      side: "left",
+      align: "start",
+    },
+  },
+  {
+    element: "[data-tour='episodes-tab']",
+    popover: {
+      title: "Sidebar · Episodes",
+      description:
+        "Browse, play, and manage recorded episodes. Delete actions require confirmation.",
+      side: "left",
+      align: "start",
+    },
+  },
+  {
+    element: "[data-tour='models-tab']",
+    popover: {
+      title: "Sidebar · Models",
+      description:
+        "Open Models to train and manage models associated with the selected dataset.",
+      side: "left",
+      align: "start",
+    },
+  },
+];
 
-const SETUP_COPY: Record<
-  SetupStage,
-  { selector: string; title: string; description: string }
-> = {
-  robot: {
-    selector: "[data-tour='robot-select']",
-    title: "Add or select a robot",
-    description:
-      "Open the robot list. Choose <b>Add robot</b> to claim your first robot, or select one you already own.",
-  },
-  claim: {
-    selector: "[data-tour='robot-hash']",
-    title: "Claim your robot",
-    description:
-      "Enter the hash supplied with your robot, optionally give it a friendly name, then choose <b>Add robot</b>.",
-  },
-  control: {
-    selector: "[data-tour='control-select']",
-    title: "Choose a control device",
-    description:
-      "Select the controller you will use for teleoperation. The available devices are loaded from the selected robot.",
-  },
-  connect: {
-    selector: "[data-tour='connect-button']",
-    title: "Connect and verify",
-    description:
-      "Choose <b>Connect</b>. We will continue only after the live robot connection is established.",
-  },
-};
-
-export function OperatorOnboarding({
-  enabled,
-  selectedRobot,
-  selectedControl,
-  pendingControl,
-  isConnected,
-  claimRobotOpen,
-}: OperatorOnboardingProps) {
-  const [progress, setProgress] = useState(readOnboardingProgress);
+export function OperatorOnboarding({ enabled }: OperatorOnboardingProps) {
   const [introOpen, setIntroOpen] = useState(
     () => enabled && !readOnboardingProgress().completed,
   );
-  const [tourRunning, setTourRunning] = useState(false);
   const driverRef = useRef<Driver | null>(null);
-  const transitioningRef = useRef(false);
   const wasEnabledRef = useRef(enabled);
+  const intentionalDestroyRef = useRef(false);
 
-  const updateProgress = useCallback(
-    (patch: Partial<OnboardingProgress>) => {
-      setProgress((current) => {
-        const next = { ...current, ...patch };
-        writeOnboardingProgress(next);
-        return next;
-      });
-    },
-    [],
-  );
-
-  const stopDriver = useCallback(() => {
-    document.documentElement.classList.remove("im-onboarding-interactive");
-    transitioningRef.current = true;
-    driverRef.current?.destroy();
-    driverRef.current = null;
-    window.setTimeout(() => {
-      transitioningRef.current = false;
-    }, 0);
+  const saveFinished = useCallback((skipped: boolean) => {
+    writeOnboardingProgress({
+      ...defaultOnboardingProgress,
+      episodeTourSeen: true,
+      sidebarTourSeen: true,
+      completed: true,
+      skipped,
+    });
   }, []);
 
-  const skipTour = useCallback(() => {
-    stopDriver();
+  const stopWalkthrough = useCallback((skipped: boolean) => {
+    intentionalDestroyRef.current = true;
+    driverRef.current?.destroy();
+    driverRef.current = null;
+    saveFinished(skipped);
+    window.setTimeout(() => {
+      intentionalDestroyRef.current = false;
+    }, 0);
+  }, [saveFinished]);
+
+  const startWalkthrough = useCallback(() => {
     setIntroOpen(false);
-    setTourRunning(false);
-    updateProgress({
-      completed: true,
-      skipped: true,
-      robotAdded: Boolean(selectedRobot),
-      robotConnected: isConnected,
-    });
-  }, [isConnected, selectedRobot, stopDriver, updateProgress]);
+    intentionalDestroyRef.current = true;
+    driverRef.current?.destroy();
+    intentionalDestroyRef.current = false;
 
-  const addSkipButton = useCallback(
-    (footerButtons: HTMLElement) => {
-      if (footerButtons.querySelector("[data-onboarding-skip]")) {
-        return;
-      }
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.onboardingSkip = "true";
-      button.className = "im-tour-skip";
-      button.textContent = "Skip tour";
-      button.addEventListener("click", skipTour);
-      footerButtons.prepend(button);
-    },
-    [skipTour],
-  );
-
-  const startFeatureTour = useCallback(() => {
-    stopDriver();
-    setTourRunning(true);
-
-    const selectTab = (name: string) => {
-      const tab = document.querySelector<HTMLElement>(
-        `[data-tour='${name}']`,
-      );
-      tab?.click();
-    };
-
-    const featureDriver = driver({
+    const walkthrough = driver({
       animate: true,
       allowClose: true,
       overlayColor: "#020617",
@@ -145,131 +167,52 @@ export function OperatorOnboarding({
       stagePadding: 8,
       stageRadius: 14,
       popoverClass: "im-operator-tour",
+      showButtons: ["previous", "next", "close"],
       showProgress: true,
       progressText: "{{current}} of {{total}}",
       nextBtnText: "Next",
-      prevBtnText: "Back",
-      doneBtnText: "Finish",
-      onPopoverRender: (popover) => addSkipButton(popover.footerButtons),
-      onDestroyed: () => {
-        document.documentElement.classList.remove("im-onboarding-interactive");
-        if (transitioningRef.current) return;
-        setTourRunning(false);
-        updateProgress({
-          episodeTourSeen: true,
-          sidebarTourSeen: true,
-          completed: true,
-          skipped: false,
-        });
+      prevBtnText: "Previous",
+      doneBtnText: "Done",
+      steps: walkthroughSteps,
+      onPopoverRender: (popover) => {
+        if (popover.footerButtons.querySelector("[data-onboarding-skip]")) {
+          return;
+        }
+        const skip = document.createElement("button");
+        skip.type = "button";
+        skip.dataset.onboardingSkip = "true";
+        skip.className = "im-tour-skip";
+        skip.textContent = "Skip";
+        skip.addEventListener("click", () => stopWalkthrough(true));
+        popover.footerButtons.prepend(skip);
       },
-      steps: [
-        {
-          element: "[data-tour='record-episode']",
-          popover: {
-            title: "Episode management",
-            description:
-              "Start recording an episode here. While recording, this same control becomes <b>Stop</b>, so you can safely end the episode from the bottom bar.",
-            side: "top",
-            align: "center",
-          },
-        },
-        {
-          element: "[data-tour='pose-controls']",
-          popover: {
-            title: "Memorise a pose",
-            description:
-              "Save the robot's current pose for quick restoration. When a pose exists, the clear action asks for confirmation before deleting it.",
-            side: "top",
-            align: "center",
-          },
-        },
-        {
-          element: "[data-tour='help-button']",
-          popover: {
-            title: "Controller help",
-            description:
-              "Open Help whenever you need the control map for the selected robot and controller. You can also restart this tour there.",
-            side: "top",
-            align: "center",
-          },
-        },
-        {
-          element: "[data-tour='more-streams-tab']",
-          popover: {
-            title: "More streams",
-            description:
-              "View additional cameras published by the robot and swap a secondary camera into the main view.",
-            side: "left",
-            align: "start",
-            onNextClick: (_element, _step, { driver: activeDriver }) => {
-              selectTab("episodes-tab");
-              window.setTimeout(() => activeDriver.moveNext(), 100);
-            },
-          },
-        },
-        {
-          element: "[data-tour='episodes-tab']",
-          popover: {
-            title: "Episodes",
-            description:
-              "Browse recorded episodes, play them for review, and delete unwanted recordings. Deletion always requires confirmation.",
-            side: "left",
-            align: "start",
-            onNextClick: (_element, _step, { driver: activeDriver }) => {
-              selectTab("models-tab");
-              window.setTimeout(() => activeDriver.moveNext(), 100);
-            },
-            onPrevClick: (_element, _step, { driver: activeDriver }) => {
-              selectTab("more-streams-tab");
-              window.setTimeout(() => activeDriver.movePrevious(), 100);
-            },
-          },
-        },
-        {
-          element: "[data-tour='models-tab']",
-          popover: {
-            title: "Models",
-            description:
-              "Train and manage models for the active dataset from this workspace.",
-            side: "left",
-            align: "start",
-            onPrevClick: (_element, _step, { driver: activeDriver }) => {
-              selectTab("episodes-tab");
-              window.setTimeout(() => activeDriver.movePrevious(), 100);
-            },
-          },
-        },
-      ],
+      onDestroyed: () => {
+        driverRef.current = null;
+        if (!intentionalDestroyRef.current) {
+          saveFinished(false);
+        }
+      },
     });
 
-    driverRef.current = featureDriver;
-    featureDriver.drive();
-  }, [addSkipButton, stopDriver, updateProgress]);
-
-  const startSetup = useCallback(() => {
-    setIntroOpen(false);
-    setTourRunning(true);
-  }, []);
+    driverRef.current = walkthrough;
+    walkthrough.drive();
+  }, [saveFinished, stopWalkthrough]);
 
   useEffect(() => {
     if (!enabled) return;
 
     const restart = () => {
-      stopDriver();
-      const reset = {
-        ...defaultOnboardingProgress,
-        robotAdded: Boolean(selectedRobot),
-        robotConnected: isConnected,
-      };
-      writeOnboardingProgress(reset);
-      setProgress(reset);
-      setTourRunning(false);
+      intentionalDestroyRef.current = true;
+      driverRef.current?.destroy();
+      driverRef.current = null;
+      intentionalDestroyRef.current = false;
+      writeOnboardingProgress(defaultOnboardingProgress);
       setIntroOpen(true);
     };
 
     window.addEventListener(ONBOARDING_RESTART_EVENT, restart);
     return () => window.removeEventListener(ONBOARDING_RESTART_EVENT, restart);
-  }, [enabled, isConnected, selectedRobot, stopDriver]);
+  }, [enabled]);
 
   useEffect(() => {
     if (enabled && !wasEnabledRef.current && !readOnboardingProgress().completed) {
@@ -278,107 +221,20 @@ export function OperatorOnboarding({
     wasEnabledRef.current = enabled;
   }, [enabled]);
 
-  useEffect(() => {
-    if (!tourRunning || introOpen || !enabled) return;
-
-    if (isConnected) {
-      updateProgress({ robotAdded: true, robotConnected: true });
-      if (!progress.episodeTourSeen || !progress.sidebarTourSeen) {
-        window.setTimeout(startFeatureTour, 350);
-      }
-      return;
-    }
-
-    const activeControl = pendingControl || selectedControl;
-    const stage: SetupStage = claimRobotOpen
-      ? "claim"
-      : !selectedRobot
-        ? "robot"
-        : !activeControl
-          ? "control"
-          : "connect";
-    const copy = SETUP_COPY[stage];
-    const timer = window.setTimeout(() => {
-      const element = document.querySelector(copy.selector);
-      if (!element) return;
-
-      stopDriver();
-      const setupDriver = driver({
-        animate: true,
-        allowClose: true,
-        overlayColor: "#020617",
-        overlayOpacity: 0.72,
-        stagePadding: 8,
-        stageRadius: 14,
-        popoverClass: "im-operator-tour",
-        showButtons: ["close"],
-        disableActiveInteraction: false,
-        onPopoverRender: (popover) => {
-          document.documentElement.classList.add("im-onboarding-interactive");
-          addSkipButton(popover.footerButtons);
-          const hint = document.createElement("span");
-          hint.className = "im-tour-live-hint";
-          hint.textContent = "Complete this action to continue";
-          popover.footerButtons.appendChild(hint);
-        },
-        onDestroyed: () => {
-          document.documentElement.classList.remove(
-            "im-onboarding-interactive",
-          );
-          if (!transitioningRef.current) {
-            setTourRunning(false);
-          }
-        },
-      });
-      driverRef.current = setupDriver;
-      setupDriver.highlight({
-        element: copy.selector,
-        popover: {
-          title: copy.title,
-          description: copy.description,
-          side:
-            stage === "robot" || stage === "control"
-              ? "left"
-              : stage === "claim"
-                ? "right"
-                : "bottom",
-          align: "start",
-        },
-      });
-    }, 180);
-
-    if (selectedRobot && !progress.robotAdded) {
-      updateProgress({ robotAdded: true });
-    }
-
-    return () => window.clearTimeout(timer);
-  }, [
-    addSkipButton,
-    claimRobotOpen,
-    enabled,
-    introOpen,
-    isConnected,
-    pendingControl,
-    progress.episodeTourSeen,
-    progress.robotAdded,
-    progress.sidebarTourSeen,
-    selectedControl,
-    selectedRobot,
-    startFeatureTour,
-    stopDriver,
-    tourRunning,
-    updateProgress,
-  ]);
-
-  useEffect(() => () => driverRef.current?.destroy(), []);
+  useEffect(
+    () => () => {
+      intentionalDestroyRef.current = true;
+      driverRef.current?.destroy();
+    },
+    [],
+  );
 
   if (!enabled) return null;
 
-  const checklist = [
-    { label: "Add your first robot", done: Boolean(selectedRobot) },
-    { label: "Select a control device", done: Boolean(pendingControl || selectedControl) },
-    { label: "Verify the live connection", done: isConnected },
-    { label: "Explore episodes, streams, and models", done: progress.episodeTourSeen },
+  const sections = [
+    "Header: robot and control device",
+    "Footer: episodes, pose, and help",
+    "Sidebar: datasets, streams, episodes, and models",
   ];
 
   return (
@@ -386,44 +242,44 @@ export function OperatorOnboarding({
       <DialogContent className="overflow-hidden border-primary/20 p-0 sm:max-w-lg">
         <div className="bg-gradient-to-br from-primary/20 via-background to-cyan-500/10 px-6 pb-5 pt-7">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-            <RadioTower className="h-6 w-6" />
+            <PanelRight className="h-6 w-6" />
           </div>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-2xl">
-              Set up your operator workspace
+              Operator interface walkthrough
               <Sparkles className="h-5 w-5 text-primary" />
             </DialogTitle>
-            <DialogDescription className="text-sm">
-              Connect your first robot through a guided setup, then take a
-              quick, non-destructive tour of the operator tools.
+            <DialogDescription>
+              A short, read-only tour of the three main areas. You will not be
+              required to connect a robot or perform any action.
             </DialogDescription>
           </DialogHeader>
         </div>
         <div className="space-y-3 px-6 py-5">
-          {checklist.map((item) => (
+          {sections.map((section) => (
             <div
-              key={item.label}
+              key={section}
               className="flex items-center gap-3 rounded-xl border border-border/70 bg-muted/30 px-4 py-3"
             >
-              <span
-                className={
-                  item.done
-                    ? "flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-white"
-                    : "flex h-6 w-6 items-center justify-center rounded-full border border-border text-muted-foreground"
-                }
-              >
-                {item.done ? <Check className="h-4 w-4" /> : <Circle className="h-3 w-3" />}
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary">
+                <Check className="h-4 w-4" />
               </span>
-              <span className="text-sm font-medium">{item.label}</span>
+              <span className="text-sm font-medium">{section}</span>
             </div>
           ))}
         </div>
         <DialogFooter className="border-t border-border/70 bg-muted/20 px-6 py-4">
-          <Button variant="ghost" onClick={skipTour}>
-            Skip for now
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setIntroOpen(false);
+              saveFinished(true);
+            }}
+          >
+            Skip
           </Button>
-          <Button onClick={startSetup} className="min-w-32">
-            Start setup
+          <Button onClick={startWalkthrough} className="min-w-32">
+            Start walkthrough
           </Button>
         </DialogFooter>
       </DialogContent>

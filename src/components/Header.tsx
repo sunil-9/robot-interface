@@ -73,7 +73,6 @@ interface HeaderProps {
   onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   onDisconnect?: () => void;
-  onClaimRobotOpenChange?: (open: boolean) => void;
 }
 
 interface TrainHeaderProps {
@@ -85,7 +84,6 @@ interface TrainHeaderProps {
   onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
   onDisconnect?: () => void;
-  onClaimRobotOpenChange?: (open: boolean) => void;
   mode: AppMode;
   getModeLabel: () => string;
   modeColors: Record<AppMode, string>;
@@ -102,7 +100,6 @@ const TrainHeader = ({
   onControlSelectionChange,
   onSelectionStart,
   onDisconnect,
-  onClaimRobotOpenChange,
   mode,
   getModeLabel,
   modeColors,
@@ -233,7 +230,6 @@ const TrainHeader = ({
       }
 
       setClaimRobotOpen(true);
-      onClaimRobotOpenChange?.(true);
       setClaimRobotError(null);
       setClaimRobotFriendlyName("");
       return;
@@ -271,7 +267,6 @@ const TrainHeader = ({
       setClaimRobotHash("");
       setClaimRobotFriendlyName("");
       setClaimRobotOpen(false);
-      onClaimRobotOpenChange?.(false);
       refreshRobots();
     } catch (error) {
       setClaimRobotError(
@@ -732,7 +727,6 @@ const TrainHeader = ({
         open={claimRobotOpen}
         onOpenChange={(open) => {
           setClaimRobotOpen(open);
-          onClaimRobotOpenChange?.(open);
           if (!open) {
             setClaimRobotError(null);
             setClaimRobotHash("");
@@ -806,7 +800,6 @@ export const Header = ({
   onControlSelectionChange,
   onSelectionStart,
   onDisconnect,
-  onClaimRobotOpenChange,
 }: HeaderProps) => {
   const { getModeLabel, mode } = useModeContext();
   const getStoredTheme = () => {
@@ -885,7 +878,6 @@ export const Header = ({
       onControlSelectionChange={onControlSelectionChange}
       onSelectionStart={onSelectionStart}
       onDisconnect={onDisconnect}
-      onClaimRobotOpenChange={onClaimRobotOpenChange}
       mode={mode}
       getModeLabel={getModeLabel}
       modeColors={modeColors}

@@ -174,14 +174,6 @@ All colors MUST be HSL.
   }
 }
 /* Operator onboarding */
-.driver-active.im-onboarding-interactive * {
-  pointer-events: auto;
-}
-
-.driver-active.im-onboarding-interactive .driver-overlay {
-  pointer-events: none !important;
-}
-
 .driver-popover.im-operator-tour {
   width: min(360px, calc(100vw - 32px));
   max-width: 360px;

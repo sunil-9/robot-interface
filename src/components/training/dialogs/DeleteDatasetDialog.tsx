@@ -46,11 +46,6 @@ export const DeleteDatasetDialog = ({
           event.preventDefault();
         }
       }}
-      onPointerDownOutside={(event) => {
-        if (isDeleting) {
-          event.preventDefault();
-        }
-      }}
     >
       <AlertDialogHeader>
         <AlertDialogTitle className="text-foreground">

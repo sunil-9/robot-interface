@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/lib/apiClient";
 import {
   DatasetMetadata,

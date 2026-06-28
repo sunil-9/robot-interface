@@ -29,12 +29,10 @@ export interface RobotsResponse {
 // Map API robot data to our application robot format
 export interface AppRobot {
   id: number;
-  name: string;
+  name: string | null;
   robotType: string;
   description: string;
   image?: string;
-  capabilities: string[];
-  specifications: Record<string, string | number | string[]>;
   status: "online" | "offline";
   address: string;
   is_live: boolean;

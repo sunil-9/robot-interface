@@ -4,24 +4,6 @@ import {
   parseCloudApiResponse,
 } from "@/utils/apiResponse";
 
-export interface RobotPresenceSummary {
-  robot_id: string;
-  address: string | null;
-  heartbeat_interval: number | null;
-  last_seen: string;
-  heartbeat_age_ms: number;
-  expires_in_ms: number;
-  signaling: {
-    robot_connected: boolean;
-    controller_count: number;
-    [key: string]: unknown;
-  };
-}
-
-export interface RobotPresenceListResponse {
-  robots: RobotPresenceSummary[];
-}
-
 export interface SignalingConfigResponse {
   signaling_base_url?: string;
   signaling_ws_url?: string;
@@ -38,19 +20,6 @@ export interface RobotCameraConfig {
   position?: string;
   [key: string]: unknown;
 }
-
-export const fetchRobots = async (): Promise<RobotPresenceSummary[]> => {
-  const response = await apiFetch("/robots");
-  const payload = await parseCloudApiResponse<RobotPresenceListResponse>(
-    response
-  );
-  if (!response.ok) {
-    throw new Error(
-      formatApiError(payload, `Failed to load robots (${response.status})`)
-    );
-  }
-  return payload.robots ?? [];
-};
 
 export const fetchSignalingConfig =
   async (): Promise<DiscoveredSignalingConfig | null> => {

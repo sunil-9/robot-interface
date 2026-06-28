@@ -35,20 +35,21 @@ export const robotService = {
           signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
         },
       );
+
+      const payload = await parseCloudApiResponse<RobotsResponse>(response);
+
       if (!response.ok) {
         throw new Error(
           formatApiError(
-            "api failed to respond",
+            payload,
             `Failed to fetch robots: ${response.status}`,
           ),
         );
       }
 
-      const data = await parseCloudApiResponse<RobotsResponse>(response);
-
-      const rawRobots = Array.isArray(data.robots) ? data.robots : [];
-      const claimedRobots = Array.isArray(data.claimed_robots)
-        ? data.claimed_robots
+      const rawRobots = Array.isArray(payload.robots) ? payload.robots : [];
+      const claimedRobots = Array.isArray(payload.claimed_robots)
+        ? payload.claimed_robots
         : [];
 
       // Build a lookup of live presence data keyed by robot_id
@@ -183,18 +184,6 @@ export const robotService = {
   },
 };
 
-const _nameMapping: Record<string, string> = {
-  jackal_kinova: "Jackal with Kinova Arm",
-  spot: "Boston Dynamics Spot",
-  stretch: "Hello Robot Stretch",
-};
-
-const _capabilityMapping: Record<string, string[]> = {
-  jackal_kinova: ["Mobile Base", "Robotic Arm", "Object Manipulation"],
-  spot: ["Quadruped Locomotion", "Terrain Navigation", "Camera Vision"],
-  stretch: ["Indoor Navigation", "Telescoping Arm", "Picking Tasks"],
-};
-
 /**
  * Map a claimed robot (possibly offline) plus optional live presence data to AppRobot.
  */
@@ -203,32 +192,14 @@ function mapClaimedRobotToAppRobot(
   liveData: Robot | null,
 ): AppRobot {
   const robotId = claimed.robot_id;
-  const name =
-    claimed.friendly_name ?? _nameMapping[robotId] ?? `Robot ${robotId}`;
-
-  const specs: Record<string, string | number | string[]> = {
-    Status: claimed.is_live ? "Connected" : "Disconnected",
-  };
-
-  if (liveData) {
-    const operatorCount =
-      liveData.signaling?.operator_count ??
-      liveData.signaling?.controller_count ??
-      0;
-    specs["Address"] = liveData.address;
-    specs["Last Seen"] = new Date(liveData.last_seen).toLocaleString();
-    specs["Heartbeat"] = `${liveData.heartbeat_interval} seconds`;
-    specs["Operators"] = operatorCount;
-  }
+  const name = claimed.friendly_name?.trim();
 
   return {
     id: robotId,
     name,
     robotType: claimed.robot_type,
     description: liveData ? `Online robot` : "Offline robot",
-    image: `/robots/${robotId}.png`,
-    capabilities: _capabilityMapping[robotId] ?? ["Remote Operation"],
-    specifications: specs,
+    image: `/robots/${claimed.robot_type}.png`,
     status: claimed.is_live ? "online" : "offline",
     address: liveData?.address ?? "",
     is_live: claimed.is_live,

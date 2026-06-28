@@ -1,6 +1,7 @@
 import { ControlCenterDialog } from "@/components/control-center/ControlCenterDialog";
 import { getControlCenterTabConfig } from "@/components/control-center/tabs";
 import type { ControlCenterTab } from "@/components/control-center/types";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import { useEffect, useState } from "react";
 
 interface RobotSelectionDialogProps {
@@ -19,7 +20,10 @@ export function RobotSelectionDialog({
   onOpenChange,
   initialTab = "account",
 }: RobotSelectionDialogProps) {
+  const auth = useAuthSession();
   const [activeTab, setActiveTab] = useState<ControlCenterTab>(initialTab);
+  const authenticationRequired = !auth.accessToken;
+  const visibleTab = authenticationRequired ? "account" : activeTab;
 
   useEffect(() => {
     if (open) {
@@ -27,7 +31,7 @@ export function RobotSelectionDialog({
     }
   }, [open, initialTab]);
 
-  const dialogContent = getControlCenterTabConfig(activeTab);
+  const dialogContent = getControlCenterTabConfig(visibleTab);
 
   return (
     <ControlCenterDialog
@@ -35,10 +39,13 @@ export function RobotSelectionDialog({
       onOpenChange={onOpenChange}
       title={dialogContent.title}
       description={dialogContent.description}
-      size={activeTab === "account" ? "compact" : "default"}
+      size={visibleTab === "account" ? "compact" : "default"}
+      mandatory={authenticationRequired}
     >
       {dialogContent.renderPanel({
-        onClose: () => onOpenChange(false),
+        onClose: () => {
+          if (!authenticationRequired) onOpenChange(false);
+        },
       })}
     </ControlCenterDialog>
   );

@@ -15,6 +15,7 @@ interface ControlCenterDialogProps {
   title: string;
   description: string;
   size?: "compact" | "default";
+  mandatory?: boolean;
   children: ReactNode;
 }
 
@@ -24,11 +25,28 @@ export function ControlCenterDialog({
   title,
   description,
   size = "default",
+  mandatory = false,
   children,
 }: ControlCenterDialogProps) {
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (mandatory && !nextOpen) return;
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent
+        showCloseButton={!mandatory}
+        onEscapeKeyDown={(event) => {
+          if (mandatory) event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (mandatory) event.preventDefault();
+        }}
+        onInteractOutside={(event) => {
+          if (mandatory) event.preventDefault();
+        }}
         className={cn(
           "overflow-hidden border-border bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.10),_transparent_32%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--card)))] p-0 text-foreground shadow-2xl",
           size === "compact" ? "max-w-2xl" : "max-w-5xl",

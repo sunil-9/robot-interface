@@ -80,6 +80,7 @@ export default function TrainPage() {
     setCurrentControl(null);
     setPendingControl(null);
     setConnectionRequested(false);
+    setControlCenterTab("account");
     setShowSelectionDialog(true);
 
     const nextParams = new URLSearchParams(location.search);

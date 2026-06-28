@@ -621,11 +621,7 @@ const TrainHeader = ({
                 <TooltipTrigger asChild>
                   <div className="min-w-0 flex-1" data-tour="control-select">
                     <Select
-                      value={
-                        hasSelectedRobot && controlSelection
-                          ? controlSelection
-                          : undefined
-                      }
+                      value={hasSelectedRobot ? controlSelection : ""}
                       onValueChange={handleControlChange}
                       disabled={
                         !auth.accessToken ||

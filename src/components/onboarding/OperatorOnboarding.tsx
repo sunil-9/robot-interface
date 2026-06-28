@@ -38,9 +38,19 @@ const walkthroughSteps: DriveStep[] = [
     popover: {
       title: "Header · Control device",
       description:
-        "After selecting a robot, choose the device you will use for teleoperation, then use <b>Connect</b> to begin.",
+        "After selecting a robot, choose the device you will use for teleoperation.",
       side: "bottom",
       align: "start",
+    },
+  },
+  {
+    element: "[data-tour='connect-button']",
+    popover: {
+      title: "Header · Connect",
+      description:
+        "Select <b>Connect</b> to establish the live robot and control-device session. The button becomes available after both selections are made.",
+      side: "bottom",
+      align: "end",
     },
   },
   {
@@ -79,16 +89,6 @@ const walkthroughSteps: DriveStep[] = [
       title: "Sidebar · Select or create a dataset",
       description:
         "Choose the dataset that will receive recorded episodes, or create a new dataset for a different task.",
-      side: "left",
-      align: "start",
-    },
-  },
-  {
-    element: "[data-tour='dataset-selector']",
-    popover: {
-      title: "Sidebar · Dataset description",
-      description:
-        "Use the dataset menu to edit its description so operators know what task, environment, or collection protocol it represents.",
       side: "left",
       align: "start",
     },

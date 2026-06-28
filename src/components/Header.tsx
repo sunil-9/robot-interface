@@ -677,7 +677,10 @@ const TrainHeader = ({
           </div>
 
           {isConnected ? (
-            <div className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white">
+            <div
+              data-tour="connect-button"
+              className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white"
+            >
               <div className="flex items-center px-4 text-sm font-medium">
                 <img
                   src="/robot-connected.svg"

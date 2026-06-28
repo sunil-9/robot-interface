@@ -174,7 +174,11 @@ All colors MUST be HSL.
   }
 }
 /* Operator onboarding */
-.im-onboarding-interactive .driver-overlay {
+.driver-active.im-onboarding-interactive * {
+  pointer-events: auto;
+}
+
+.driver-active.im-onboarding-interactive .driver-overlay {
   pointer-events: none !important;
 }
 

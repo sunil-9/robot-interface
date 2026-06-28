@@ -196,7 +196,7 @@ export const ModelTrainingSection = ({
         </div>
       )}
 
-      {checkpointStatus && (
+      {/* {checkpointStatus && (
         <div className="mb-2 flex items-center justify-between rounded-md bg-muted/50 px-2 py-1 text-sm text-muted-foreground">
           <span className="text-xs">
             Checkpoint:{" "}
@@ -217,7 +217,7 @@ export const ModelTrainingSection = ({
             <Eye className="h-3 w-3" />
           </Button>
         </div>
-      )}
+      )} */}
 
       <CheckpointDetailsDialog
         open={isCheckpointDialogOpen}

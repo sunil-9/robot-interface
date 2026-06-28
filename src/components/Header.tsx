@@ -48,9 +48,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const CLAIM_ROBOT_VALUE = "__claim__";
 
-const formatRobotLabel = (robotId: number, robotType: string, name: string) => {
-  const trimmedName = name.trim();
-  const typeLabel = robotType.trim() || "unknown";
+const formatRobotLabel = (
+  robotId: number,
+  robotType?: string | null,
+  name?: string | null,
+) => {
+  const trimmedName = name?.trim() ?? "";
+  const typeLabel = robotType?.trim() || "unknown";
 
   console.log(`Robot name: ${trimmedName}, ID: ${robotId}, Type: ${typeLabel}`);
   if (trimmedName) {
@@ -133,7 +137,9 @@ const TrainHeader = ({
 
   const sortedRobots = [...robots].sort((left, right) => {
     if (left.is_live === right.is_live) {
-      return left.name.localeCompare(right.name);
+      const leftName = left.name?.trim() || `Robot ${left.id}`;
+      const rightName = right.name?.trim() || `Robot ${right.id}`;
+      return leftName.localeCompare(rightName, undefined, { numeric: true });
     }
     return left.is_live ? -1 : 1;
   });
@@ -272,9 +278,12 @@ const TrainHeader = ({
     }
   };
 
-  const handleStartRenameRobot = (robotId: number, currentName: string) => {
+  const handleStartRenameRobot = (
+    robotId: number,
+    currentName?: string | null,
+  ) => {
     setRenameRobotId(String(robotId));
-    setRenameRobotFriendlyName(currentName);
+    setRenameRobotFriendlyName(currentName?.trim() ?? "");
     setRenameRobotError(null);
   };
 

@@ -56,7 +56,6 @@ const formatRobotLabel = (
   const trimmedName = name?.trim() ?? "";
   const typeLabel = robotType?.trim() || "unknown";
 
-  console.log(`Robot name: ${trimmedName}, ID: ${robotId}, Type: ${typeLabel}`);
   if (trimmedName) {
     return `${trimmedName} (${robotId}, ${typeLabel})`;
   }

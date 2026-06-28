@@ -31,8 +31,27 @@ export const DeleteDatasetDialog = ({
   onConfirm,
   isDatasetLocked = false,
 }: DeleteDatasetDialogProps) => (
-  <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent className="z-[9999] max-w-lg border-border bg-card text-foreground">
+  <AlertDialog
+    open={open}
+    onOpenChange={(nextOpen) => {
+      if (!isDeleting) {
+        onOpenChange(nextOpen);
+      }
+    }}
+  >
+    <AlertDialogContent
+      className="z-[9999] max-w-lg border-border bg-card text-foreground"
+      onEscapeKeyDown={(event) => {
+        if (isDeleting) {
+          event.preventDefault();
+        }
+      }}
+      onPointerDownOutside={(event) => {
+        if (isDeleting) {
+          event.preventDefault();
+        }
+      }}
+    >
       <AlertDialogHeader>
         <AlertDialogTitle className="text-foreground">
           {datasetName ? `Delete Dataset "${datasetName}"?` : "Delete Dataset?"}
@@ -71,18 +90,26 @@ export const DeleteDatasetDialog = ({
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel
-          disabled={isDeleting}
-          className="border-border text-foreground hover:bg-muted/60"
-        >
-          Cancel
-        </AlertDialogCancel>
+        {!isDeleting ? (
+          <AlertDialogCancel className="border-border text-foreground hover:bg-muted/60">
+            Cancel
+          </AlertDialogCancel>
+        ) : null}
         <AlertDialogAction
-          onClick={onConfirm}
+          onClick={(event) => {
+            // Radix actions close automatically. Keep this controlled dialog
+            // open until the async deletion closes it after completion.
+            event.preventDefault();
+            onConfirm();
+          }}
           disabled={isDeleting || isDatasetLocked}
           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
         >
-          {isDeleting ? "Deleting..." : isDatasetLocked ? "Dataset Processing..." : "Delete Dataset"}
+          {isDeleting
+            ? "Deleting..."
+            : isDatasetLocked
+              ? "Dataset Processing..."
+              : "Delete Dataset"}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

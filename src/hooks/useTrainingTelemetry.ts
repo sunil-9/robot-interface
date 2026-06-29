@@ -5,6 +5,29 @@ import { toast } from "../components/ui/use-toast";
 
 type MemorisedPose = { topics: Record<string, unknown> } | null;
 
+const readIdField = (
+  record: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string,
+) => {
+  const value = record[camelKey] ?? record[snakeKey];
+  if (typeof value !== "string" && typeof value !== "number") {
+    return null;
+  }
+  const normalized = String(value).trim();
+  return normalized || null;
+};
+
+const describeDeployTarget = (
+  dataset: string | null | undefined,
+  modelId: string | null | undefined,
+) => {
+  if (modelId) {
+    return dataset ? `model #${modelId} from dataset "${dataset}"` : `model #${modelId}`;
+  }
+  return dataset ? `dataset "${dataset}"` : "deployment";
+};
+
 interface UseTrainingTelemetryOptions {
   session: WebRTCSession;
   userId?: number;
@@ -12,6 +35,7 @@ interface UseTrainingTelemetryOptions {
   selectedDatasetRouteId: string | null;
   datasetNameById: Map<string, string>;
   deployDatasetId: string | null;
+  deployModelId: string | null;
   isRecording: boolean;
   isSavingEpisode: boolean;
   episodesWsEnabled: boolean;
@@ -23,6 +47,7 @@ interface UseTrainingTelemetryOptions {
   setIsDeploying: (deploying: boolean) => void;
   setDeployRequestPending: (pending: boolean) => void;
   setDeployDatasetId: (datasetId: string | null) => void;
+  setDeployModelId: (modelId: string | null) => void;
   setDeployStatusPopupOpen: (open: boolean) => void;
   setDeployStatusMessage: (message: string | null) => void;
   setMemorisedPose: (pose: MemorisedPose) => void;
@@ -36,6 +61,7 @@ export function useTrainingTelemetry({
   selectedDatasetRouteId,
   datasetNameById,
   deployDatasetId,
+  deployModelId,
   isRecording,
   isSavingEpisode,
   episodesWsEnabled,
@@ -47,6 +73,7 @@ export function useTrainingTelemetry({
   setIsDeploying,
   setDeployRequestPending,
   setDeployDatasetId,
+  setDeployModelId,
   setDeployStatusPopupOpen,
   setDeployStatusMessage,
   setMemorisedPose,
@@ -58,6 +85,7 @@ export function useTrainingTelemetry({
   );
   const datasetNameByIdRef = useRef(datasetNameById);
   const deployDatasetRef = useRef<string | null>(deployDatasetId);
+  const deployModelRef = useRef<string | null>(deployModelId);
   const isRecordingRef = useRef(isRecording);
   const isSavingEpisodeRef = useRef(isSavingEpisode);
   const episodesWsEnabledRef = useRef(episodesWsEnabled);
@@ -78,6 +106,10 @@ export function useTrainingTelemetry({
   useEffect(() => {
     deployDatasetRef.current = deployDatasetId;
   }, [deployDatasetId]);
+
+  useEffect(() => {
+    deployModelRef.current = deployModelId;
+  }, [deployModelId]);
 
   useEffect(() => {
     isRecordingRef.current = isRecording;
@@ -306,15 +338,12 @@ export function useTrainingTelemetry({
         typeof deployPayload.message === "string"
           ? deployPayload.message
           : null;
-      const datasetId =
-        typeof deployPayload.datasetId === "string"
-          ? deployPayload.datasetId
-          : typeof deployPayload.dataset_id === "string"
-            ? deployPayload.dataset_id
-            : null;
+      const datasetId = readIdField(deployPayload, "datasetId", "dataset_id");
+      const modelId = readIdField(deployPayload, "modelId", "model_id");
       const datasetName = datasetId
         ? (datasetNameByIdRef.current.get(datasetId) ?? null)
         : null;
+      const resolvedModelId = modelId ?? deployModelRef.current;
 
       const resolvedDataset =
         datasetName ??
@@ -325,31 +354,49 @@ export function useTrainingTelemetry({
         selectedDatasetRef.current ??
         datasetId ??
         undefined;
+      const resolvedTarget = describeDeployTarget(
+        resolvedDataset,
+        resolvedModelId,
+      );
 
       setDeployRequestPending(false);
 
-      if (action === "deploy_ack") {
+      if (action === "deploy_ack" || action === "deploy_start_ack") {
         console.log("Response deployment webrtc", deployPayload);
-        const active = status === "deploying";
+        const active = status === "deploying" || status === "deployed";
         setIsDeploying(active);
         setDeployDatasetId(
           datasetId ?? selectedDatasetRouteIdRef.current ?? null,
         );
+        setDeployModelId(resolvedModelId ?? null);
         toast({
           title: active ? "Deployment accepted" : "Deployment updated",
           description:
             message ??
-            (resolvedDataset
-              ? `Dataset "${resolvedDataset}" status: ${status ?? "updated"}.`
-              : `Deployment status: ${status ?? "updated"}.`),
+            `${resolvedTarget} status: ${status ?? "updated"}.`,
         });
         return;
       }
 
-      if (action === "deploy_nack" || status === "error") {
-        if (message?.toLowerCase() === "no active deployment") {
+      if (
+        action === "deploy_nack" ||
+        action === "deploy_start_nack" ||
+        action === "deploy_stop_nack" ||
+        status === "error"
+      ) {
+        const noActiveDeployment =
+          message?.toLowerCase() === "no active deployment";
+        const shouldClearDeployState =
+          status === "error" ||
+          noActiveDeployment ||
+          action === "deploy_nack" ||
+          (action === "deploy_start_nack" && status !== "busy");
+        setDeployStatusPopupOpen(false);
+        setDeployStatusMessage(null);
+        if (shouldClearDeployState) {
           setIsDeploying(false);
           setDeployDatasetId(null);
+          setDeployModelId(null);
         }
         toast({
           title: "Deployment failed",
@@ -364,6 +411,7 @@ export function useTrainingTelemetry({
       if (action === "deploy_stop_ack" || status === "stopped") {
         setIsDeploying(false);
         setDeployDatasetId(null);
+        setDeployModelId(null);
 
         toast({
           title: "Deployment stopped",
@@ -384,26 +432,38 @@ export function useTrainingTelemetry({
           selectedDatasetRef.current ??
           datasetId ??
           undefined;
+        const deployingModelId = modelId ?? deployModelRef.current;
+        const deployingTarget = describeDeployTarget(
+          deployingDataset,
+          deployingModelId,
+        );
 
-        if (status === "deploying") {
+        if (status === "deploying" || status === "downloading_checkpoints") {
           setIsDeploying(true);
           setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
-          setDeployStatusMessage(message ?? "Downloading checkpoint...");
+          setDeployModelId(deployingModelId ?? null);
+          setDeployStatusMessage(
+            message ??
+              (status === "downloading_checkpoints"
+                ? `Downloading checkpoint for ${deployingTarget}...`
+                : `Deploying ${deployingTarget}...`),
+          );
           setDeployStatusPopupOpen(true);
           toast({
             title: "Deployment in progress",
             description:
-              message ?? `Deploying dataset "${deployingDataset}"...`,
+              message ?? `Deploying ${deployingTarget}...`,
           });
         } else if (status === "deployed") {
           setDeployStatusPopupOpen(false);
           setDeployStatusMessage(null);
           setIsDeploying(true);
           setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
+          setDeployModelId(deployingModelId ?? null);
           toast({
             title: "Deployment complete",
             description:
-              message ?? `Dataset "${deployingDataset}" deployed successfully.`,
+              message ?? `${deployingTarget} deployed successfully.`,
           });
         }
       }
@@ -415,6 +475,7 @@ export function useTrainingTelemetry({
   }, [
     session,
     setDeployDatasetId,
+    setDeployModelId,
     setDeployRequestPending,
     setDeployStatusMessage,
     setDeployStatusPopupOpen,

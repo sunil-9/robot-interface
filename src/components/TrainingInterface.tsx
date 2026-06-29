@@ -74,6 +74,7 @@ export const TrainingInterface = ({
     isDeploying,
     deployRequestPending,
     deployDatasetId,
+    deployModelId,
     deployStatusPopupOpen,
     deployStatusMessage,
     startEpisode: contextStartEpisode,
@@ -90,6 +91,7 @@ export const TrainingInterface = ({
     setIsDeploying,
     setDeployRequestPending,
     setDeployDatasetId,
+    setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
     // Pose
@@ -463,6 +465,7 @@ export const TrainingInterface = ({
     selectedDatasetRouteId,
     datasetNameById,
     deployDatasetId,
+    deployModelId,
     isRecording,
     isSavingEpisode,
     episodesWsEnabled,
@@ -474,6 +477,7 @@ export const TrainingInterface = ({
     setIsDeploying,
     setDeployRequestPending,
     setDeployDatasetId,
+    setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
     setMemorisedPose,
@@ -782,6 +786,12 @@ export const TrainingInterface = ({
                 <span className="mt-2 block text-sm text-muted-foreground">
                   Dataset:{" "}
                   <span className="font-medium">{deployDatasetId}</span>
+                </span>
+              )}
+              {deployModelId && (
+                <span className="mt-1 block text-sm text-muted-foreground">
+                  Model:{" "}
+                  <span className="font-medium">#{deployModelId}</span>
                 </span>
               )}
             </AlertDialogDescription>

@@ -167,34 +167,24 @@ export const createDataset = async (
   }
 };
 
-export const updateDatasetDescription = async (
+export const updateDataset = async (
   datasetId: string | number,
-  description: string,
+  updates: { name?: string; description?: string },
 ): Promise<void> => {
-  try {
-    const response = await apiFetch(
-      `/datasets/${encodeURIComponent(datasetId)}/description`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ description }),
-      },
-    );
+  const response = await apiFetch(
+    `/datasets/${encodeURIComponent(datasetId)}/update`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    },
+  );
 
-    if (!response.ok) {
-      const detail = await parseCloudApiResponse<unknown>(response);
-      throw new Error(
-        formatApiError(
-          detail,
-          `Failed to update dataset description (${response.status})`,
-        ),
-      );
-    }
-  } catch (error) {
-    console.error("Failed to update dataset description:", error);
-    throw error;
+  if (!response.ok) {
+    const detail = await parseCloudApiResponse<unknown>(response);
+    throw new Error(
+      formatApiError(detail, `Failed to update dataset (${response.status})`),
+    );
   }
 };
 

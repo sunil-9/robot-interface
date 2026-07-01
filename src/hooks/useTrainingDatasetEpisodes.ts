@@ -5,7 +5,7 @@ import {
   cloneDataset,
   deleteDataset,
   fetchDatasets,
-  updateDatasetDescription,
+  updateDataset,
   type DatasetListItem,
 } from "@/lib/api";
 import * as episodeApi from "@/services/episodeApi";
@@ -314,27 +314,54 @@ export function useTrainingDatasetEpisodes({
     }
   };
 
-  const handleDatasetDescriptionSave = async (
+  const handleDatasetSave = async (
     datasetId: string | number,
+    name: string,
     description: string,
   ) => {
     try {
-      await updateDatasetDescription(datasetId, description);
+      const previousItem = datasetItems.find(
+        (item) => String(item.id) === String(datasetId),
+      );
+      if (!previousItem) {
+        throw new Error("Dataset not found.");
+      }
+      const updates: { name?: string; description?: string } = {};
+      if (name !== previousItem.name) {
+        updates.name = name;
+      }
+      if (description !== (previousItem.description?.trim() ?? "")) {
+        updates.description = description;
+      }
+      if (Object.keys(updates).length === 0) {
+        toast({
+          title: "Nothing to update",
+          description: "The dataset name and description have not changed.",
+        });
+        return;
+      }
+      await updateDataset(datasetId, updates);
       setDatasetItems((items) =>
         items.map((item) =>
           String(item.id) === String(datasetId)
-            ? { ...item, description }
+            ? { ...item, name, description }
             : item,
         ),
       );
+      setDatasets((items) =>
+        items.map((item) => (item === previousItem?.name ? name : item)),
+      );
+      if (selectedDataset === previousItem?.name) {
+        setSelectedDataset(name);
+      }
       toast({
-        title: "Description updated",
-        description: "Dataset description saved successfully.",
+        title: "Dataset updated",
+        description: "Dataset name and description saved successfully.",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to update dataset description: ${
+        description: `Failed to update dataset: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
         variant: "destructive",
@@ -523,7 +550,7 @@ export function useTrainingDatasetEpisodes({
     handleCreateDataset,
     promptCloneDataset,
     confirmCloneDataset,
-    handleDatasetDescriptionSave,
+    handleDatasetSave,
     promptDeleteEpisode,
     confirmDeleteEpisode,
     promptDeleteDataset,

@@ -25,8 +25,9 @@ interface EpisodeManagementSidebarProps {
   onRequestCreateDataset: () => void;
   onRequestCloneDataset: (dataset: string) => void;
   onRequestDeleteDataset: (dataset: string) => void;
-  onDatasetDescriptionSave: (
+  onDatasetSave: (
     datasetId: string | number,
+    name: string,
     description: string,
   ) => Promise<void>;
   onPromptDeleteEpisode: (datasetId: string | number, episodeId: string) => void;
@@ -58,7 +59,7 @@ export const EpisodeManagementContent = ({
   onRequestCreateDataset,
   onRequestCloneDataset,
   onRequestDeleteDataset,
-  onDatasetDescriptionSave,
+  onDatasetSave,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
@@ -90,7 +91,7 @@ export const EpisodeManagementContent = ({
             onRequestCreate={onRequestCreateDataset}
             onRequestClone={onRequestCloneDataset}
             onRequestDelete={onRequestDeleteDataset}
-            onDescriptionSave={onDatasetDescriptionSave}
+            onDatasetSave={onDatasetSave}
           />
         </div>
       )}
@@ -133,8 +134,9 @@ export const EpisodeManagementSidebar = ({
   deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
+  onRequestCloneDataset,
   onRequestDeleteDataset,
-  onDatasetDescriptionSave,
+  onDatasetSave,
   onPromptDeleteEpisode,
   selectedDatasetRouteId,
   robotId,
@@ -167,8 +169,9 @@ export const EpisodeManagementSidebar = ({
             deletingEpisodeId={deletingEpisodeId}
             formatDuration={formatDuration}
             onRequestCreateDataset={onRequestCreateDataset}
+            onRequestCloneDataset={onRequestCloneDataset}
             onRequestDeleteDataset={onRequestDeleteDataset}
-            onDatasetDescriptionSave={onDatasetDescriptionSave}
+            onDatasetSave={onDatasetSave}
             onPromptDeleteEpisode={onPromptDeleteEpisode}
             selectedDatasetRouteId={selectedDatasetRouteId}
             robotId={robotId}

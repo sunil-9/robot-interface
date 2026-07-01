@@ -138,6 +138,7 @@ export const ActionVarianceChart = ({
                       data.length > 0
                         ? [...data]
                             .sort((a, b) => a - b)
+                            // eslint-disable-next-line no-unexpected-multiline
                             [Math.floor(data.length / 2)].toFixed(3)
                         : "0.000"
                     }`,

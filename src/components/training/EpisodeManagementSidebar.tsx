@@ -23,6 +23,7 @@ interface EpisodeManagementSidebarProps {
   deletingEpisodeId?: string | null;
   formatDuration: (seconds?: number) => string;
   onRequestCreateDataset: () => void;
+  onRequestCloneDataset: (dataset: string) => void;
   onRequestDeleteDataset: (dataset: string) => void;
   onDatasetDescriptionSave: (
     datasetId: string | number,
@@ -42,9 +43,11 @@ interface EpisodeManagementContentProps extends Omit<
   "isOpen" | "onOpenChange"
 > {
   className?: string;
+  showDatasetSelector?: boolean;
 }
 
 export const EpisodeManagementContent = ({
+  className,
   datasets,
   datasetItems,
   isLoadingDatasets,
@@ -53,6 +56,7 @@ export const EpisodeManagementContent = ({
   deletingEpisodeId = null,
   formatDuration,
   onRequestCreateDataset,
+  onRequestCloneDataset,
   onRequestDeleteDataset,
   onDatasetDescriptionSave,
   onPromptDeleteEpisode,
@@ -62,6 +66,7 @@ export const EpisodeManagementContent = ({
   recordingElapsedTime = 0,
   isSavingEpisode = false,
   isDatasetLocked = false,
+  showDatasetSelector = true,
 }: EpisodeManagementContentProps) => {
   const { openViewer, viewerState } = useEpisodeViewer();
 
@@ -75,18 +80,20 @@ export const EpisodeManagementContent = ({
   );
 
   return (
-    <div className={cn("flex h-full flex-col overflow-hidden")}>
-      {/* Dataset Selector - fixed at top */}
-      <div className="flex-shrink-0">
-        <DatasetSelector
-          datasets={datasets}
-          datasetItems={datasetItems}
-          isLoading={isLoadingDatasets}
-          onRequestCreate={onRequestCreateDataset}
-          onRequestDelete={onRequestDeleteDataset}
-          onDescriptionSave={onDatasetDescriptionSave}
-        />
-      </div>
+    <div className={cn("flex h-full flex-col overflow-hidden", className)}>
+      {showDatasetSelector && (
+        <div className="flex-shrink-0">
+          <DatasetSelector
+            datasets={datasets}
+            datasetItems={datasetItems}
+            isLoading={isLoadingDatasets}
+            onRequestCreate={onRequestCreateDataset}
+            onRequestClone={onRequestCloneDataset}
+            onRequestDelete={onRequestDeleteDataset}
+            onDescriptionSave={onDatasetDescriptionSave}
+          />
+        </div>
+      )}
 
       {/* Episode List - fills remaining space and scrolls */}
       <div className="flex-1 overflow-y-auto p-2 dark:bg-muted/30">

@@ -1,4 +1,4 @@
-import { Brain, Eye, Loader2, Plus, Zap } from "lucide-react";
+import { Brain, Eye, Loader2, Plus, Rocket, Square, Trash2, Zap } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -32,32 +32,42 @@ const STEP_OPTIONS = [
   { value: 500_000, label: "500k" },
 ];
 
-// Values must match lerobot policy types: act, diffusion, tdmpc, vqbet, pi0, pi05, sac, smolvla, reward_classifier, groot
-// Backend presets currently exist only for: act, smolvla
 const ALGORITHM_OPTIONS = [
   { value: "act", label: "ACT" },
   { value: "smolvla", label: "SmolVLA" },
 ];
+
+const DESCRIPTION_PREVIEW_LENGTH = 50;
+
+const formatDescriptionPreview = (description?: string | null) => {
+  const trimmed = description?.trim() ?? "";
+  if (!trimmed) {
+    return "No description";
+  }
+  return trimmed.length > DESCRIPTION_PREVIEW_LENGTH
+    ? `${trimmed.slice(0, DESCRIPTION_PREVIEW_LENGTH)}...`
+    : trimmed;
+};
 
 export const ModelTrainingSection = ({
   isActive,
   className,
   selectedDatasetDbId = null,
 }: ModelTrainingSectionProps) => {
-  const { selectedDataset } = useEpisodeControlContext();
+  const {
+    selectedDataset,
+    handleDeploy,
+    isDeploying,
+    deployRequestPending,
+    deployModelId,
+  } = useEpisodeControlContext();
   const [models, setModels] = useState<modelsApi.ModelSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Per-model step selection for the "Train" button
   const [trainSteps, setTrainSteps] = useState<Record<number, number>>({});
-
-  // Checkpoint state (preserved from original component)
   const [checkpointStatus, setCheckpointStatus] =
     useState<trainingApi.CheckpointStatus | null>(null);
   const [isCheckpointDialogOpen, setIsCheckpointDialogOpen] = useState(false);
-
-  // New model form state
   const [newAlgorithm, setNewAlgorithm] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newTargetSteps, setNewTargetSteps] = useState(100_000);
@@ -75,9 +85,7 @@ export const ModelTrainingSection = ({
         setModels(result.models);
       } catch (err) {
         setModels([]);
-        setError(
-          err instanceof Error ? err.message : "Failed to load models",
-        );
+        setError(err instanceof Error ? err.message : "Failed to load models");
       } finally {
         if (initial) setIsLoading(false);
       }
@@ -98,7 +106,6 @@ export const ModelTrainingSection = ({
     const load = async (initial: boolean) => {
       if (cancelled) return;
       await fetchModels(initial);
-      // Also fetch checkpoint status
       try {
         const cpResult = await trainingApi.fetchCheckpointStatus(datasetId);
         if (!cancelled) setCheckpointStatus(cpResult.status);
@@ -128,9 +135,7 @@ export const ModelTrainingSection = ({
       });
       await fetchModels();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to queue training",
-      );
+      setError(err instanceof Error ? err.message : "Failed to queue training");
     }
   };
 
@@ -148,13 +153,18 @@ export const ModelTrainingSection = ({
       setNewTargetSteps(100_000);
       await fetchModels();
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to create model",
-      );
+      setError(err instanceof Error ? err.message : "Failed to create model");
     } finally {
       setIsCreating(false);
     }
   };
+
+  const handleDeployModel = useCallback(
+    (modelId: number) => {
+      void handleDeploy(modelId);
+    },
+    [handleDeploy],
+  );
 
   const getProgressPercent = (model: modelsApi.ModelSummary) => {
     const target = model.max_target_steps ?? model.total_steps;
@@ -167,8 +177,14 @@ export const ModelTrainingSection = ({
     model.active_job_status === "training";
 
   return (
-    <div className={cn("border-t border-border bg-card p-3", className)}>
-      {/* Header */}
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card/70 p-3 shadow-none",
+        className,
+      )}
+      aria-busy={isLoading}
+      aria-hidden={!isActive}
+    >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <Brain className="h-4 w-4 text-primary" />
@@ -183,21 +199,18 @@ export const ModelTrainingSection = ({
         </Badge>
       </div>
 
-      {/* Error */}
       {error && (
-        <div className="text-xs text-destructive mb-2 truncate">{error}</div>
+        <div className="mb-2 truncate text-xs text-destructive">{error}</div>
       )}
 
-      {/* No dataset selected */}
       {!selectedDataset && (
-        <div className="text-sm text-muted-foreground">
+        <div className="mb-2 text-sm text-muted-foreground">
           Select a dataset to manage models
         </div>
       )}
 
-      {/* Checkpoint status */}
-      {checkpointStatus && (
-        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2 rounded-md bg-muted/50 px-2 py-1">
+      {/* {checkpointStatus && (
+        <div className="mb-2 flex items-center justify-between rounded-md bg-muted/50 px-2 py-1 text-sm text-muted-foreground">
           <span className="text-xs">
             Checkpoint:{" "}
             {checkpointStatus.available ? (
@@ -217,7 +230,7 @@ export const ModelTrainingSection = ({
             <Eye className="h-3 w-3" />
           </Button>
         </div>
-      )}
+      )} */}
 
       <CheckpointDetailsDialog
         open={isCheckpointDialogOpen}
@@ -226,9 +239,21 @@ export const ModelTrainingSection = ({
         datasetId={datasetId}
       />
 
-      {/* Model rows */}
       {selectedDataset && (
-        <div className="space-y-2">
+        <div className="mb-3 space-y-2">
+          {isLoading && models.length === 0 && (
+            <div className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border bg-muted/20 px-3 py-8 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading models
+            </div>
+          )}
+
+          {!isLoading && models.length === 0 && (
+            <div className="rounded-md border border-dashed border-border bg-muted/20 px-3 py-8 text-center text-sm text-muted-foreground">
+              No models found
+            </div>
+          )}
+
           {models.map((model) => {
             const active = isModelActive(model);
             const completed = !active && model.total_steps > 0;
@@ -236,41 +261,101 @@ export const ModelTrainingSection = ({
             const percent = getProgressPercent(model);
             const selectedSteps =
               trainSteps[model.model_id] ?? STEP_OPTIONS[0].value;
+            const modelId = String(model.model_id);
+            const isDeployTarget = deployModelId === modelId;
+            const isDeployPending = deployRequestPending && isDeployTarget;
+            const isStopTarget = isDeploying && isDeployTarget;
 
             return (
               <div
                 key={model.model_id}
-                className="rounded-md border border-border bg-muted/30 p-2 space-y-1.5"
+                className="space-y-1.5 rounded-md border border-border bg-muted/30 p-2"
               >
-                {/* Top row: algorithm + description */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-xs font-semibold text-foreground truncate">
-                    {model.algorithm}
-                  </span>
-                  {model.description && (
-                    <span className="text-xs text-muted-foreground truncate">
-                      {model.description}
-                    </span>
-                  )}
-                  {active && (
-                    <Badge
-                      variant="outline"
-                      className="ml-auto h-4 px-1.5 text-[10px] border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0"
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="shrink-0 text-xs font-semibold text-muted-foreground">
+                        #{model.model_id}
+                      </span>
+                      <span className="truncate text-xs font-semibold text-foreground">
+                        "{model.algorithm}"
+                      </span>
+                      {active && (
+                        <Badge
+                          variant="outline"
+                          className="h-4 shrink-0 border-blue-500/30 bg-blue-500/10 px-1.5 text-[10px] text-blue-600 dark:text-blue-400"
+                        >
+                          {model.active_job_status}
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                      {formatDescriptionPreview(model.description)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-7 w-7 text-muted-foreground hover:text-primary",
+                        isStopTarget && "text-destructive hover:text-destructive",
+                      )}
+                      aria-label={
+                        isStopTarget
+                          ? `Stop deployment for model ${model.model_id}`
+                          : `Deploy model ${model.model_id}`
+                      }
+                      title={
+                        isStopTarget
+                          ? `Stop deployment for model ${model.model_id}`
+                          : isDeploying
+                          ? "Deployment already active"
+                          : `Deploy model ${model.model_id}`
+                      }
+                      disabled={deployRequestPending || (isDeploying && !isDeployTarget)}
+                      onClick={() => handleDeployModel(model.model_id)}
                     >
-                      {model.active_job_status}
-                    </Badge>
-                  )}
+                      {isDeployPending ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : isStopTarget ? (
+                        <Square className="h-3.5 w-3.5" />
+                      ) : (
+                        <Rocket className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      aria-label={`Delete model ${model.model_id}`}
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      aria-label={`View model ${model.model_id}`}
+                      title="View"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
 
-                {/* Progress bar */}
                 <div>
-                  <div className="flex items-center justify-between mb-0.5">
+                  <div className="mb-0.5 flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">
                       {model.total_steps.toLocaleString()} /{" "}
                       {target.toLocaleString()} steps
                     </span>
                   </div>
-                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-300",
@@ -283,8 +368,7 @@ export const ModelTrainingSection = ({
                   </div>
                 </div>
 
-                {/* Controls: step select + train button */}
-                <div className="flex items-center gap-1.5 justify-end">
+                <div className="flex items-center justify-end gap-1.5">
                   <Select
                     value={String(selectedSteps)}
                     onValueChange={(v) =>
@@ -294,7 +378,7 @@ export const ModelTrainingSection = ({
                       }))
                     }
                   >
-                    <SelectTrigger className="h-6 w-[70px] text-xs px-2 py-0">
+                    <SelectTrigger className="h-6 w-[70px] px-2 py-0 text-xs">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -314,7 +398,7 @@ export const ModelTrainingSection = ({
                     className="h-6 px-2 text-xs"
                     onClick={() => handleTrainExisting(model.model_id)}
                   >
-                    <Zap className="h-3 w-3 mr-0.5" />
+                    <Zap className="mr-0.5 h-3 w-3" />
                     {active ? "Train More" : "Train"}
                   </Button>
                 </div>
@@ -322,11 +406,10 @@ export const ModelTrainingSection = ({
             );
           })}
 
-          {/* New model row */}
-          <div className="rounded-md border border-dashed border-border bg-muted/20 p-2 space-y-1.5">
+          <div className="space-y-1.5 rounded-md border border-dashed border-border bg-muted/20 p-2">
             <div className="flex items-center gap-1.5">
               <Select value={newAlgorithm} onValueChange={setNewAlgorithm}>
-                <SelectTrigger className="h-6 w-[130px] text-xs px-2 py-0">
+                <SelectTrigger className="h-6 w-[130px] px-2 py-0 text-xs">
                   <SelectValue placeholder="Algorithm" />
                 </SelectTrigger>
                 <SelectContent>
@@ -342,18 +425,18 @@ export const ModelTrainingSection = ({
                 </SelectContent>
               </Select>
               <Input
-                className="h-6 text-xs flex-1 min-w-0 px-2"
+                className="h-6 min-w-0 flex-1 px-2 text-xs"
                 placeholder="Description"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
               />
             </div>
-            <div className="flex items-center gap-1.5 justify-end">
+            <div className="flex items-center justify-end gap-1.5">
               <Select
                 value={String(newTargetSteps)}
                 onValueChange={(v) => setNewTargetSteps(Number(v))}
               >
-                <SelectTrigger className="h-6 w-[70px] text-xs px-2 py-0">
+                <SelectTrigger className="h-6 w-[70px] px-2 py-0 text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -375,9 +458,9 @@ export const ModelTrainingSection = ({
                 onClick={handleCreateModel}
               >
                 {isCreating ? (
-                  <Loader2 className="h-3 w-3 animate-spin mr-0.5" />
+                  <Loader2 className="mr-0.5 h-3 w-3 animate-spin" />
                 ) : (
-                  <Plus className="h-3 w-3 mr-0.5" />
+                  <Plus className="mr-0.5 h-3 w-3" />
                 )}
                 Train
               </Button>

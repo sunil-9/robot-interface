@@ -43,7 +43,9 @@ export const useWebSocket = ({
   const [lastMessage, setLastMessage] = useState(null);
   const [error, setError] = useState(null);
 
-  const url = customUrl ;
+  const url = customUrl?.trim() || null;
+  const hasValidUrl =
+    url !== null && (url.startsWith("ws://") || url.startsWith("wss://"));
 
   const ws = useRef<WebSocket | null>(null);
   const reconnectCount = useRef(0);
@@ -58,6 +60,16 @@ export const useWebSocket = ({
   }, [onMessage]);
 
   const connect = useCallback(() => {
+    if (!hasValidUrl) {
+      setIsConnected(false);
+      setError(
+        url
+          ? "Invalid WebSocket URL; expected ws:// or wss://"
+          : "WebSocket URL is not configured",
+      );
+      return;
+    }
+
     // Prevent creating a new connection if one already exists and is open
     if (
       ws.current &&
@@ -184,9 +196,19 @@ export const useWebSocket = ({
       console.error("❌ Failed to create WebSocket connection:", err);
       setError("Failed to create WebSocket connection");
     }
-  }, [url, reconnectInterval, maxReconnectAttempts]);
+  }, [hasValidUrl, url, reconnectInterval, maxReconnectAttempts]);
 
   useEffect(() => {
+    if (!hasValidUrl) {
+      setIsConnected(false);
+      setError(
+        url
+          ? "Invalid WebSocket URL; expected ws:// or wss://"
+          : "WebSocket URL is not configured",
+      );
+      return;
+    }
+
     console.log(
       "🎬 useWebSocket useEffect triggered - initializing connection"
     );
@@ -202,7 +224,7 @@ export const useWebSocket = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]); // Only reconnect when URL changes, not when connect function changes
+  }, [hasValidUrl, url]); // Only reconnect when URL changes
 
   return {
     isConnected,

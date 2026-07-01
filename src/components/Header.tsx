@@ -1,22 +1,24 @@
+import { headerControlCenterTabs } from "@/components/control-center/tabs";
+import type { ControlCenterTab } from "@/components/control-center/types";
+import { toast } from "@/components/ui/use-toast";
 import { AppMode } from "@/context/ModeContextDef";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
 import { robotService } from "@/services/robotService";
-import { toast } from "@/components/ui/use-toast";
 import {
   CheckCircle2,
   Circle,
   CircleUserRound,
   Link2,
+  LogOut,
   Moon,
-  Play,
+  Pencil,
   RefreshCcw,
-  Settings,
   Sun,
+  Unplug,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -26,6 +28,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { Input } from "./ui/input";
 import {
   Select,
@@ -34,42 +44,68 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const CLAIM_ROBOT_VALUE = "__claim__";
+
+const formatRobotLabel = (
+  robotId: number,
+  robotType?: string | null,
+  name?: string | null,
+) => {
+  const trimmedName = name?.trim() ?? "";
+  const typeLabel = robotType?.trim() || "unknown";
+
+  if (trimmedName) {
+    return `${trimmedName} (${robotId}, ${typeLabel})`;
+  }
+
+  return `Robot ${robotId} (${typeLabel})`;
+};
 
 interface HeaderProps {
   page: string;
   selectedRobot?: string;
   selectedControl?: string;
-  onOpenSettings?: () => void;
+  isConnected?: boolean;
+  onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
+  onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
+  onDisconnect?: () => void;
 }
 
 interface TrainHeaderProps {
   selectedRobot?: string;
   selectedControl?: string;
-  onOpenSettings?: () => void;
+  isConnected?: boolean;
+  onOpenSettings?: (tab?: ControlCenterTab) => void;
   onRobotChange?: (robotId: string) => void;
+  onControlSelectionChange?: (controllerId: string | null) => void;
   onSelectionStart?: (robotId: string, controllerId: string) => void;
+  onDisconnect?: () => void;
   mode: AppMode;
   getModeLabel: () => string;
   modeColors: Record<AppMode, string>;
-  ThemeToggle: () => JSX.Element;
+  theme: "light" | "dark";
+  toggleTheme: () => void;
 }
 
 const TrainHeader = ({
   selectedRobot,
   selectedControl,
+  isConnected = false,
   onOpenSettings,
   onRobotChange,
+  onControlSelectionChange,
   onSelectionStart,
+  onDisconnect,
   mode,
   getModeLabel,
   modeColors,
-  ThemeToggle,
+  theme,
+  toggleTheme,
 }: TrainHeaderProps) => {
-  const navigate = useNavigate();
   const auth = useAuthSession();
   const [robotSelection, setRobotSelection] = useState<string>(
     selectedRobot ?? "",
@@ -79,8 +115,13 @@ const TrainHeader = ({
   );
   const [claimRobotOpen, setClaimRobotOpen] = useState(false);
   const [claimRobotHash, setClaimRobotHash] = useState("");
+  const [claimRobotFriendlyName, setClaimRobotFriendlyName] = useState("");
   const [claimRobotLoading, setClaimRobotLoading] = useState(false);
   const [claimRobotError, setClaimRobotError] = useState<string | null>(null);
+  const [renameRobotId, setRenameRobotId] = useState<string | null>(null);
+  const [renameRobotFriendlyName, setRenameRobotFriendlyName] = useState("");
+  const [renameRobotLoading, setRenameRobotLoading] = useState(false);
+  const [renameRobotError, setRenameRobotError] = useState<string | null>(null);
   const selectedRobotId = robotSelection || selectedRobot || "";
   const normalizedSelectedRobotId = selectedRobotId.trim();
 
@@ -95,7 +136,9 @@ const TrainHeader = ({
 
   const sortedRobots = [...robots].sort((left, right) => {
     if (left.is_live === right.is_live) {
-      return left.name.localeCompare(right.name);
+      const leftName = left.name?.trim() || `Robot ${left.id}`;
+      const rightName = right.name?.trim() || `Robot ${right.id}`;
+      return leftName.localeCompare(rightName, undefined, { numeric: true });
     }
     return left.is_live ? -1 : 1;
   });
@@ -105,13 +148,17 @@ const TrainHeader = ({
     sortedRobots.some(
       (robot) => String(robot.id) === normalizedSelectedRobotId,
     );
-  const selectedRobotDetail =
-    normalizedSelectedRobotId
-      ? sortedRobots.find(
-          (robot) => String(robot.id) === normalizedSelectedRobotId,
-        ) ?? null
-      : null;
-  const visibleControlDevices = hasSelectedRobot ? controlDevices : [];
+  const selectedRobotDetail = normalizedSelectedRobotId
+    ? (sortedRobots.find(
+        (robot) => String(robot.id) === normalizedSelectedRobotId,
+      ) ?? null)
+    : null;
+  const visibleControlDevices = useMemo(
+    () => (hasSelectedRobot ? controlDevices : []),
+    [controlDevices, hasSelectedRobot],
+  );
+  const userDisplayName =
+    auth.user?.fullName?.trim() || auth.user?.email || "Operator";
 
   useEffect(() => {
     setRobotSelection(selectedRobot ?? "");
@@ -125,13 +172,15 @@ const TrainHeader = ({
     if (!auth.accessToken) {
       setRobotSelection("");
       setControlSelection("");
+      onControlSelectionChange?.(null);
       return;
     }
 
     if (!loading && !hasSelectedRobot) {
       setControlSelection("");
+      onControlSelectionChange?.(null);
     }
-  }, [auth.accessToken, hasSelectedRobot, loading]);
+  }, [auth.accessToken, hasSelectedRobot, loading, onControlSelectionChange]);
 
   useEffect(() => {
     if (!auth.accessToken || loading || !hasSelectedRobot || loadingDevices) {
@@ -156,6 +205,7 @@ const TrainHeader = ({
 
     if (controlSelection) {
       setControlSelection("");
+      onControlSelectionChange?.(null);
     }
   }, [
     auth.accessToken,
@@ -163,6 +213,7 @@ const TrainHeader = ({
     hasSelectedRobot,
     loading,
     loadingDevices,
+    onControlSelectionChange,
     selectedControl,
     visibleControlDevices,
   ]);
@@ -172,7 +223,7 @@ const TrainHeader = ({
       if (!auth.accessToken) {
         toast({
           title: "Login required",
-          description: "Please log in first to claim a robot.",
+          description: "Please log in first to add a robot.",
           variant: "destructive",
         });
         return;
@@ -180,11 +231,13 @@ const TrainHeader = ({
 
       setClaimRobotOpen(true);
       setClaimRobotError(null);
+      setClaimRobotFriendlyName("");
       return;
     }
 
     setRobotSelection(value);
     setControlSelection("");
+    onControlSelectionChange?.(null);
     onRobotChange?.(value);
   };
 
@@ -202,12 +255,17 @@ const TrainHeader = ({
     try {
       setClaimRobotLoading(true);
       setClaimRobotError(null);
-      const claimResult = await robotService.claimRobot(normalizedHash);
+      const claimResult = await robotService.claimRobot(
+        normalizedHash,
+        claimRobotFriendlyName,
+      );
       const claimedRobotId = String(claimResult.robot_id);
       setRobotSelection(claimedRobotId);
       setControlSelection("");
+      onControlSelectionChange?.(null);
       onRobotChange?.(claimedRobotId);
       setClaimRobotHash("");
+      setClaimRobotFriendlyName("");
       setClaimRobotOpen(false);
       refreshRobots();
     } catch (error) {
@@ -219,24 +277,152 @@ const TrainHeader = ({
     }
   };
 
+  const handleStartRenameRobot = (
+    robotId: number,
+    currentName?: string | null,
+  ) => {
+    setRenameRobotId(String(robotId));
+    setRenameRobotFriendlyName(currentName?.trim() ?? "");
+    setRenameRobotError(null);
+  };
+
+  const handleCancelRenameRobot = () => {
+    setRenameRobotId(null);
+    setRenameRobotFriendlyName("");
+    setRenameRobotError(null);
+  };
+
+  const handleRenameRobot = async () => {
+    if (!auth.accessToken) {
+      setRenameRobotError("Not authorized. Please log in and try again.");
+      return;
+    }
+
+    if (!renameRobotId) {
+      return;
+    }
+
+    try {
+      setRenameRobotLoading(true);
+      setRenameRobotError(null);
+      await robotService.renameRobot(renameRobotId, renameRobotFriendlyName);
+      setRenameRobotId(null);
+      setRenameRobotFriendlyName("");
+      refreshRobots();
+    } catch (error) {
+      setRenameRobotError(
+        error instanceof Error ? error.message : "Failed to rename robot.",
+      );
+    } finally {
+      setRenameRobotLoading(false);
+    }
+  };
+
   const handleStart = () => {
+    if (isConnected) {
+      return;
+    }
     if (!hasSelectedRobot || !controlSelection) {
+      return;
+    }
+    if (selectedRobotDetail && !selectedRobotDetail.is_live) {
+      toast({
+        title: "Robot offline",
+        description: "This robot is not live. Please select a live robot.",
+        variant: "destructive",
+      });
       return;
     }
     onSelectionStart?.(normalizedSelectedRobotId, controlSelection);
   };
 
+  const handleControlChange = (value: string) => {
+    setControlSelection(value);
+    onControlSelectionChange?.(value || null);
+  };
+
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
       <div className="container mx-auto flex flex-wrap items-center gap-3 px-4 py-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={() => navigate("/")}
-        >
-          <CircleUserRound />
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-muted-foreground hover:text-foreground"
+              aria-label="Open user menu"
+            >
+              <CircleUserRound />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="start"
+            className="w-64 border-border bg-popover p-2 text-popover-foreground"
+          >
+            <DropdownMenuLabel className="px-3 py-2">
+              <span className="block text-sm font-semibold text-foreground">
+                {auth.user ? userDisplayName : "Operator menu"}
+              </span>
+              <span className="block truncate text-xs font-normal text-muted-foreground">
+                {auth.user?.email ?? "Sign in to manage your workspace"}
+              </span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {headerControlCenterTabs.map((tab) => {
+              const isAccountTab = tab.id === "account";
+              const Icon =
+                !auth.user && tab.unauthenticatedIcon
+                  ? tab.unauthenticatedIcon
+                  : tab.icon;
+              const label =
+                !auth.user && tab.unauthenticatedLabel
+                  ? tab.unauthenticatedLabel
+                  : tab.label;
+
+              return (
+                <DropdownMenuItem
+                  key={tab.id}
+                  className="gap-3 rounded-md px-3 py-2"
+                  disabled={!auth.user && !isAccountTab}
+                  onSelect={() => onOpenSettings?.(tab.id)}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{label}</span>
+                </DropdownMenuItem>
+              );
+            })}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="gap-3 rounded-md px-3 py-2"
+              onSelect={toggleTheme}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+              <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+            </DropdownMenuItem>
+            {auth.user ? (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="gap-3 rounded-md px-3 py-2 text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                  onSelect={() => {
+                    auth.logout();
+                    toast({
+                      title: "Signed out",
+                      description: "Your local operator session was cleared.",
+                    });
+                  }}
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Log Out</span>
+                </DropdownMenuItem>
+              </>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <div className="min-w-[220px] px-1">
           <div className="flex flex-col">
@@ -264,77 +450,155 @@ const TrainHeader = ({
               Robot
             </p>
             <div className="flex items-center gap-1">
-              <Select
-                value={
-                  hasSelectedRobot ? normalizedSelectedRobotId : undefined
-                }
-                onValueChange={handleRobotChange}
-                disabled={loading}
-              >
-                <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
-                  {selectedRobotDetail ? (
-                    <span className="flex min-w-0 flex-col items-start leading-tight">
-                      <span className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
-                        {selectedRobotDetail.is_live ? (
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                        ) : (
-                          <Circle className="h-3 w-3 text-red-500" />
-                        )}
-                        {selectedRobotDetail.name}
-                      </span>
-                      <span className="truncate text-xs text-muted-foreground">
-                        {selectedRobotDetail.is_live
-                          ? selectedRobotDetail.description
-                          : "Offline robot"}
-                      </span>
-                    </span>
-                  ) : (
-                    <SelectValue
-                      placeholder={
-                        loading ? "Loading robots..." : "Select robot"
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="min-w-0 flex-1" data-tour="robot-select">
+                    <Select
+                      value={
+                        hasSelectedRobot ? normalizedSelectedRobotId : undefined
                       }
-                    />
-                  )}
-                </SelectTrigger>
-                <SelectContent className="border-border bg-card">
-                  {sortedRobots.map((robot) => (
-                    <SelectItem
-                      key={robot.id}
-                      value={robot.id.toString()}
-                      className="mb-1 min-h-16 items-start rounded-md border border-border/70 bg-background/60 py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
+                      onValueChange={handleRobotChange}
+                      disabled={loading || isConnected}
                     >
-                      <div className="flex w-full items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            <span className="mr-1">
-                              {robot.is_live ? (
-                                <CheckCircle2 className="inline h-3 w-3 text-emerald-500" />
+                      <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                        {selectedRobotDetail ? (
+                          <span className="flex min-w-0 flex-col items-start leading-tight">
+                            <span className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
+                              {selectedRobotDetail.is_live ? (
+                                <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                               ) : (
-                                <Circle className="inline h-3 w-3 text-red-500" />
+                                <Circle className="h-3 w-3 text-red-500" />
+                              )}
+                              {formatRobotLabel(
+                                selectedRobotDetail.id,
+                                selectedRobotDetail.robotType,
+                                selectedRobotDetail.name,
                               )}
                             </span>
-                            {robot.name}
-                          </p>
-                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {robot.is_live
-                              ? robot.description
-                              : "Offline robot"}
-                          </p>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                  <SelectItem
-                    value={CLAIM_ROBOT_VALUE}
-                    className="mt-1 items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary focus:bg-accent/30 focus:text-primary [&>span:first-child]:hidden"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Link2 className="h-3 w-3" />
-                      {auth.accessToken ? "Claim robot" : "Claim robot"}
-                    </span>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                            <span className="truncate text-xs text-muted-foreground">
+                              {selectedRobotDetail.is_live
+                                ? selectedRobotDetail.description
+                                : "Offline robot"}
+                            </span>
+                          </span>
+                        ) : (
+                          <SelectValue
+                            placeholder={
+                              loading ? "Loading robots..." : "Select robot"
+                            }
+                          />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent className="z-[100001] border-border bg-card">
+                        <SelectItem
+                          value={CLAIM_ROBOT_VALUE}
+                          className="mb-1 items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary focus:bg-accent/30 focus:text-primary [&>span:first-child]:hidden"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Link2 className="h-3 w-3" />
+                            Add robot
+                          </span>
+                        </SelectItem>
+                        {sortedRobots.map((robot) => (
+                          <div key={robot.id} className="mb-1">
+                            <SelectItem
+                              value={robot.id.toString()}
+                              className="min-h-16 items-start rounded-md border border-border/70 bg-background/60 py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
+                            >
+                              <div className="flex w-full items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <p className="truncate text-sm font-medium text-foreground">
+                                    <span className="mr-1">
+                                      {robot.is_live ? (
+                                        <CheckCircle2 className="inline h-3 w-3 text-emerald-500" />
+                                      ) : (
+                                        <Circle className="inline h-3 w-3 text-red-500" />
+                                      )}
+                                    </span>
+                                    {formatRobotLabel(
+                                      robot.id,
+                                      robot.robotType,
+                                      robot.name,
+                                    )}
+                                  </p>
+                                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                    {robot.is_live
+                                      ? robot.description
+                                      : "Offline robot"}
+                                  </p>
+                                </div>
+                                <button
+                                  type="button"
+                                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                                  onPointerDown={(event) => {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                  }}
+                                  onClick={() =>
+                                    handleStartRenameRobot(robot.id, robot.name)
+                                  }
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </SelectItem>
+                            {renameRobotId === String(robot.id) ? (
+                              <div className="mt-1 rounded-md border border-border/70 bg-background/80 p-2">
+                                <div className="space-y-2">
+                                  <Input
+                                    value={renameRobotFriendlyName}
+                                    onChange={(event) => {
+                                      setRenameRobotFriendlyName(
+                                        event.target.value,
+                                      );
+                                      if (renameRobotError) {
+                                        setRenameRobotError(null);
+                                      }
+                                    }}
+                                    placeholder="Robot name (optional)"
+                                    disabled={renameRobotLoading}
+                                  />
+                                  {renameRobotError ? (
+                                    <p className="text-xs text-red-500">
+                                      {renameRobotError}
+                                    </p>
+                                  ) : null}
+                                  <div className="flex items-center justify-end gap-2">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={handleCancelRenameRobot}
+                                      disabled={renameRobotLoading}
+                                    >
+                                      Cancel
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      onClick={handleRenameRobot}
+                                      disabled={renameRobotLoading}
+                                    >
+                                      {renameRobotLoading
+                                        ? "Saving..."
+                                        : "Save"}
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TooltipTrigger>
+                {isConnected ? (
+                  <TooltipContent>
+                    Disconnect first to change robot.
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
               <Button
                 variant="ghost"
                 size="icon"
@@ -353,36 +617,48 @@ const TrainHeader = ({
               Control Device
             </p>
             <div className="flex items-center gap-1">
-              <Select
-                value={
-                  hasSelectedRobot && controlSelection
-                    ? controlSelection
-                    : undefined
-                }
-                onValueChange={setControlSelection}
-                disabled={!auth.accessToken || !hasSelectedRobot || loadingDevices}
-              >
-                <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
-                  <SelectValue
-                    placeholder={
-                      !auth.accessToken
-                        ? "Log in to select"
-                        : !hasSelectedRobot
-                        ? "Select robot first"
-                        : loadingDevices
-                          ? "Loading devices..."
-                          : "Select control device"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-card">
-                  {visibleControlDevices.map((device) => (
-                    <SelectItem key={device.id} value={device.id}>
-                      {device.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="min-w-0 flex-1" data-tour="control-select">
+                    <Select
+                      value={hasSelectedRobot ? controlSelection : ""}
+                      onValueChange={handleControlChange}
+                      disabled={
+                        !auth.accessToken ||
+                        !hasSelectedRobot ||
+                        loadingDevices ||
+                        isConnected
+                      }
+                    >
+                      <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                        <SelectValue
+                          placeholder={
+                            !auth.accessToken
+                              ? "Log in to select"
+                              : !hasSelectedRobot
+                                ? "Select robot first"
+                                : loadingDevices
+                                  ? "Loading devices..."
+                                  : "Select control device"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="z-[100001] border-border bg-card">
+                        {visibleControlDevices.map((device) => (
+                          <SelectItem key={device.id} value={device.id}>
+                            {device.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </TooltipTrigger>
+                {isConnected ? (
+                  <TooltipContent>
+                    Disconnect first to change control device.
+                  </TooltipContent>
+                ) : null}
+              </Tooltip>
               <Button
                 variant="ghost"
                 size="icon"
@@ -396,25 +672,53 @@ const TrainHeader = ({
             </div>
           </div>
 
-          <Button
-            size="sm"
-            onClick={handleStart}
-            disabled={!auth.accessToken || !hasSelectedRobot || !controlSelection}
-            className="h-10 px-4"
-          >
-            <Play className="mr-1 h-3.5 w-3.5" />
-            Start
-          </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onOpenSettings}
-              aria-label="Open settings"
-              className="h-10 w-10 text-muted-foreground hover:text-foreground"
+          {isConnected ? (
+            <div
+              data-tour="connect-button"
+              className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white"
             >
-              <Settings className="h-4 w-4" />
+              <div className="flex items-center px-4 text-sm font-medium">
+                <img
+                  src="/robot-connected.svg"
+                  alt=""
+                  className="mr-1 h-6 w-6"
+                  aria-hidden="true"
+                />
+                Connected
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                onClick={onDisconnect}
+                className="h-10 w-10 rounded-none border-l border-white/30 bg-emerald-700 text-white hover:bg-emerald-800"
+                aria-label="Disconnect"
+                title="Disconnect"
+              >
+                <Unplug className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              data-tour="connect-button"
+              size="sm"
+              onClick={handleStart}
+              disabled={
+                !auth.accessToken ||
+                !hasSelectedRobot ||
+                !controlSelection ||
+                selectedRobotDetail?.is_live === false
+              }
+              className="h-10 px-4"
+            >
+              <img
+                src="/robot-disconnected.svg"
+                alt=""
+                className="mr-1 h-6 w-6"
+                aria-hidden="true"
+              />
+              Connect
             </Button>
-          <ThemeToggle />
+          )}
         </div>
       </div>
 
@@ -425,21 +729,34 @@ const TrainHeader = ({
           if (!open) {
             setClaimRobotError(null);
             setClaimRobotHash("");
+            setClaimRobotFriendlyName("");
           }
         }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Claim robot</DialogTitle>
+            <DialogTitle>Add robot</DialogTitle>
             <DialogDescription>
-              Enter robot hash to claim and link this robot to your user.
+              Enter the robot hash to add this robot to your account.
             </DialogDescription>
           </DialogHeader>
           <Input
+            data-tour="robot-hash"
             placeholder="Enter robot hash"
             value={claimRobotHash}
             onChange={(event) => {
               setClaimRobotHash(event.target.value);
+              if (claimRobotError) {
+                setClaimRobotError(null);
+              }
+            }}
+            disabled={claimRobotLoading}
+          />
+          <Input
+            placeholder="Robot name (optional)"
+            value={claimRobotFriendlyName}
+            onChange={(event) => {
+              setClaimRobotFriendlyName(event.target.value);
               if (claimRobotError) {
                 setClaimRobotError(null);
               }
@@ -463,7 +780,7 @@ const TrainHeader = ({
               onClick={handleClaimRobot}
               disabled={claimRobotLoading || !claimRobotHash.trim()}
             >
-              {claimRobotLoading ? "Claiming..." : "Claim"}
+              {claimRobotLoading ? "Adding..." : "Add robot"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -476,9 +793,12 @@ export const Header = ({
   page,
   selectedRobot,
   selectedControl,
+  isConnected = false,
   onOpenSettings,
   onRobotChange,
+  onControlSelectionChange,
   onSelectionStart,
+  onDisconnect,
 }: HeaderProps) => {
   const { getModeLabel, mode } = useModeContext();
   const getStoredTheme = () => {
@@ -551,13 +871,17 @@ export const Header = ({
     <TrainHeader
       selectedRobot={selectedRobot}
       selectedControl={selectedControl}
+      isConnected={isConnected}
       onOpenSettings={onOpenSettings}
       onRobotChange={onRobotChange}
+      onControlSelectionChange={onControlSelectionChange}
       onSelectionStart={onSelectionStart}
+      onDisconnect={onDisconnect}
       mode={mode}
       getModeLabel={getModeLabel}
       modeColors={modeColors}
-      ThemeToggle={ThemeToggle}
+      theme={theme}
+      toggleTheme={toggleTheme}
     />
   ) : (
     <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-border bg-card/80 px-4 backdrop-blur">

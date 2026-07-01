@@ -173,3 +173,58 @@ All colors MUST be HSL.
     background: hsl(var(--muted) / 0.3);
   }
 }
+/* Operator onboarding */
+.driver-popover.im-operator-tour {
+  width: min(360px, calc(100vw - 32px));
+  max-width: 360px;
+  border: 1px solid hsl(var(--primary) / 0.28);
+  border-radius: 18px;
+  background: hsl(var(--card) / 0.98);
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 24px 80px rgb(2 6 23 / 0.34);
+  padding: 18px;
+}
+
+.im-operator-tour .driver-popover-title {
+  color: hsl(var(--foreground));
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.im-operator-tour .driver-popover-description {
+  color: hsl(var(--muted-foreground));
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.im-operator-tour .driver-popover-progress-text {
+  color: hsl(var(--muted-foreground));
+}
+
+.im-operator-tour .driver-popover-footer button {
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  padding: 7px 11px;
+  text-shadow: none;
+}
+
+.im-operator-tour .driver-popover-footer .driver-popover-next-btn {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.im-operator-tour .driver-popover-footer .im-tour-skip {
+  margin-right: auto;
+  border-color: transparent;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+}
+
+.im-operator-tour .im-tour-live-hint {
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 600;
+}

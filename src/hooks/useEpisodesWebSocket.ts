@@ -1,7 +1,7 @@
 import { API_CONFIG } from "@/config/api";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type * as episodeApi from "@/services/episodeApi";
 import { loadStoredAuthSession } from "@/services/authApi";
+import type * as episodeApi from "@/services/episodeApi";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type EpisodesSnapshotMessage = {
   type: "episodes_snapshot";
@@ -75,7 +75,7 @@ export const useEpisodesWebSocket = ({
   const [error, setError] = useState<string | null>(null);
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectCount = useRef(0);
-  const reconnectTimeout = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const allowReconnect = useRef(true);
 
   const closeSocket = useCallback((code = 1000, reason = "Closing") => {
@@ -96,7 +96,9 @@ export const useEpisodesWebSocket = ({
 
     const token = loadStoredAuthSession()?.accessToken;
     if (!token) {
-      console.warn("Episodes websocket: no auth token available, skipping connection.");
+      console.warn(
+        "Episodes websocket: no auth token available, skipping connection.",
+      );
       return;
     }
 
@@ -153,11 +155,7 @@ export const useEpisodesWebSocket = ({
 
       socket.onclose = (event) => {
         setIsConnected(false);
-        console.info(
-          "Episodes websocket closed:",
-          event.code,
-          event.reason,
-        );
+        console.info("Episodes websocket closed:", event.code, event.reason);
         if (
           allowReconnect.current &&
           enabled &&

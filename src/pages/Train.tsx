@@ -1,7 +1,11 @@
 import { Header } from "@/components/Header";
 import { InputTracker } from "@/components/InputTracker";
-import { RobotSelectionDialog } from "@/components/RobotSelectionDialog";
+import {
+  RobotSelectionDialog,
+  type ControlCenterTab,
+} from "@/components/RobotSelectionDialog";
 import { TrainingInterface } from "@/components/TrainingInterface";
+import { OperatorOnboarding } from "@/components/onboarding/OperatorOnboarding";
 import { toast } from "@/components/ui/use-toast";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
@@ -35,8 +39,14 @@ export default function TrainPage() {
 
   // State for robot selection dialog
   const [showSelectionDialog, setShowSelectionDialog] = useState(false);
+  const [controlCenterTab, setControlCenterTab] =
+    useState<ControlCenterTab>("account");
   const [currentRobot, setCurrentRobot] = useState<string | null>(null);
-  const [currentControl, setCurrentControl] = useState<string | null>(null);
+  const [currentControl, setCurrentControl] = useState<
+    string | null | undefined
+  >(undefined);
+  const [pendingControl, setPendingControl] = useState<string | null>(null);
+  const [connectionRequested, setConnectionRequested] = useState(false);
 
   // Get robot session data from URL params or from session storage
   const sessionRobotData = getSessionRobotData();
@@ -73,6 +83,7 @@ export default function TrainPage() {
     robotId: canStartWebRTC ? selectedRobot : null,
     controllerId: canStartWebRTC ? selectedControl : null,
   });
+  const isConnected = session.connectionState === "connected";
 
   useEffect(() => {
     if (auth.isLoadingUser) {
@@ -87,6 +98,9 @@ export default function TrainPage() {
     resetAuthSessionState();
     setCurrentRobot(null);
     setCurrentControl(null);
+    setPendingControl(null);
+    setConnectionRequested(false);
+    setControlCenterTab("account");
     setShowSelectionDialog(true);
 
     const nextParams = new URLSearchParams(location.search);
@@ -118,6 +132,8 @@ export default function TrainPage() {
     (robotId: string, controllerId: string) => {
       setCurrentRobot(robotId);
       setCurrentControl(controllerId);
+      setPendingControl(null);
+      setConnectionRequested(true);
 
       // Update URL params without navigation
       const newParams = new URLSearchParams(location.search);
@@ -142,8 +158,10 @@ export default function TrainPage() {
 
   const handleHeaderRobotChange = useCallback(
     (robotId: string) => {
+      setConnectionRequested(false);
       setCurrentRobot(robotId);
       setCurrentControl(null);
+      setPendingControl(null);
 
       const newParams = new URLSearchParams(location.search);
       newParams.set("robot", robotId);
@@ -158,6 +176,12 @@ export default function TrainPage() {
     },
     [navigate, location.search],
   );
+
+  const handleDisconnect = useCallback(() => {
+    // Removing the active IDs runs the WebRTC effect cleanup, which sends the
+    // signaling "leave" message before closing the socket and peer connection.
+    setConnectionRequested(false);
+  }, []);
 
   // On mount: validate URL params and test connectivity; fail -> toast + redirect home
   useEffect(() => {
@@ -336,6 +360,7 @@ export default function TrainPage() {
         onOpenChange={setShowSelectionDialog}
         initialRobot={selectedRobot}
         initialController={selectedControl}
+        initialTab={controlCenterTab}
         onConfirm={handleSelectionConfirm}
       />
 
@@ -344,9 +369,15 @@ export default function TrainPage() {
         page={"train"}
         selectedRobot={selectedRobot || undefined}
         selectedControl={selectedControl || undefined}
-        onOpenSettings={() => setShowSelectionDialog(true)}
+        isConnected={isConnected}
+        onOpenSettings={(tab = "account") => {
+          setControlCenterTab(tab);
+          setShowSelectionDialog(true);
+        }}
         onRobotChange={handleHeaderRobotChange}
+        onControlSelectionChange={setPendingControl}
         onSelectionStart={handleSelectionConfirm}
+        onDisconnect={handleDisconnect}
       />
 
       {/* Main content takes full height */}
@@ -360,6 +391,10 @@ export default function TrainPage() {
 
       {/* Input tracker overlay */}
       <InputTracker controlType={selectedControl} session={session} />
+
+      <OperatorOnboarding
+        enabled={Boolean(auth.accessToken) && !auth.isLoadingUser}
+      />
     </div>
   );
 }

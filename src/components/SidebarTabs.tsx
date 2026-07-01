@@ -50,7 +50,7 @@ export function SidebarTabs({
             value="secondary"
             className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
           >
-            <Camera className="h-4 w-4" /> More Streams
+            <Camera className="h-4 w-4" /> Cameras
           </TabsTrigger>
           <TabsTrigger
             data-tour="episodes-tab"

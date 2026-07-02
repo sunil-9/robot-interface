@@ -25,6 +25,7 @@ interface DatasetVisualizationDescriptor {
   source: "backend_proxy";
   file_base_url: string;
   metadata_url: string;
+  episode_metadata_paths?: string[];
   dataset_path?: string | null;
   version?: string | null;
   metadata: DatasetInfo;
@@ -119,6 +120,13 @@ const getDatasetDescriptor = async (
 export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
   const descriptor = await getDatasetDescriptor(repoId);
   return descriptor.metadata;
+}
+
+export async function getEpisodeMetadataPaths(repoId: string): Promise<string[]> {
+  const descriptor = await getDatasetDescriptor(repoId);
+  return Array.isArray(descriptor.episode_metadata_paths)
+    ? descriptor.episode_metadata_paths
+    : [];
 }
 
 /**

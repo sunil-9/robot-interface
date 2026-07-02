@@ -9,7 +9,11 @@ import {
   readParquetAsObjects,
 } from "../utils/parquetUtils";
 import { pick } from "../utils/pick";
-import { getDatasetVersion, buildVersionedUrl } from "../utils/versionUtils";
+import {
+  buildVersionedUrl,
+  getDatasetVersion,
+  getEpisodeMetadataPaths,
+} from "../utils/versionUtils";
 
 const SERIES_NAME_DELIMITER = " | ";
 
@@ -67,7 +71,12 @@ export async function getAdjacentEpisodesVideoInfo(
           let videosInfo: any[] = [];
           
           if (version === "v3.0") {
-            const episodeMetadata = await loadEpisodeMetadataV3Simple(repoId, version, episodeId);
+            const episodeMetadata = await loadEpisodeMetadataV3Simple(
+              repoId,
+              version,
+              episodeId,
+              info.total_episodes,
+            );
             videosInfo = extractVideoInfoV3WithSegmentation(repoId, version, info, episodeMetadata);
           } else {
             // For v2.x, use simpler video info extraction
@@ -438,7 +447,12 @@ async function getEpisodeDataV3(
   const episodes = Array.from({ length: info.total_episodes }, (_, i) => i);
 
   // Load episode metadata to get timestamps for episode 0
-  const episodeMetadata = await loadEpisodeMetadataV3Simple(repoId, version, episodeId);
+  const episodeMetadata = await loadEpisodeMetadataV3Simple(
+    repoId,
+    version,
+    episodeId,
+    info.total_episodes,
+  );
   
   // Create video info with segmentation using the metadata
   const videosInfo = extractVideoInfoV3WithSegmentation(repoId, version, info, episodeMetadata);
@@ -937,17 +951,21 @@ async function loadEpisodeMetadataV3Simple(
   repoId: string,
   version: string,
   episodeId: number,
+  totalEpisodes?: number,
 ): Promise<any> {
   // Pattern: meta/episodes/chunk-{chunk_index:03d}/file-{file_index:03d}.parquet
-  // Most datasets have all episodes in chunk-000/file-000, but episodes can be split across files
-  
-  let episodeRow = null;
-  let fileIndex = 0;
-  const chunkIndex = 0; // Episodes are typically in chunk-000
-  
-  // Try loading episode metadata files until we find the episode
-  while (!episodeRow) {
-    const episodesMetadataPath = `meta/episodes/chunk-${chunkIndex.toString().padStart(3, "0")}/file-${fileIndex.toString().padStart(3, "0")}.parquet`;
+  // Prefer the backend-provided file list because deleted episodes can leave
+  // sparse physical file indexes, e.g. file-001 with no file-000.
+  const listedPaths = await getEpisodeMetadataPaths(repoId);
+  const fallbackScanLimit = Math.max(totalEpisodes ?? 0, episodeId + 1, 100);
+  const fallbackPaths = Array.from(
+    { length: fallbackScanLimit + 1 },
+    (_, fileIndex) =>
+      `meta/episodes/chunk-000/file-${fileIndex.toString().padStart(3, "0")}.parquet`,
+  );
+  const candidatePaths = listedPaths.length > 0 ? listedPaths : fallbackPaths;
+
+  for (const episodesMetadataPath of candidatePaths) {
     const episodesMetadataUrl = buildVersionedUrl(repoId, version, episodesMetadataPath);
 
     try {
@@ -955,8 +973,6 @@ async function loadEpisodeMetadataV3Simple(
       const episodesData = await readParquetAsObjects(arrayBuffer, []);
       
       if (episodesData.length === 0) {
-        // Empty file, try next one
-        fileIndex++;
         continue;
       }
       
@@ -965,23 +981,24 @@ async function loadEpisodeMetadataV3Simple(
         const parsedRow = parseEpisodeRowSimple(row);
         
         if (parsedRow.episode_index === episodeId) {
-          episodeRow = row;
-          break;
+          return parseEpisodeRowSimple(row);
         }
       }
-      
-      if (!episodeRow) {
-        // Not in this file, try the next one
-        fileIndex++;
-      }
     } catch (error) {
-      // File doesn't exist - episode not found
-      throw new Error(`Episode ${episodeId} not found in metadata (searched up to file-${fileIndex.toString().padStart(3, "0")}.parquet)`);
+      if (listedPaths.length === 0 && isMissingMetadataFileError(error)) {
+        continue;
+      }
+      throw error;
     }
   }
-  
-  // Convert the row to a usable format
-  return parseEpisodeRowSimple(episodeRow);
+
+  throw new Error(
+    `Episode ${episodeId} not found in metadata (${candidatePaths.length} file(s) checked)`,
+  );
+}
+
+function isMissingMetadataFileError(error: unknown): boolean {
+  return error instanceof Error && /:\s*404\b/.test(error.message);
 }
 
 // Simple parser for episode row - focuses on key fields for episodes

@@ -114,6 +114,29 @@ const getDatasetDescriptor = async (
   return request;
 };
 
+export function invalidateDatasetDescriptorCache(
+  repoIdOrDatasetId?: string | number | null,
+): void {
+  if (repoIdOrDatasetId === undefined || repoIdOrDatasetId === null) {
+    descriptorCache.clear();
+    descriptorRequestCache.clear();
+    return;
+  }
+
+  const targetDatasetId = splitRepoId(String(repoIdOrDatasetId)).datasetId;
+  const cacheKeys = new Set([
+    ...descriptorCache.keys(),
+    ...descriptorRequestCache.keys(),
+  ]);
+
+  for (const cacheKey of cacheKeys) {
+    if (splitRepoId(cacheKey).datasetId === targetDatasetId) {
+      descriptorCache.delete(cacheKey);
+      descriptorRequestCache.delete(cacheKey);
+    }
+  }
+}
+
 /**
  * Fetches dataset information from the configured visualization source.
  */

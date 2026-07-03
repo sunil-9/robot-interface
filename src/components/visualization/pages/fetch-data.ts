@@ -963,7 +963,7 @@ async function loadEpisodeMetadataV3Simple(
     (_, fileIndex) =>
       `meta/episodes/chunk-000/file-${fileIndex.toString().padStart(3, "0")}.parquet`,
   );
-  const candidatePaths = listedPaths.length > 0 ? listedPaths : fallbackPaths;
+  const candidatePaths = [...new Set([...listedPaths, ...fallbackPaths])];
 
   for (const episodesMetadataPath of candidatePaths) {
     const episodesMetadataUrl = buildVersionedUrl(repoId, version, episodesMetadataPath);
@@ -985,7 +985,7 @@ async function loadEpisodeMetadataV3Simple(
         }
       }
     } catch (error) {
-      if (listedPaths.length === 0 && isMissingMetadataFileError(error)) {
+      if (isMissingMetadataFileError(error)) {
         continue;
       }
       throw error;

@@ -25,6 +25,7 @@ interface DatasetVisualizationDescriptor {
   source: "backend_proxy";
   file_base_url: string;
   metadata_url: string;
+  episode_metadata_paths?: string[];
   dataset_path?: string | null;
   version?: string | null;
   metadata: DatasetInfo;
@@ -113,12 +114,42 @@ const getDatasetDescriptor = async (
   return request;
 };
 
+export function invalidateDatasetDescriptorCache(
+  repoIdOrDatasetId?: string | number | null,
+): void {
+  if (repoIdOrDatasetId === undefined || repoIdOrDatasetId === null) {
+    descriptorCache.clear();
+    descriptorRequestCache.clear();
+    return;
+  }
+
+  const targetDatasetId = splitRepoId(String(repoIdOrDatasetId)).datasetId;
+  const cacheKeys = new Set([
+    ...descriptorCache.keys(),
+    ...descriptorRequestCache.keys(),
+  ]);
+
+  for (const cacheKey of cacheKeys) {
+    if (splitRepoId(cacheKey).datasetId === targetDatasetId) {
+      descriptorCache.delete(cacheKey);
+      descriptorRequestCache.delete(cacheKey);
+    }
+  }
+}
+
 /**
  * Fetches dataset information from the configured visualization source.
  */
 export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
   const descriptor = await getDatasetDescriptor(repoId);
   return descriptor.metadata;
+}
+
+export async function getEpisodeMetadataPaths(repoId: string): Promise<string[]> {
+  const descriptor = await getDatasetDescriptor(repoId);
+  return Array.isArray(descriptor.episode_metadata_paths)
+    ? descriptor.episode_metadata_paths
+    : [];
 }
 
 /**

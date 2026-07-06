@@ -60,7 +60,7 @@ const formatRobotLabel = (
     return `${trimmedName} (${robotId}, ${typeLabel})`;
   }
 
-  return `Robot ${robotId} (${typeLabel})`;
+  return `Robot ID ${robotId} (${typeLabel})`;
 };
 
 interface HeaderProps {
@@ -110,6 +110,7 @@ const TrainHeader = ({
   const [robotSelection, setRobotSelection] = useState<string>(
     selectedRobot ?? "",
   );
+  const [robotSelectOpen, setRobotSelectOpen] = useState(false);
   const [controlSelection, setControlSelection] = useState<string>(
     selectedControl ?? "",
   );
@@ -281,6 +282,7 @@ const TrainHeader = ({
     robotId: number,
     currentName?: string | null,
   ) => {
+    setRobotSelectOpen(false);
     setRenameRobotId(String(robotId));
     setRenameRobotFriendlyName(currentName?.trim() ?? "");
     setRenameRobotError(null);
@@ -454,6 +456,8 @@ const TrainHeader = ({
                 <TooltipTrigger asChild>
                   <div className="min-w-0 flex-1" data-tour="robot-select">
                     <Select
+                      open={robotSelectOpen}
+                      onOpenChange={setRobotSelectOpen}
                       value={
                         hasSelectedRobot ? normalizedSelectedRobotId : undefined
                       }
@@ -500,93 +504,56 @@ const TrainHeader = ({
                           </span>
                         </SelectItem>
                         {sortedRobots.map((robot) => (
-                          <div key={robot.id} className="mb-1">
+                          <div
+                            key={robot.id}
+                            className="mb-1 flex overflow-hidden rounded-md border border-border/70 bg-background/60"
+                          >
                             <SelectItem
                               value={robot.id.toString()}
-                              className="min-h-16 items-start rounded-md border border-border/70 bg-background/60 py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
+                              className="min-h-16 min-w-0 flex-1 items-start rounded-none border-0 bg-transparent py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
                             >
-                              <div className="flex w-full items-start justify-between gap-3">
-                                <div className="min-w-0">
-                                  <p className="truncate text-sm font-medium text-foreground">
-                                    <span className="mr-1">
-                                      {robot.is_live ? (
-                                        <CheckCircle2 className="inline h-3 w-3 text-emerald-500" />
-                                      ) : (
-                                        <Circle className="inline h-3 w-3 text-red-500" />
-                                      )}
-                                    </span>
-                                    {formatRobotLabel(
-                                      robot.id,
-                                      robot.robotType,
-                                      robot.name,
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-foreground">
+                                  <span className="mr-1">
+                                    {robot.is_live ? (
+                                      <CheckCircle2 className="inline h-3 w-3 text-emerald-500" />
+                                    ) : (
+                                      <Circle className="inline h-3 w-3 text-red-500" />
                                     )}
-                                  </p>
-                                  <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                                    {robot.is_live
-                                      ? robot.description
-                                      : "Offline robot"}
-                                  </p>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                                  onPointerDown={(event) => {
-                                    event.preventDefault();
-                                    event.stopPropagation();
-                                  }}
-                                  onClick={() =>
-                                    handleStartRenameRobot(robot.id, robot.name)
-                                  }
-                                >
-                                  <Pencil className="h-3 w-3" />
-                                </button>
+                                  </span>
+                                  {formatRobotLabel(
+                                    robot.id,
+                                    robot.robotType,
+                                    robot.name,
+                                  )}
+                                </p>
+                                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                                  {robot.is_live
+                                    ? robot.description
+                                    : "Offline robot"}
+                                </p>
                               </div>
                             </SelectItem>
-                            {renameRobotId === String(robot.id) ? (
-                              <div className="mt-1 rounded-md border border-border/70 bg-background/80 p-2">
-                                <div className="space-y-2">
-                                  <Input
-                                    value={renameRobotFriendlyName}
-                                    onChange={(event) => {
-                                      setRenameRobotFriendlyName(
-                                        event.target.value,
-                                      );
-                                      if (renameRobotError) {
-                                        setRenameRobotError(null);
-                                      }
-                                    }}
-                                    placeholder="Robot name (optional)"
-                                    disabled={renameRobotLoading}
-                                  />
-                                  {renameRobotError ? (
-                                    <p className="text-xs text-red-500">
-                                      {renameRobotError}
-                                    </p>
-                                  ) : null}
-                                  <div className="flex items-center justify-end gap-2">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={handleCancelRenameRobot}
-                                      disabled={renameRobotLoading}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      onClick={handleRenameRobot}
-                                      disabled={renameRobotLoading}
-                                    >
-                                      {renameRobotLoading
-                                        ? "Saving..."
-                                        : "Save"}
-                                    </Button>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : null}
+                            <button
+                              type="button"
+                              className="inline-flex w-10 shrink-0 items-center justify-center border-l border-border/70 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                              aria-label={`Edit name for ${formatRobotLabel(
+                                robot.id,
+                                robot.robotType,
+                                robot.name,
+                              )}`}
+                              onPointerDown={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                              }}
+                              onClick={(event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                handleStartRenameRobot(robot.id, robot.name);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
                           </div>
                         ))}
                       </SelectContent>
@@ -783,6 +750,62 @@ const TrainHeader = ({
               {claimRobotLoading ? "Adding..." : "Add robot"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={renameRobotId !== null}
+        onOpenChange={(open) => {
+          if (!open && !renameRobotLoading) {
+            handleCancelRenameRobot();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleRenameRobot();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Edit robot name</DialogTitle>
+              <DialogDescription>
+                Enter a friendly name for this robot. Leave it blank to use the
+                default robot label.
+              </DialogDescription>
+            </DialogHeader>
+            <Input
+              autoFocus
+              value={renameRobotFriendlyName}
+              onChange={(event) => {
+                setRenameRobotFriendlyName(event.target.value);
+                if (renameRobotError) {
+                  setRenameRobotError(null);
+                }
+              }}
+              placeholder="Robot name (optional)"
+              disabled={renameRobotLoading}
+              aria-label="Robot name"
+            />
+            {renameRobotError ? (
+              <p className="text-sm text-red-500">{renameRobotError}</p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelRenameRobot}
+                disabled={renameRobotLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={renameRobotLoading}>
+                {renameRobotLoading ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </header>

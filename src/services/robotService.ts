@@ -160,8 +160,9 @@ export const robotService = {
       throw new Error("Robot ID is required");
     }
 
+    const robotsEndpoint = API_CONFIG.ENDPOINTS.ROBOTS.replace(/\/+$/, "");
     const response = await apiFetch(
-      `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.ROBOTS}/${normalizedRobotId}/friendly-name`,
+      `${API_CONFIG.BASE_URL}${robotsEndpoint}/${encodeURIComponent(normalizedRobotId)}/friendly-name`,
       {
         method: "PATCH",
         headers: {

@@ -1,7 +1,16 @@
-import { Check, Copy, FolderPlus, Pencil, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Copy, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { type DatasetListItem } from "@/lib/api";
 
@@ -21,8 +31,9 @@ interface DatasetSelectorProps {
   onRequestCreate: () => void;
   onRequestClone: (dataset: string) => void;
   onRequestDelete: (dataset: string) => void;
-  onDescriptionSave: (
+  onDatasetSave: (
     datasetId: string | number,
+    name: string,
     description: string,
   ) => Promise<void>;
 }
@@ -36,7 +47,7 @@ export const DatasetSelector = ({
   onRequestCreate,
   onRequestClone,
   onRequestDelete,
-  onDescriptionSave,
+  onDatasetSave,
 }: DatasetSelectorProps) => {
   const { selectedDataset, setSelectedDataset } = useEpisodeControlContext();
   const datasetItemByName = new Map(
@@ -45,14 +56,14 @@ export const DatasetSelector = ({
   const selectedDatasetItem = datasetItemByName.get(selectedDataset) ?? null;
   const selectedDatasetDescription =
     selectedDatasetItem?.description?.trim() ?? "";
-  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [selectOpen, setSelectOpen] = useState(false);
+  const [datasetToEdit, setDatasetToEdit] = useState<DatasetListItem | null>(
+    null,
+  );
+  const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [isSavingDescription, setIsSavingDescription] = useState(false);
-
-  useEffect(() => {
-    setDescriptionDraft(selectedDatasetDescription);
-    setIsEditingDescription(false);
-  }, [selectedDataset, selectedDatasetDescription]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const handleValueChange = (value: string) => {
     if (value === CREATE_NEW_VALUE) {
@@ -62,23 +73,60 @@ export const DatasetSelector = ({
     setSelectedDataset(value);
   };
 
-  const handleSaveDescription = async () => {
-    if (!selectedDatasetItem) {
+  const handleStartEdit = (dataset: string) => {
+    const item = datasetItemByName.get(dataset);
+    if (!item) {
       return;
     }
 
-    setIsSavingDescription(true);
-    try {
-      await onDescriptionSave(selectedDatasetItem.id, descriptionDraft.trim());
-      setIsEditingDescription(false);
-    } finally {
-      setIsSavingDescription(false);
-    }
+    setSelectOpen(false);
+    setDatasetToEdit(item);
+    setNameDraft(item.name);
+    setDescriptionDraft(item.description?.trim() ?? "");
+    setEditError(null);
   };
 
-  const handleCancelDescription = () => {
-    setDescriptionDraft(selectedDatasetDescription);
-    setIsEditingDescription(false);
+  const handleCancelEdit = () => {
+    setDatasetToEdit(null);
+    setEditError(null);
+  };
+
+  const handleSaveDataset = async () => {
+    if (!datasetToEdit || !nameDraft.trim()) {
+      setEditError("Dataset name is required.");
+      return;
+    }
+
+    const normalizedName = nameDraft.trim();
+    const normalizedDescription = descriptionDraft.trim();
+    if (
+      normalizedName === datasetToEdit.name &&
+      normalizedDescription === (datasetToEdit.description?.trim() ?? "")
+    ) {
+      toast({
+        title: "Nothing to update",
+        description: "The dataset name and description have not changed.",
+      });
+      handleCancelEdit();
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await onDatasetSave(
+        datasetToEdit.id,
+        normalizedName,
+        normalizedDescription,
+      );
+      setDatasetToEdit(null);
+      setEditError(null);
+    } catch (error) {
+      setEditError(
+        error instanceof Error ? error.message : "Failed to update dataset.",
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -91,6 +139,8 @@ export const DatasetSelector = ({
           Dataset
         </Label>
         <Select
+          open={selectOpen}
+          onOpenChange={setSelectOpen}
           value={selectedDataset}
           onValueChange={handleValueChange}
           disabled={isLoading}
@@ -125,6 +175,20 @@ export const DatasetSelector = ({
                       
                     </div>
                   </SelectItem>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      handleStartEdit(dataset);
+                    }}
+                    className="group cursor-pointer rounded-md bg-transparent px-3 py-2 text-primary transition-all duration-200 hover:bg-primary/10 hover:text-primary focus:bg-primary/15 focus:text-primary focus:outline-none dark:hover:bg-primary/20 dark:focus:bg-primary/25"
+                    aria-label={`Edit dataset ${dataset}`}
+                    title="Edit dataset"
+                  >
+                    <Pencil className="h-4 w-4 group-hover:scale-110" />
+                  </Button>
                   <Button
                     size="sm"
                     variant="ghost"
@@ -174,65 +238,9 @@ export const DatasetSelector = ({
       {selectedDataset && (
         <>
           <div className="mt-2 flex items-start gap-2">
-            {isEditingDescription ? (
-              <Input
-                value={descriptionDraft}
-                onChange={(event) => setDescriptionDraft(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    void handleSaveDescription();
-                  }
-                  if (event.key === "Escape") {
-                    handleCancelDescription();
-                  }
-                }}
-                placeholder="Add dataset description"
-                disabled={isSavingDescription}
-                className="h-8 flex-1 border-border bg-background text-xs text-foreground"
-              />
-            ) : (
-              <p className="line-clamp-2 flex-1 text-xs text-muted-foreground">
-                {selectedDatasetDescription || "No description"}
-              </p>
-            )}
-            {isEditingDescription ? (
-              <div className="flex shrink-0 items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCancelDescription}
-                  disabled={isSavingDescription}
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  aria-label="Cancel description edit"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => void handleSaveDescription()}
-                  disabled={isSavingDescription}
-                  className="h-8 w-8 text-primary hover:text-primary"
-                  aria-label="Save description"
-                >
-                  <Check className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditingDescription(true)}
-                disabled={!selectedDatasetItem}
-                className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                aria-label="Edit description"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-            )}
+            <p className="line-clamp-2 flex-1 text-xs text-muted-foreground">
+              {selectedDatasetDescription || "No description"}
+            </p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Episodes will be saved to:{" "}
@@ -244,6 +252,77 @@ export const DatasetSelector = ({
           </p>{" "}
         </>
       )}
+
+      <Dialog
+        open={datasetToEdit !== null}
+        onOpenChange={(open) => {
+          if (!open && !isSaving) {
+            handleCancelEdit();
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <form
+            className="grid gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleSaveDataset();
+            }}
+          >
+            <DialogHeader>
+              <DialogTitle>Edit dataset</DialogTitle>
+              <DialogDescription>
+                Update the dataset name and description.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-dataset-name">Name</Label>
+              <Input
+                id="edit-dataset-name"
+                autoFocus
+                value={nameDraft}
+                onChange={(event) => {
+                  setNameDraft(event.target.value);
+                  setEditError(null);
+                }}
+                disabled={isSaving}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="edit-dataset-description">Description</Label>
+              <Textarea
+                id="edit-dataset-description"
+                value={descriptionDraft}
+                onChange={(event) => {
+                  setDescriptionDraft(event.target.value);
+                  setEditError(null);
+                }}
+                disabled={isSaving}
+                rows={4}
+              />
+            </div>
+            {editError ? (
+              <p className="text-sm text-destructive">{editError}</p>
+            ) : null}
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSaving || !nameDraft.trim()}
+              >
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

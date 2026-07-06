@@ -35,7 +35,7 @@ export function SidebarTabs({
           onRequestCreate={episodeManagementProps.onRequestCreateDataset}
           onRequestClone={episodeManagementProps.onRequestCloneDataset}
           onRequestDelete={episodeManagementProps.onRequestDeleteDataset}
-          onDescriptionSave={episodeManagementProps.onDatasetDescriptionSave}
+          onDatasetSave={episodeManagementProps.onDatasetSave}
         />
       </div>
 

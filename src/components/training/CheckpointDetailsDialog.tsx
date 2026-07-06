@@ -168,22 +168,6 @@ export const CheckpointDetailsDialog = ({
                           <span className="text-sm font-medium text-primary">
                             {formatFileSize(checkpoint.total_size)}
                           </span>
-                          {/* <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // todo this should change the api link
-                              window.open(
-                                `http://localhost:8100/training/${encodeURIComponent(String(datasetRef))}/checkpoints/${checkpoint.step}`,
-                                "_blank",
-                              );
-                            }}
-                            title="Download checkpoint"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button> */}
                           <AccordionTrigger className="hover:no-underline p-0 h-7 w-7 flex items-center justify-center [&>svg]:h-4 [&>svg]:w-4 [&>svg]:text-muted-foreground [&>svg]:transition-transform [&>svg]:duration-200" />
                         </div>
                       </div>

@@ -8,6 +8,7 @@ export interface ModelSummary {
   model_id: number;
   algorithm: string;
   description: string | null;
+  default: boolean;
   total_steps: number;
   max_target_steps: number | null;
   active_job_status: string | null; // "queued" | "training" | null
@@ -37,6 +38,12 @@ export interface TrainModelPayload {
 export interface TrainModelResponse {
   model_id: number;
   job_id: number;
+}
+
+export interface ModelDefaultUpdateResponse {
+  model_id: number;
+  dataset_id: number;
+  default: boolean;
 }
 
 /**
@@ -137,6 +144,42 @@ export const trainExistingModel = async (
 
   if (!data || typeof data !== "object" || !("model_id" in data)) {
     throw new Error("Unexpected train-model response");
+  }
+
+  return data;
+};
+
+/**
+ * Set a model as the selected dataset's default model.
+ */
+export const updateDefaultModel = async (
+  modelId: number,
+  datasetId: number,
+  isDefault: boolean,
+): Promise<ModelDefaultUpdateResponse> => {
+  const response = await apiFetch(
+    `${MODELS_BASE_URL}/${encodeURIComponent(modelId)}/default?dataset_id=${encodeURIComponent(datasetId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ default: isDefault }),
+      signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
+    },
+  );
+
+  const data = await parseCloudApiResponse<
+    ModelDefaultUpdateResponse | string | null
+  >(response);
+
+  if (!response.ok) {
+    throw new Error(formatApiError(data, "Failed to update default model"));
+  }
+
+  if (!data || typeof data !== "object" || !("model_id" in data)) {
+    throw new Error("Unexpected default-model response");
   }
 
   return data;

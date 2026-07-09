@@ -1,4 +1,14 @@
-import { Brain, Eye, Loader2, Plus, Rocket, Square, Trash2, Zap } from "lucide-react";
+import {
+  Brain,
+  Eye,
+  Loader2,
+  Plus,
+  Rocket,
+  Square,
+  Star,
+  Trash2,
+  Zap,
+} from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -72,6 +82,9 @@ export const ModelTrainingSection = ({
   const [newDescription, setNewDescription] = useState("");
   const [newTargetSteps, setNewTargetSteps] = useState(100_000);
   const [isCreating, setIsCreating] = useState(false);
+  const [updatingDefaultModelId, setUpdatingDefaultModelId] = useState<number | null>(
+    null,
+  );
 
   const datasetId = selectedDatasetDbId ?? null;
 
@@ -165,6 +178,23 @@ export const ModelTrainingSection = ({
     },
     [handleDeploy],
   );
+
+  const handleSelectDefaultModel = async (model: modelsApi.ModelSummary) => {
+    if (datasetId === null || model.default) return;
+
+    setUpdatingDefaultModelId(model.model_id);
+    setError(null);
+    try {
+      await modelsApi.updateDefaultModel(model.model_id, datasetId, true);
+      await fetchModels();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to update default model",
+      );
+    } finally {
+      setUpdatingDefaultModelId(null);
+    }
+  };
 
   const getProgressPercent = (model: modelsApi.ModelSummary) => {
     const target = model.max_target_steps ?? model.total_steps;
@@ -265,6 +295,8 @@ export const ModelTrainingSection = ({
             const isDeployTarget = deployModelId === modelId;
             const isDeployPending = deployRequestPending && isDeployTarget;
             const isStopTarget = isDeploying && isDeployTarget;
+            const isUpdatingDefault =
+              updatingDefaultModelId === model.model_id;
 
             return (
               <div
@@ -294,6 +326,37 @@ export const ModelTrainingSection = ({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "h-7 w-7 text-muted-foreground hover:text-yellow-500",
+                        model.default && "text-yellow-500 hover:text-yellow-500",
+                      )}
+                      aria-label={
+                        model.default
+                          ? `Model ${model.model_id} is the default model`
+                          : `Set model ${model.model_id} as default`
+                      }
+                      aria-pressed={model.default}
+                      title={
+                        model.default
+                          ? "Default model"
+                          : `Set model ${model.model_id} as default`
+                      }
+                      disabled={isUpdatingDefault}
+                      onClick={() => void handleSelectDefaultModel(model)}
+                    >
+                      {isUpdatingDefault ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Star
+                          className="h-3.5 w-3.5"
+                          fill={model.default ? "currentColor" : "none"}
+                        />
+                      )}
+                    </Button>
                     <Button
                       type="button"
                       variant="ghost"

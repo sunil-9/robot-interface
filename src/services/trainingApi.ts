@@ -38,6 +38,16 @@ export interface CheckpointDetailsFetchResult {
   message?: string;
 }
 
+export interface StopTrainingJobResponse {
+  job_id: number;
+  dataset_id: number;
+  previous_status: string;
+  status: string;
+  stop_requested: boolean;
+  stopped_instance_id: string | null;
+  runtime_stop_requested: boolean;
+}
+
 /**
  * Fetch checkpoint status for a dataset.
  */
@@ -118,3 +128,32 @@ export const fetchCheckpointDetails = async (
   return { details: data };
 };
 
+/**
+ * Request a force stop for a queued/running training job.
+ */
+export const stopTrainingJob = async (
+  jobId: number,
+): Promise<StopTrainingJobResponse> => {
+  const response = await apiFetch(
+    `${TRAINING_BASE_URL}/jobs/${encodeURIComponent(jobId)}/stop`,
+    {
+      method: "POST",
+      headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(API_CONFIG.TIMEOUT.DEFAULT),
+    },
+  );
+
+  const data = await parseCloudApiResponse<
+    StopTrainingJobResponse | string | null
+  >(response);
+
+  if (!response.ok) {
+    throw new Error(formatApiError(data, "Failed to stop training job"));
+  }
+
+  if (!data || typeof data !== "object" || !("job_id" in data)) {
+    throw new Error("Unexpected stop-training response");
+  }
+
+  return data;
+};

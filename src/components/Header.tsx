@@ -3,6 +3,7 @@ import type { ControlCenterTab } from "@/components/control-center/types";
 import { toast } from "@/components/ui/use-toast";
 import { AppMode } from "@/context/ModeContextDef";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
 import { robotService } from "@/services/robotService";
@@ -11,10 +12,12 @@ import {
   Circle,
   CircleUserRound,
   Link2,
+  Loader2,
   LogOut,
   Moon,
   Pencil,
   RefreshCcw,
+  Rocket,
   Sun,
   Unplug,
 } from "lucide-react";
@@ -107,6 +110,8 @@ const TrainHeader = ({
   toggleTheme,
 }: TrainHeaderProps) => {
   const auth = useAuthSession();
+  const { handleDeploy, isDeploying, deployRequestPending } =
+    useEpisodeControlContext();
   const [robotSelection, setRobotSelection] = useState<string>(
     selectedRobot ?? "",
   );
@@ -341,6 +346,14 @@ const TrainHeader = ({
   const handleControlChange = (value: string) => {
     setControlSelection(value);
     onControlSelectionChange?.(value || null);
+  };
+
+  const handleDeployDefaultModel = () => {
+    if (!isConnected || isDeploying || deployRequestPending) {
+      return;
+    }
+
+    void handleDeploy();
   };
 
   return (
@@ -640,29 +653,46 @@ const TrainHeader = ({
           </div>
 
           {isConnected ? (
-            <div
-              data-tour="connect-button"
-              className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white"
-            >
-              <div className="flex items-center px-4 text-sm font-medium">
-                <img
-                  src="/robot-connected.svg"
-                  alt=""
-                  className="mr-1 h-6 w-6"
-                  aria-hidden="true"
-                />
-                Connected
-              </div>
+            <div className="flex items-center gap-2">
               <Button
                 type="button"
-                size="icon"
-                onClick={onDisconnect}
-                className="h-10 w-10 rounded-none border-l border-white/30 bg-emerald-700 text-white hover:bg-emerald-800"
-                aria-label="Disconnect"
-                title="Disconnect"
+                size="sm"
+                onClick={handleDeployDefaultModel}
+                disabled={isDeploying || deployRequestPending}
+                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+                title="Deploy default model"
               >
-                <Unplug className="h-4 w-4" />
+                {deployRequestPending ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <Rocket className="mr-1 h-4 w-4" />
+                )}
+                Deploy
               </Button>
+              <div
+                data-tour="connect-button"
+                className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white"
+              >
+                <div className="flex items-center px-4 text-sm font-medium">
+                  <img
+                    src="/robot-connected.svg"
+                    alt=""
+                    className="mr-1 h-6 w-6"
+                    aria-hidden="true"
+                  />
+                  Connected
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={onDisconnect}
+                  className="h-10 w-10 rounded-none border-l border-white/30 bg-emerald-700 text-white hover:bg-emerald-800"
+                  aria-label="Disconnect"
+                  title="Disconnect"
+                >
+                  <Unplug className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ) : (
             <Button

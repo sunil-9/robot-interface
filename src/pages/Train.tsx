@@ -76,7 +76,7 @@ export default function TrainPage() {
     deviceError,
   });
   const canStartWebRTC = Boolean(
-     connectionRequested && selectedRobot && hasValidatedSessionControl,
+    connectionRequested && selectedRobot && hasValidatedSessionControl,
   );
 
   const session = useWebRTCSession({

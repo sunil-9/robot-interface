@@ -11,6 +11,7 @@ export interface ModelSummary {
   default: boolean;
   total_steps: number;
   max_target_steps: number | null;
+  active_job_id: number | null;
   active_job_status: string | null; // "queued" | "training" | null
   created_at: string;
 }

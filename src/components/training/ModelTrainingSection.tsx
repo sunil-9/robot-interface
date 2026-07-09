@@ -1,5 +1,6 @@
 import {
   Brain,
+  CircleStop,
   Eye,
   Loader2,
   Plus,
@@ -15,9 +16,21 @@ import { cn } from "@/lib/utils";
 import * as modelsApi from "@/services/modelsApi";
 import * as trainingApi from "@/services/trainingApi";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/use-toast";
 import {
   Select,
   SelectContent,
@@ -85,6 +98,9 @@ export const ModelTrainingSection = ({
   const [updatingDefaultModelId, setUpdatingDefaultModelId] = useState<number | null>(
     null,
   );
+  const [stoppingTrainingJobId, setStoppingTrainingJobId] = useState<
+    number | null
+  >(null);
 
   const datasetId = selectedDatasetDbId ?? null;
 
@@ -196,6 +212,30 @@ export const ModelTrainingSection = ({
     }
   };
 
+  const handleStopTrainingJob = async (model: modelsApi.ModelSummary) => {
+    if (!model.active_job_id) {
+      setError("No active training job found for this model");
+      return;
+    }
+
+    setStoppingTrainingJobId(model.active_job_id);
+    setError(null);
+    try {
+      const result = await trainingApi.stopTrainingJob(model.active_job_id);
+      toast({
+        title: "Training stop requested",
+        description: `Job #${result.job_id} moved from ${result.previous_status} to ${result.status}.`,
+      });
+      await fetchModels();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to stop training job",
+      );
+    } finally {
+      setStoppingTrainingJobId(null);
+    }
+  };
+
   const getProgressPercent = (model: modelsApi.ModelSummary) => {
     const target = model.max_target_steps ?? model.total_steps;
     if (target <= 0) return 0;
@@ -297,6 +337,13 @@ export const ModelTrainingSection = ({
             const isStopTarget = isDeploying && isDeployTarget;
             const isUpdatingDefault =
               updatingDefaultModelId === model.model_id;
+            const isStoppingTraining =
+              model.active_job_id !== null &&
+              stoppingTrainingJobId === model.active_job_id;
+            const stopTrainingLabel =
+              model.active_job_status === "queued"
+                ? "Stop queued"
+                : "Stop training";
 
             return (
               <div
@@ -432,38 +479,89 @@ export const ModelTrainingSection = ({
                 </div>
 
                 <div className="flex items-center justify-end gap-1.5">
-                  <Select
-                    value={String(selectedSteps)}
-                    onValueChange={(v) =>
-                      setTrainSteps((prev) => ({
-                        ...prev,
-                        [model.model_id]: Number(v),
-                      }))
-                    }
-                  >
-                    <SelectTrigger className="h-6 w-[70px] px-2 py-0 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STEP_OPTIONS.map((opt) => (
-                        <SelectItem
-                          key={opt.value}
-                          value={String(opt.value)}
-                          className="text-xs"
+                  {active ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="h-6 px-2 text-xs"
+                          disabled={!model.active_job_id || isStoppingTraining}
+                          title={
+                            model.active_job_id
+                              ? stopTrainingLabel
+                              : "No active training job id available"
+                          }
                         >
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => handleTrainExisting(model.model_id)}
-                  >
-                    <Zap className="mr-0.5 h-3 w-3" />
-                    {active ? "Train More" : "Train"}
-                  </Button>
+                          {isStoppingTraining ? (
+                            <Loader2 className="mr-0.5 h-3 w-3 animate-spin" />
+                          ) : (
+                            <CircleStop className="mr-0.5 h-3 w-3" />
+                          )}
+                          {stopTrainingLabel}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="z-[9999] border-border bg-card text-foreground">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Stop this training job?
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will request a force stop for job #
+                            {model.active_job_id} on model #{model.model_id}.
+                            The job is currently {model.active_job_status}.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={isStoppingTraining}>
+                            Keep running
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={isStoppingTraining}
+                            onClick={() => void handleStopTrainingJob(model)}
+                          >
+                            {isStoppingTraining ? "Stopping..." : "Stop now"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <>
+                      <Select
+                        value={String(selectedSteps)}
+                        onValueChange={(v) =>
+                          setTrainSteps((prev) => ({
+                            ...prev,
+                            [model.model_id]: Number(v),
+                          }))
+                        }
+                      >
+                        <SelectTrigger className="h-6 w-[70px] px-2 py-0 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STEP_OPTIONS.map((opt) => (
+                            <SelectItem
+                              key={opt.value}
+                              value={String(opt.value)}
+                              className="text-xs"
+                            >
+                              {opt.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => handleTrainExisting(model.model_id)}
+                      >
+                        <Zap className="mr-0.5 h-3 w-3" />
+                        Train
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             );

@@ -167,10 +167,6 @@ export function useTrainingTelemetry({
           typeof datasetPayload.message === "string"
             ? datasetPayload.message
             : null;
-        const status =
-          typeof datasetPayload.status === "string"
-            ? datasetPayload.status
-            : null;
         const datasetId =
           typeof datasetPayload.datasetId === "string"
             ? datasetPayload.datasetId
@@ -204,18 +200,6 @@ export function useTrainingTelemetry({
         }
 
         if (action === "collection_start_nack") {
-          if (status?.toLowerCase() === "busy") {
-            setIsRecording(true);
-            setMode(AppMode.RECORDING);
-            toast({
-              title: "Recording already active",
-              description: datasetLabel
-                ? `Recording is already running for dataset "${datasetLabel}". Use Stop to finish the episode.`
-                : "Recording is already running. Use Stop to finish the episode.",
-            });
-            return;
-          }
-
           setIsRecording(false);
           setMode(AppMode.EXPLORATION);
           toast({

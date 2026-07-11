@@ -49,8 +49,6 @@ import {
 } from "./ui/select";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
-const CLAIM_ROBOT_VALUE = "__claim__";
-
 const formatRobotLabel = (
   robotId: number,
   robotType?: string | null,
@@ -224,23 +222,23 @@ const TrainHeader = ({
     visibleControlDevices,
   ]);
 
-  const handleRobotChange = (value: string) => {
-    if (value === CLAIM_ROBOT_VALUE) {
-      if (!auth.accessToken) {
-        toast({
-          title: "Login required",
-          description: "Please log in first to add a robot.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setClaimRobotOpen(true);
-      setClaimRobotError(null);
-      setClaimRobotFriendlyName("");
+  const handleOpenClaimRobot = () => {
+    if (!auth.accessToken) {
+      toast({
+        title: "Login required",
+        description: "Please log in first to add a robot.",
+        variant: "destructive",
+      });
       return;
     }
 
+    setRobotSelectOpen(false);
+    setClaimRobotOpen(true);
+    setClaimRobotError(null);
+    setClaimRobotFriendlyName("");
+  };
+
+  const handleRobotChange = (value: string) => {
     setRobotSelection(value);
     setControlSelection("");
     onControlSelectionChange?.(null);
@@ -507,15 +505,24 @@ const TrainHeader = ({
                         )}
                       </SelectTrigger>
                       <SelectContent className="z-[100001] border-border bg-card">
-                        <SelectItem
-                          value={CLAIM_ROBOT_VALUE}
-                          className="mb-1 items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary focus:bg-accent/30 focus:text-primary [&>span:first-child]:hidden"
+                        <button
+                          type="button"
+                          className="mb-1 flex w-full items-center justify-center rounded-md border border-dashed border-border bg-background/50 py-2 pl-3 pr-3 font-medium text-primary outline-none transition-colors hover:bg-accent/30 focus:bg-accent/30"
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            handleOpenClaimRobot();
+                          }}
                         >
                           <span className="flex items-center gap-2">
                             <Link2 className="h-3 w-3" />
                             Add robot
                           </span>
-                        </SelectItem>
+                        </button>
                         {sortedRobots.map((robot) => (
                           <div
                             key={robot.id}

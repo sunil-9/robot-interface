@@ -45,6 +45,7 @@ interface ModelTrainingSectionProps {
   isActive: boolean;
   className?: string;
   selectedDatasetDbId?: number | null;
+  episodeCount?: number;
 }
 
 const STEP_OPTIONS = [
@@ -61,6 +62,7 @@ const ALGORITHM_OPTIONS = [
 ];
 
 const DESCRIPTION_PREVIEW_LENGTH = 50;
+const MIN_TRAINING_EPISODES = 10;
 
 const formatDescriptionPreview = (description?: string | null) => {
   const trimmed = description?.trim() ?? "";
@@ -76,6 +78,7 @@ export const ModelTrainingSection = ({
   isActive,
   className,
   selectedDatasetDbId = null,
+  episodeCount = 0,
 }: ModelTrainingSectionProps) => {
   const {
     selectedDataset,
@@ -103,6 +106,10 @@ export const ModelTrainingSection = ({
   >(null);
 
   const datasetId = selectedDatasetDbId ?? null;
+  const hasMinimumTrainingEpisodes = episodeCount >= MIN_TRAINING_EPISODES;
+  const trainingDisabledReason = selectedDataset
+    ? `Record at least ${MIN_TRAINING_EPISODES} episodes before starting model training. This dataset has ${episodeCount}.`
+    : "Select a dataset before starting model training.";
 
   const fetchModels = useCallback(
     async (initial = false) => {
@@ -157,6 +164,10 @@ export const ModelTrainingSection = ({
 
   const handleTrainExisting = async (modelId: number) => {
     if (datasetId === null) return;
+    if (!hasMinimumTrainingEpisodes) {
+      setError(trainingDisabledReason);
+      return;
+    }
     const steps = trainSteps[modelId] ?? STEP_OPTIONS[0].value;
     try {
       await modelsApi.trainExistingModel(modelId, datasetId, {
@@ -170,6 +181,10 @@ export const ModelTrainingSection = ({
 
   const handleCreateModel = async () => {
     if (datasetId === null || !newAlgorithm) return;
+    if (!hasMinimumTrainingEpisodes) {
+      setError(trainingDisabledReason);
+      return;
+    }
     setIsCreating(true);
     try {
       await modelsApi.createModelAndTrain(datasetId, {
@@ -276,6 +291,12 @@ export const ModelTrainingSection = ({
       {!selectedDataset && (
         <div className="mb-2 text-sm text-muted-foreground">
           Select a dataset to manage models
+        </div>
+      )}
+
+      {selectedDataset && !hasMinimumTrainingEpisodes && (
+        <div className="mb-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1.5 text-xs text-amber-700 dark:text-amber-300">
+          {trainingDisabledReason}
         </div>
       )}
 
@@ -555,6 +576,12 @@ export const ModelTrainingSection = ({
                       <Button
                         size="sm"
                         className="h-6 px-2 text-xs"
+                        disabled={!hasMinimumTrainingEpisodes}
+                        title={
+                          hasMinimumTrainingEpisodes
+                            ? "Start training"
+                            : trainingDisabledReason
+                        }
                         onClick={() => handleTrainExisting(model.model_id)}
                       >
                         <Zap className="mr-0.5 h-3 w-3" />
@@ -615,7 +642,17 @@ export const ModelTrainingSection = ({
               <Button
                 size="sm"
                 className="h-6 px-2 text-xs"
-                disabled={!newAlgorithm || isCreating || datasetId === null}
+                disabled={
+                  !newAlgorithm ||
+                  isCreating ||
+                  datasetId === null ||
+                  !hasMinimumTrainingEpisodes
+                }
+                title={
+                  hasMinimumTrainingEpisodes
+                    ? "Create model and start training"
+                    : trainingDisabledReason
+                }
                 onClick={handleCreateModel}
               >
                 {isCreating ? (

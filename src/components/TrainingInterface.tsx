@@ -672,6 +672,7 @@ export const TrainingInterface = ({
               onTabChange={handleTabChange}
               secondaryContent={renderSecondaryStack(sidebarSlots, "extra")}
               selectedDatasetDbId={selectedDatasetDbId}
+              episodeCount={episodes.length}
               episodeManagementProps={{
                 datasets,
                 datasetItems,

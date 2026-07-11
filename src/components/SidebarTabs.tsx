@@ -12,6 +12,7 @@ interface SidebarTabsProps {
   onTabChange: (value: SidebarTab) => void;
   secondaryContent: React.ReactNode;
   selectedDatasetDbId?: number | null;
+  episodeCount?: number;
   episodeManagementProps: Omit<
     React.ComponentProps<typeof EpisodeManagementContent>,
     "isActive" | "className"
@@ -23,6 +24,7 @@ export function SidebarTabs({
   onTabChange,
   secondaryContent,
   selectedDatasetDbId,
+  episodeCount = 0,
   episodeManagementProps,
 }: SidebarTabsProps) {
   return (
@@ -101,6 +103,7 @@ export function SidebarTabs({
             <ModelTrainingSection
               isActive={tab === "models"}
               selectedDatasetDbId={selectedDatasetDbId}
+              episodeCount={episodeCount}
               className="min-h-full"
             />
           </div>

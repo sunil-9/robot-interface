@@ -1,6 +1,12 @@
 import { AppMode } from "@/context/ModeContextDef";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
-import { useEffect, useRef } from "react";
+import { createElement, useEffect, useRef } from "react";
+import { Progress } from "../components/ui/progress";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "../components/ui/tooltip";
 import { toast } from "../components/ui/use-toast";
 
 type MemorisedPose = { topics: Record<string, unknown> } | null;
@@ -26,6 +32,110 @@ const describeDeployTarget = (
     return dataset ? `model #${modelId} from dataset "${dataset}"` : `model #${modelId}`;
   }
   return dataset ? `dataset "${dataset}"` : "deployment";
+};
+
+const readNumberField = (
+  record: Record<string, unknown>,
+  camelKey: string,
+  snakeKey: string,
+) => {
+  const value = record[camelKey] ?? record[snakeKey];
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const formatBytes = (bytes: number | null) => {
+  if (bytes === null || bytes < 0) {
+    return null;
+  }
+  if (bytes >= 1_000_000_000) {
+    return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
+  }
+  if (bytes >= 1_000_000) {
+    return `${(bytes / 1_000_000).toFixed(1)} MB`;
+  }
+  if (bytes >= 1_000) {
+    return `${(bytes / 1_000).toFixed(1)} KB`;
+  }
+  return `${bytes} B`;
+};
+
+const createDownloadToastDescription = ({
+  message,
+  progressPercent,
+  downloadedBytes,
+  totalBytes,
+}: {
+  message: string;
+  progressPercent: number | null;
+  downloadedBytes: number | null;
+  totalBytes: number | null;
+}) => {
+  const boundedPercent =
+    progressPercent === null
+      ? null
+      : Math.max(0, Math.min(100, progressPercent));
+  const percentLabel =
+    boundedPercent === null ? null : `${Math.round(boundedPercent)}%`;
+  const downloadedLabel = formatBytes(downloadedBytes);
+  const totalLabel = formatBytes(totalBytes);
+  const detail =
+    downloadedLabel && totalLabel
+      ? `${downloadedLabel} of ${totalLabel}`
+      : downloadedLabel;
+
+  return createElement(
+    "div",
+    { className: "min-w-[260px] space-y-2" },
+    createElement("div", { className: "text-sm" }, message),
+    createElement(
+      "div",
+      { className: "flex items-center gap-2" },
+      createElement(Progress, {
+        value: boundedPercent ?? 100,
+        className:
+          boundedPercent === null
+            ? "h-2 flex-1 animate-pulse"
+            : "h-2 flex-1",
+      }),
+      percentLabel
+        ? createElement(
+            Tooltip,
+            null,
+            createElement(
+              TooltipTrigger,
+              { asChild: true },
+              createElement(
+                "span",
+                {
+                  className:
+                    "w-10 shrink-0 cursor-default text-right text-xs font-medium tabular-nums",
+                },
+                percentLabel,
+              ),
+            ),
+            createElement(
+              TooltipContent,
+              null,
+              detail ?? `${percentLabel} downloaded`,
+            ),
+          )
+        : null,
+    ),
+    detail
+      ? createElement(
+          "div",
+          { className: "text-xs text-muted-foreground" },
+          detail,
+        )
+      : null,
+  );
 };
 
 interface UseTrainingTelemetryOptions {
@@ -90,6 +200,7 @@ export function useTrainingTelemetry({
   const isSavingEpisodeRef = useRef(isSavingEpisode);
   const episodesWsEnabledRef = useRef(episodesWsEnabled);
   const fetchEpisodesRef = useRef(fetchEpisodes);
+  const deployDownloadToastRef = useRef<ReturnType<typeof toast> | null>(null);
 
   useEffect(() => {
     selectedDatasetRef.current = selectedDataset;
@@ -354,6 +465,21 @@ export function useTrainingTelemetry({
         typeof deployPayload.message === "string"
           ? deployPayload.message
           : null;
+      const progressPercent = readNumberField(
+        deployPayload,
+        "progressPercent",
+        "progress_percent",
+      );
+      const downloadedBytes = readNumberField(
+        deployPayload,
+        "downloadedBytes",
+        "downloaded_bytes",
+      );
+      const totalBytes = readNumberField(
+        deployPayload,
+        "totalBytes",
+        "total_bytes",
+      );
       const datasetId = readIdField(deployPayload, "datasetId", "dataset_id");
       const modelId = readIdField(deployPayload, "modelId", "model_id");
       const datasetName = datasetId
@@ -414,6 +540,8 @@ export function useTrainingTelemetry({
           setDeployDatasetId(null);
           setDeployModelId(null);
         }
+        deployDownloadToastRef.current?.dismiss();
+        deployDownloadToastRef.current = null;
         toast({
           title: "Deployment failed",
           description:
@@ -428,6 +556,8 @@ export function useTrainingTelemetry({
         setIsDeploying(false);
         setDeployDatasetId(null);
         setDeployModelId(null);
+        deployDownloadToastRef.current?.dismiss();
+        deployDownloadToastRef.current = null;
 
         toast({
           title: "Deployment stopped",
@@ -455,27 +585,52 @@ export function useTrainingTelemetry({
         );
 
         if (status === "deploying" || status === "downloading_checkpoints") {
+          const statusMessage =
+            message ??
+            (status === "downloading_checkpoints"
+              ? `Downloading checkpoint for ${deployingTarget}...`
+              : `Deploying ${deployingTarget}...`);
           setIsDeploying(true);
           setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
           setDeployModelId(deployingModelId ?? null);
-          setDeployStatusMessage(
-            message ??
-              (status === "downloading_checkpoints"
-                ? `Downloading checkpoint for ${deployingTarget}...`
-                : `Deploying ${deployingTarget}...`),
-          );
+          setDeployStatusMessage(statusMessage);
           setDeployStatusPopupOpen(true);
-          toast({
-            title: "Deployment in progress",
-            description:
-              message ?? `Deploying ${deployingTarget}...`,
-          });
+          if (status === "downloading_checkpoints") {
+            const description = createDownloadToastDescription({
+              message: statusMessage,
+              progressPercent,
+              downloadedBytes,
+              totalBytes,
+            });
+            if (deployDownloadToastRef.current) {
+              deployDownloadToastRef.current.update({
+                title: "Downloading checkpoint",
+                description,
+                dismissible: false,
+                duration: 2147483647,
+              });
+            } else {
+              deployDownloadToastRef.current = toast({
+                title: "Downloading checkpoint",
+                description,
+                dismissible: false,
+                duration: 2147483647,
+              });
+            }
+          } else {
+            toast({
+              title: "Deployment in progress",
+              description: statusMessage,
+            });
+          }
         } else if (status === "deployed") {
           setDeployStatusPopupOpen(false);
           setDeployStatusMessage(null);
           setIsDeploying(true);
           setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
           setDeployModelId(deployingModelId ?? null);
+          deployDownloadToastRef.current?.dismiss();
+          deployDownloadToastRef.current = null;
           toast({
             title: "Deployment complete",
             description:
@@ -487,6 +642,8 @@ export function useTrainingTelemetry({
 
     return () => {
       unsubscribe();
+      deployDownloadToastRef.current?.dismiss();
+      deployDownloadToastRef.current = null;
     };
   }, [
     session,

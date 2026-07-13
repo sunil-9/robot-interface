@@ -21,15 +21,6 @@ import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { useEpisodeViewer } from "./training/EpisodeViewerContext";
 import { EpisodeViewerPanel } from "./training/EpisodeViewerPanel";
 import { TrainingControlsBar } from "./training/TrainingControlsBar";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "./ui/alert-dialog";
-import { Button } from "./ui/button";
 import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
@@ -75,12 +66,9 @@ export const TrainingInterface = ({
     deployRequestPending,
     deployDatasetId,
     deployModelId,
-    deployStatusPopupOpen,
-    deployStatusMessage,
     startEpisode: contextStartEpisode,
     endEpisode: contextEndEpisode,
     handleDeploy: contextHandleDeploy,
-    handleForceStopDeploy: contextHandleForceStopDeploy,
     setSelectedDataset,
     setSelectedDatasetId,
     setSession,
@@ -454,10 +442,6 @@ export const TrainingInterface = ({
     contextHandleDeploy();
   };
 
-  const onForceStopDeploy = () => {
-    contextHandleForceStopDeploy();
-  };
-
   useTrainingTelemetry({
     session,
     userId: user?.userId,
@@ -766,48 +750,6 @@ export const TrainingInterface = ({
           datasetToDelete === selectedDataset && datasetStatus === "processing"
         }
       />
-
-      {/* Deploy Status Popup - Unclosable while deploying */}
-      <AlertDialog open={deployStatusPopupOpen}>
-        <AlertDialogContent
-          onEscapeKeyDown={(e) => e.preventDefault()}
-          className="sm:max-w-md"
-        >
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <span className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-500"></span>
-              </span>
-              Deploying...
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-base">
-              {deployStatusMessage ?? "Waiting for checkpoint..."}
-              {deployDatasetId && (
-                <span className="mt-2 block text-sm text-muted-foreground">
-                  Dataset:{" "}
-                  <span className="font-medium">{deployDatasetId}</span>
-                </span>
-              )}
-              {deployModelId && (
-                <span className="mt-1 block text-sm text-muted-foreground">
-                  Model:{" "}
-                  <span className="font-medium">#{deployModelId}</span>
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button
-              variant="destructive"
-              onClick={onForceStopDeploy}
-              className="w-full sm:w-auto"
-            >
-              Force Stop
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 };

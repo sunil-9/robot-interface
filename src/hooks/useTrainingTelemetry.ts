@@ -594,7 +594,6 @@ export function useTrainingTelemetry({
           setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);
           setDeployModelId(deployingModelId ?? null);
           setDeployStatusMessage(statusMessage);
-          setDeployStatusPopupOpen(true);
           if (status === "downloading_checkpoints") {
             const description = createDownloadToastDescription({
               message: statusMessage,

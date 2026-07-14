@@ -1,5 +1,6 @@
 import { AppMode } from "@/context/ModeContextDef";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import { type MemorisedPose } from "@/types/pose";
 import { createElement, useEffect, useRef } from "react";
 import { Progress } from "../components/ui/progress";
 import {
@@ -9,7 +10,29 @@ import {
 } from "../components/ui/tooltip";
 import { toast } from "../components/ui/use-toast";
 
-type MemorisedPose = { topics: Record<string, unknown> } | null;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
+const readPoseList = (value: unknown): MemorisedPose[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((pose): pose is MemorisedPose => {
+    if (!isRecord(pose)) {
+      return false;
+    }
+    return (
+      typeof pose.id === "string" &&
+      pose.id.trim().length > 0 &&
+      typeof pose.name === "string" &&
+      pose.name.trim().length > 0 &&
+      typeof pose.created_at === "string" &&
+      pose.created_at.trim().length > 0 &&
+      isRecord(pose.topics)
+    );
+  });
+};
 
 const readIdField = (
   record: Record<string, unknown>,
@@ -160,8 +183,9 @@ interface UseTrainingTelemetryOptions {
   setDeployModelId: (modelId: string | null) => void;
   setDeployStatusPopupOpen: (open: boolean) => void;
   setDeployStatusMessage: (message: string | null) => void;
-  setMemorisedPose: (pose: MemorisedPose) => void;
-  setIsRestoring: (restoring: boolean) => void;
+  setMemorisedPoses: (poses: MemorisedPose[]) => void;
+  setPoseLoading: (loading: boolean) => void;
+  setRestoringPoseId: (poseId: string | null) => void;
 }
 
 export function useTrainingTelemetry({
@@ -186,8 +210,9 @@ export function useTrainingTelemetry({
   setDeployModelId,
   setDeployStatusPopupOpen,
   setDeployStatusMessage,
-  setMemorisedPose,
-  setIsRestoring,
+  setMemorisedPoses,
+  setPoseLoading,
+  setRestoringPoseId,
 }: UseTrainingTelemetryOptions) {
   const selectedDatasetRef = useRef(selectedDataset);
   const selectedDatasetRouteIdRef = useRef<string | null>(
@@ -380,32 +405,48 @@ export function useTrainingTelemetry({
       if (type === "pose") {
         const posePayload = rawPayload as Record<string, unknown>;
         const action =
-          typeof posePayload.action === "string" ? posePayload.action : null;
+          typeof posePayload.action === "string"
+            ? posePayload.action.toLowerCase()
+            : null;
         const poseMsg =
           typeof posePayload.message === "string" ? posePayload.message : null;
 
         if (action === "pose_memorise_ack") {
-          const poseData = posePayload.pose as
-            | { topics: Record<string, unknown> }
-            | null
-            | undefined;
-          console.log("[pose] memorise_ack, pose=", poseData);
-          if (poseData) setMemorisedPose(poseData);
-          toast({ title: "Pose memorised", description: "Saved successfully" });
+          const poses = readPoseList(posePayload.poses);
+          const poseId = readIdField(posePayload, "poseId", "pose_id");
+          const memorisedPose = poses.find((pose) => pose.id === poseId);
+          console.log("[pose] memorise_ack, poses=", poses);
+          setMemorisedPoses(poses);
+          setPoseLoading(false);
+          toast({
+            title: "Pose memorised",
+            description: memorisedPose
+              ? `Saved as “${memorisedPose.name}”`
+              : "Saved successfully",
+          });
           return;
         }
         if (action === "pose_get_ack") {
-          const poseData = posePayload.pose as
-            | { topics: Record<string, unknown> }
-            | null
-            | undefined;
-          console.log("[pose] get_ack, pose=", poseData);
-          setMemorisedPose(poseData ?? null);
+          const poses = readPoseList(posePayload.poses);
+          console.log("[pose] get_ack, poses=", poses);
+          setMemorisedPoses(poses);
+          setPoseLoading(false);
           return;
         }
-        if (action === "pose_clear_ack") {
-          console.log("[pose] clear_ack");
-          toast({ title: "Pose cleared" });
+        if (action === "pose_rename_ack") {
+          const poses = readPoseList(posePayload.poses);
+          console.log("[pose] rename_ack, poses=", poses);
+          setMemorisedPoses(poses);
+          setPoseLoading(false);
+          toast({ title: "Pose renamed" });
+          return;
+        }
+        if (action === "pose_delete_ack") {
+          const poses = readPoseList(posePayload.poses);
+          console.log("[pose] delete_ack, poses=", poses);
+          setMemorisedPoses(poses);
+          setPoseLoading(false);
+          toast({ title: "Pose deleted" });
           return;
         }
         if (action === "pose_restore_ack") {
@@ -420,7 +461,8 @@ export function useTrainingTelemetry({
             "final_positions=",
             result?.final_positions,
           );
-          setIsRestoring(false);
+          setPoseLoading(false);
+          setRestoringPoseId(null);
           toast({
             title: "Pose restored",
             description: poseMsg ?? "Robot returned to memorised pose",
@@ -436,7 +478,8 @@ export function useTrainingTelemetry({
             "full=",
             posePayload,
           );
-          setIsRestoring(false);
+          setPoseLoading(false);
+          setRestoringPoseId(null);
           toast({
             title: "Pose error",
             description: poseMsg ?? "Pose action failed",
@@ -653,10 +696,11 @@ export function useTrainingTelemetry({
     setDeployStatusPopupOpen,
     setIsDeploying,
     setIsRecording,
-    setIsRestoring,
     setIsSavingEpisode,
-    setMemorisedPose,
+    setMemorisedPoses,
     setMode,
+    setPoseLoading,
+    setRestoringPoseId,
     setSelectedDataset,
   ]);
 }

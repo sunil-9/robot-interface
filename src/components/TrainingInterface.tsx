@@ -21,7 +21,6 @@ import { DeleteEpisodeDialog } from "./training/dialogs/DeleteEpisodeDialog";
 import { useEpisodeViewer } from "./training/EpisodeViewerContext";
 import { EpisodeViewerPanel } from "./training/EpisodeViewerPanel";
 import { TrainingControlsBar } from "./training/TrainingControlsBar";
-import { toast } from "./ui/use-toast";
 
 interface TrainingInterfaceProps {
   robotId: string | null;
@@ -60,6 +59,7 @@ export const TrainingInterface = ({
   const episodeControl = useEpisodeControlContext();
   const {
     isRecording,
+    isLoading,
     isSavingEpisode,
     selectedDataset,
     isDeploying,
@@ -68,7 +68,6 @@ export const TrainingInterface = ({
     deployModelId,
     startEpisode: contextStartEpisode,
     endEpisode: contextEndEpisode,
-    handleDeploy: contextHandleDeploy,
     setSelectedDataset,
     setSelectedDatasetId,
     setSession,
@@ -83,15 +82,17 @@ export const TrainingInterface = ({
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
     // Pose
-    memorisedPose,
+    memorisedPoses,
     poseLoading,
-    isRestoring,
+    restoringPoseId,
     handleMemorisePose,
     handleRestorePose,
-    handleClearPose,
+    handleDeletePose,
+    handleRenamePose,
     handleGetPose,
-    setMemorisedPose,
-    setIsRestoring,
+    setMemorisedPoses,
+    setPoseLoading,
+    setRestoringPoseId,
   } = episodeControl;
 
   // Sync session, robotId, controllerId to context
@@ -107,18 +108,32 @@ export const TrainingInterface = ({
     setControllerId(controllerId);
   }, [controllerId, setControllerId]);
 
-  // Fetch memorised pose when telemetry channel opens
+  // Fetch memorised poses when telemetry opens and release pending UI state
+  // whenever the channel or selected robot changes.
   useEffect(() => {
-    if (session.telemetryOpen) {
-      void handleGetPose();
+    if (!session.telemetryOpen) {
+      setPoseLoading(false);
+      setRestoringPoseId(null);
+      return;
     }
-  }, [session.telemetryOpen, handleGetPose]);
+
+    void handleGetPose();
+    return () => {
+      setPoseLoading(false);
+      setRestoringPoseId(null);
+    };
+  }, [
+    session.robotId,
+    session.telemetryOpen,
+    handleGetPose,
+    setPoseLoading,
+    setRestoringPoseId,
+  ]);
 
   const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
     null,
   );
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
   const [secondaryCameraScales, setSecondaryCameraScales] = useState<
     Record<SecondaryCameraSide, number>
   >({
@@ -421,27 +436,6 @@ export const TrainingInterface = ({
     await contextEndEpisode();
   };
 
-  const rewindEpisode = async () => {
-    setIsLoading(true);
-    try {
-      console.log("This function will be implemented later");
-      toast({
-        title: "Info",
-        description: "Rewind functionality is not implemented yet",
-      });
-    } catch (error) {
-      console.error("Failed to rewind episode:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // handleDeploy and handleForceStopDeploy are now provided by episodeControl context
-  // Wrap them for the UI handlers
-  const onDeploy = () => {
-    contextHandleDeploy();
-  };
-
   useTrainingTelemetry({
     session,
     userId: user?.userId,
@@ -464,8 +458,9 @@ export const TrainingInterface = ({
     setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
-    setMemorisedPose,
-    setIsRestoring,
+    setMemorisedPoses,
+    setPoseLoading,
+    setRestoringPoseId,
   });
 
   const formatDuration = (seconds?: number) => {
@@ -687,16 +682,15 @@ export const TrainingInterface = ({
         isLoading={isLoading}
         isDeploying={isDeploying}
         deployRequestPending={deployRequestPending}
-        memorisedPose={memorisedPose}
+        memorisedPoses={memorisedPoses}
         poseLoading={poseLoading}
-        isRestoring={isRestoring}
+        restoringPoseId={restoringPoseId}
         onStart={startEpisode}
         onStop={endEpisode}
-        onRewind={rewindEpisode}
-        onDeploy={onDeploy}
         onMemorise={handleMemorisePose}
         onRestore={handleRestorePose}
-        onClear={handleClearPose}
+        onDeletePose={handleDeletePose}
+        onRenamePose={handleRenamePose}
       />
 
       <CreateDatasetDialog

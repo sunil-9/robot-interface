@@ -7,6 +7,7 @@ import { toast } from "@/components/ui/use-toast";
 import { AppMode } from "@/context/ModeContextDef";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import { type MemorisedPose } from "@/types/pose";
 import {
   createContext,
   useCallback,
@@ -39,9 +40,9 @@ export interface EpisodeControlState {
   deployStatusPopupOpen: boolean;
   deployStatusMessage: string | null;
   // Pose state
-  memorisedPose: { topics: Record<string, unknown> } | null;
+  memorisedPoses: MemorisedPose[];
   poseLoading: boolean;
-  isRestoring: boolean;
+  restoringPoseId: string | null;
 }
 
 export interface EpisodeControlActions {
@@ -67,12 +68,14 @@ export interface EpisodeControlActions {
   setDeployStatusPopupOpen: (open: boolean) => void;
   setDeployStatusMessage: (message: string | null) => void;
   // Pose actions
-  handleMemorisePose: () => Promise<boolean>;
-  handleRestorePose: () => Promise<boolean>;
-  handleClearPose: () => Promise<boolean>;
+  handleMemorisePose: (name?: string) => Promise<boolean>;
+  handleRestorePose: (poseId: string) => Promise<boolean>;
+  handleDeletePose: (poseId: string) => Promise<boolean>;
+  handleRenamePose: (poseId: string, name: string) => Promise<boolean>;
   handleGetPose: () => Promise<void>;
-  setMemorisedPose: (pose: { topics: Record<string, unknown> } | null) => void;
-  setIsRestoring: (restoring: boolean) => void;
+  setMemorisedPoses: (poses: MemorisedPose[]) => void;
+  setPoseLoading: (loading: boolean) => void;
+  setRestoringPoseId: (poseId: string | null) => void;
 }
 
 export type EpisodeControlContextValue = EpisodeControlState &
@@ -143,9 +146,9 @@ export function EpisodeControlProvider({
   );
 
   // Pose state
-  const [memorisedPose, setMemorisedPose] = useState<{ topics: Record<string, unknown> } | null>(null);
+  const [memorisedPoses, setMemorisedPoses] = useState<MemorisedPose[]>([]);
   const [poseLoading, setPoseLoading] = useState(false);
-  const [isRestoring, setIsRestoring] = useState(false);
+  const [restoringPoseId, setRestoringPoseId] = useState<string | null>(null);
 
   // Store session and IDs in refs so they're always current in callbacks
   const sessionRef = useRef<WebRTCSession | null>(null);
@@ -474,58 +477,186 @@ export function EpisodeControlProvider({
   const handleGetPose = useCallback(async (): Promise<void> => {
     const session = sessionRef.current;
     if (!session) return;
-    session.sendControl({ type: "pose", payload: { action: "get" } });
-  }, []);
-
-  const handleMemorisePose = useCallback(async (): Promise<boolean> => {
-    const session = sessionRef.current;
-    if (!session) {
-      toast({ title: "Error", description: "No active session", variant: "destructive" });
-      return false;
-    }
     setPoseLoading(true);
-    const sent = session.sendControl({ type: "pose", payload: { action: "memorise" } });
-    setPoseLoading(false);
+    const sent = session.sendControl({
+      type: "pose",
+      payload: { action: "get" },
+    });
     if (!sent) {
-      toast({ title: "Error", description: "Failed to send memorise request", variant: "destructive" });
-      return false;
+      setPoseLoading(false);
     }
-    return true;
   }, []);
 
-  const handleRestorePose = useCallback(async (): Promise<boolean> => {
-    const session = sessionRef.current;
-    if (!session) {
-      toast({ title: "Error", description: "No active session", variant: "destructive" });
-      return false;
-    }
-    if (!memorisedPose) {
-      toast({ title: "Error", description: "No memorised pose to restore", variant: "destructive" });
-      return false;
-    }
-    const sent = session.sendControl({ type: "pose", payload: { action: "restore" } });
-    if (!sent) {
-      toast({ title: "Error", description: "Failed to send restore request", variant: "destructive" });
-      return false;
-    }
-    setIsRestoring(true);
-    return true;
-  }, [memorisedPose]);
+  const handleMemorisePose = useCallback(
+    async (name?: string): Promise<boolean> => {
+      const session = sessionRef.current;
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "No active session",
+          variant: "destructive",
+        });
+        return false;
+      }
 
-  const handleClearPose = useCallback(async (): Promise<boolean> => {
-    const session = sessionRef.current;
-    if (!session) {
-      toast({ title: "Error", description: "No active session", variant: "destructive" });
-      return false;
-    }
-    const sent = session.sendControl({ type: "pose", payload: { action: "clear" } });
-    if (!sent) {
-      toast({ title: "Error", description: "Failed to send clear request", variant: "destructive" });
-      return false;
-    }
-    setMemorisedPose(null);
-    return true;
-  }, []);
+      const normalizedName = name?.trim();
+      const payload: { action: "memorise"; name?: string } = {
+        action: "memorise",
+      };
+      if (normalizedName) {
+        payload.name = normalizedName;
+      }
+
+      setPoseLoading(true);
+      const sent = session.sendControl({ type: "pose", payload });
+      if (!sent) {
+        setPoseLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to send memorise request",
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    },
+    [],
+  );
+
+  const handleRestorePose = useCallback(
+    async (poseId: string): Promise<boolean> => {
+      const session = sessionRef.current;
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "No active session",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const normalizedPoseId = poseId.trim();
+      if (!normalizedPoseId) {
+        toast({
+          title: "Error",
+          description: "No memorised pose selected",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const sent = session.sendControl({
+        type: "pose",
+        payload: { action: "restore", pose_id: normalizedPoseId },
+      });
+      if (!sent) {
+        toast({
+          title: "Error",
+          description: "Failed to send restore request",
+          variant: "destructive",
+        });
+        return false;
+      }
+      setRestoringPoseId(normalizedPoseId);
+      return true;
+    },
+    [],
+  );
+
+  const handleDeletePose = useCallback(
+    async (poseId: string): Promise<boolean> => {
+      const session = sessionRef.current;
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "No active session",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const normalizedPoseId = poseId.trim();
+      if (!normalizedPoseId) {
+        toast({
+          title: "Error",
+          description: "No memorised pose selected",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      setPoseLoading(true);
+      const sent = session.sendControl({
+        type: "pose",
+        payload: { action: "delete", pose_id: normalizedPoseId },
+      });
+      if (!sent) {
+        setPoseLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to send delete request",
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    },
+    [],
+  );
+
+  const handleRenamePose = useCallback(
+    async (poseId: string, name: string): Promise<boolean> => {
+      const session = sessionRef.current;
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "No active session",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      const normalizedPoseId = poseId.trim();
+      const normalizedName = name.trim();
+      if (!normalizedPoseId) {
+        toast({
+          title: "Error",
+          description: "No memorised pose selected",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!normalizedName) {
+        toast({
+          title: "Error",
+          description: "Pose name cannot be empty",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      setPoseLoading(true);
+      const sent = session.sendControl({
+        type: "pose",
+        payload: {
+          action: "rename",
+          pose_id: normalizedPoseId,
+          name: normalizedName,
+        },
+      });
+      if (!sent) {
+        setPoseLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to send rename request",
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    },
+    [],
+  );
 
   const resetAuthSessionState = useCallback(() => {
     sessionRef.current = null;
@@ -543,6 +674,9 @@ export function EpisodeControlProvider({
     setDeployModelId(null);
     setDeployStatusPopupOpen(false);
     setDeployStatusMessage(null);
+    setMemorisedPoses([]);
+    setPoseLoading(false);
+    setRestoringPoseId(null);
     setMode?.(AppMode.EXPLORATION);
   }, [setMode, setSelectedDataset]);
 
@@ -580,15 +714,17 @@ export function EpisodeControlProvider({
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
     // Pose
-    memorisedPose,
+    memorisedPoses,
     poseLoading,
-    isRestoring,
+    restoringPoseId,
     handleMemorisePose,
     handleRestorePose,
-    handleClearPose,
+    handleDeletePose,
+    handleRenamePose,
     handleGetPose,
-    setMemorisedPose,
-    setIsRestoring,
+    setMemorisedPoses,
+    setPoseLoading,
+    setRestoringPoseId,
   };
 
   return (

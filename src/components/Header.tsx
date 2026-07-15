@@ -478,22 +478,27 @@ const TrainHeader = ({
                       <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
                         {selectedRobotDetail ? (
                           <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
-                            <span className="flex items-center gap-1 truncate text-sm font-semibold text-foreground">
+                            <span className="grid w-full min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] items-center gap-x-1 text-sm font-semibold text-foreground">
                               {selectedRobotDetail.is_live ? (
                                 <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                               ) : (
                                 <Circle className="h-3 w-3 text-red-500" />
                               )}
-                              {formatRobotLabel(
-                                selectedRobotDetail.id,
-                                selectedRobotDetail.robotType,
-                                selectedRobotDetail.name,
-                              )}
+                              <span className="truncate">
+                                {formatRobotLabel(
+                                  selectedRobotDetail.id,
+                                  selectedRobotDetail.robotType,
+                                  selectedRobotDetail.name,
+                                )}
+                              </span>
                             </span>
-                            <span className="block w-full truncate pl-2 text-left text-xs text-muted-foreground">
-                              {selectedRobotDetail.is_live
-                                ? selectedRobotDetail.description
-                                : "Offline robot"}
+                            <span className="grid w-full grid-cols-[0.75rem_minmax(0,1fr)] gap-x-1 text-xs text-muted-foreground">
+                              <span aria-hidden="true" />
+                              <span className="truncate text-left">
+                                {selectedRobotDetail.is_live
+                                  ? selectedRobotDetail.description
+                                  : "Offline robot"}
+                              </span>
                             </span>
                           </span>
                         ) : (
@@ -533,24 +538,27 @@ const TrainHeader = ({
                               className="min-h-16 min-w-0 flex-1 items-start rounded-none border-0 bg-transparent py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
                             >
                               <div className="min-w-0 w-full text-left">
-                                <p className="truncate text-sm font-medium text-foreground">
-                                  <span className="mr-1">
-                                    {robot.is_live ? (
-                                      <CheckCircle2 className="inline h-3 w-3 text-emerald-500" />
-                                    ) : (
-                                      <Circle className="inline h-3 w-3 text-red-500" />
+                                <p className="grid min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] items-center gap-x-1 text-sm font-medium text-foreground">
+                                  {robot.is_live ? (
+                                    <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                                  ) : (
+                                    <Circle className="h-3 w-3 text-red-500" />
+                                  )}
+                                  <span className="truncate">
+                                    {formatRobotLabel(
+                                      robot.id,
+                                      robot.robotType,
+                                      robot.name,
                                     )}
                                   </span>
-                                  {formatRobotLabel(
-                                    robot.id,
-                                    robot.robotType,
-                                    robot.name,
-                                  )}
                                 </p>
-                                <p className="mt-0.5 truncate pl-2 text-xs text-muted-foreground">
-                                  {robot.is_live
-                                    ? robot.description
-                                    : "Offline robot"}
+                                <p className="mt-0.5 grid min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] gap-x-1 text-xs text-muted-foreground">
+                                  <span aria-hidden="true" />
+                                  <span className="truncate">
+                                    {robot.is_live
+                                      ? robot.description
+                                      : "Offline robot"}
+                                  </span>
                                 </p>
                               </div>
                             </SelectItem>

@@ -669,21 +669,6 @@ const TrainHeader = ({
 
           {isConnected ? (
             <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleDeployDefaultModel}
-                disabled={isDeploying || deployRequestPending}
-                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
-                title="Deploy default model"
-              >
-                {deployRequestPending ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                ) : (
-                  <Rocket className="mr-1 h-4 w-4" />
-                )}
-                Deploy
-              </Button>
               <div
                 data-tour="connect-button"
                 className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white"
@@ -708,6 +693,21 @@ const TrainHeader = ({
                   <Unplug className="h-4 w-4" />
                 </Button>
               </div>
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleDeployDefaultModel}
+                disabled={isDeploying || deployRequestPending}
+                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+                title="Deploy default model"
+              >
+                {deployRequestPending ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <Rocket className="mr-1 h-4 w-4" />
+                )}
+                Deploy
+              </Button>
             </div>
           ) : (
             <Button

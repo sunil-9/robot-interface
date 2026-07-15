@@ -111,6 +111,8 @@ export const TrainingInterface = ({
   // Fetch memorised poses when telemetry opens and release pending UI state
   // whenever the channel or selected robot changes.
   useEffect(() => {
+    setMemorisedPoses([]);
+
     if (!session.telemetryOpen) {
       setPoseLoading(false);
       setRestoringPoseId(null);
@@ -126,6 +128,7 @@ export const TrainingInterface = ({
     session.robotId,
     session.telemetryOpen,
     handleGetPose,
+    setMemorisedPoses,
     setPoseLoading,
     setRestoringPoseId,
   ]);

@@ -1,5 +1,6 @@
 import { HelpDialog } from "@/components/HelpDialog";
 import { MemoriseRestorePose } from "@/components/MemoriseRestorePose";
+import { type MemorisedPose } from "@/types/pose";
 import {
   RecordingControls,
   RecordingControlStyle,
@@ -10,14 +11,15 @@ interface TrainingControlsBarProps {
   isLoading: boolean;
   isDeploying: boolean;
   deployRequestPending: boolean;
-  memorisedPose: { topics: Record<string, unknown> } | null;
+  memorisedPoses: MemorisedPose[];
   poseLoading: boolean;
-  isRestoring: boolean;
+  restoringPoseId: string | null;
   onStart: () => void;
   onStop: () => void;
-  onMemorise: () => void;
-  onRestore: () => void;
-  onClear: () => void;
+  onMemorise: (name?: string) => Promise<boolean>;
+  onRestore: (poseId: string) => Promise<boolean>;
+  onDeletePose: (poseId: string) => Promise<boolean>;
+  onRenamePose: (poseId: string, name: string) => Promise<boolean>;
 }
 
 export function TrainingControlsBar({
@@ -25,14 +27,15 @@ export function TrainingControlsBar({
   isLoading,
   isDeploying,
   deployRequestPending,
-  memorisedPose,
+  memorisedPoses,
   poseLoading,
-  isRestoring,
+  restoringPoseId,
   onStart,
   onStop,
   onMemorise,
   onRestore,
-  onClear,
+  onDeletePose,
+  onRenamePose,
 }: TrainingControlsBarProps) {
   return (
     <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.22)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
@@ -49,13 +52,13 @@ export function TrainingControlsBar({
       {/* <div className="h-7 w-px bg-border" /> */}
       <div data-tour="pose-controls">
         <MemoriseRestorePose
-          memorisedPose={memorisedPose}
+          memorisedPoses={memorisedPoses}
           isLoading={poseLoading}
-          isRestoring={isRestoring}
-          isCompact={false}
+          restoringPoseId={restoringPoseId}
           onMemorise={onMemorise}
           onRestore={onRestore}
-          onClear={onClear}
+          onDeletePose={onDeletePose}
+          onRenamePose={onRenamePose}
         />
       </div>
       {/* <div className="h-7 w-px bg-border" /> */}

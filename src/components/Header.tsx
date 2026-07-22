@@ -729,9 +729,14 @@ const TrainHeader = ({
                   type="button"
                   size="icon"
                   onClick={onDisconnect}
+                  disabled={hasActiveDeployment}
                   className="h-10 w-10 rounded-none border-l border-white/30 bg-emerald-700 text-white hover:bg-emerald-800"
                   aria-label="Disconnect"
-                  title="Disconnect"
+                  title={
+                    hasActiveDeployment
+                      ? "Stop the running model before disconnecting"
+                      : "Disconnect"
+                  }
                 >
                   <Unplug className="h-4 w-4" />
                 </Button>

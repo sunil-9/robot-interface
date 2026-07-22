@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ActionVarianceChart } from "./ActionVarianceChart";
 import { CameraView } from "./CameraView";
 import { SidebarTabs, type SidebarTab } from "./SidebarTabs";
+import { DeploymentNotification } from "./training/DeploymentNotification";
 import { CloneDatasetDialog } from "./training/dialogs/CloneDatasetDialog";
 import { CreateDatasetDialog } from "./training/dialogs/CreateDatasetDialog";
 import { DeleteDatasetDialog } from "./training/dialogs/DeleteDatasetDialog";
@@ -68,6 +69,8 @@ export const TrainingInterface = ({
     deployModelId,
     startEpisode: contextStartEpisode,
     endEpisode: contextEndEpisode,
+    handleDeploy: contextHandleDeploy,
+    requestDeployStatus,
     setSelectedDataset,
     setSelectedDatasetId,
     setSession,
@@ -81,6 +84,8 @@ export const TrainingInterface = ({
     setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
+    setDeployProgress,
+    setDeployAvailabilityForModel,
     // Pose
     memorisedPoses,
     poseLoading,
@@ -211,6 +216,12 @@ export const TrainingInterface = ({
     setSelectedDatasetId,
     setIsSavingEpisode,
   });
+
+  useEffect(() => {
+    if (session.telemetryOpen && selectedDatasetRouteId) {
+      requestDeployStatus();
+    }
+  }, [requestDeployStatus, selectedDatasetRouteId, session.telemetryOpen]);
 
   // Handle tab changes and update URL
   const handleTabChange = useCallback(
@@ -461,6 +472,8 @@ export const TrainingInterface = ({
     setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
+    setDeployProgress,
+    setDeployAvailabilityForModel,
     setMemorisedPoses,
     setPoseLoading,
     setRestoringPoseId,
@@ -475,6 +488,7 @@ export const TrainingInterface = ({
 
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
+      <DeploymentNotification />
       <section className="relative flex min-h-0 flex-1 flex-col p-1">
         <div className="flex flex-1 min-h-0 gap-2 ">
           <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">

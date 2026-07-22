@@ -2,7 +2,6 @@ import { Copy, FolderPlus, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -21,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/use-toast";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { type DatasetListItem } from "@/lib/api";
 
@@ -130,7 +130,7 @@ export const DatasetSelector = ({
   };
 
   return (
-    <div className="border-b border-border bg-card p-4 ">
+    <div className="border-b border-border bg-card p-4 rounded-xl ">
       <div className="flex gap-2 items-center justify-between ">
         <Label
           htmlFor="dataset-select"
@@ -172,7 +172,6 @@ export const DatasetSelector = ({
                   >
                     <div className="min-w-0 py-1">
                       <div className="truncate font-medium">{dataset}</div>
-                      
                     </div>
                   </SelectItem>
                   <Button

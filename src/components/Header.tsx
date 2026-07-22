@@ -6,6 +6,7 @@ import { useAuthSession } from "@/hooks/useAuthSession";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
 import { useModeContext } from "@/hooks/useModeContext";
 import { useRobots } from "@/hooks/useRobots";
+import { cn } from "@/lib/utils";
 import { robotService } from "@/services/robotService";
 import {
   CheckCircle2,
@@ -18,6 +19,7 @@ import {
   Pencil,
   RefreshCcw,
   Rocket,
+  Square,
   Sun,
   Unplug,
 } from "lucide-react";
@@ -108,10 +110,19 @@ const TrainHeader = ({
   toggleTheme,
 }: TrainHeaderProps) => {
   const auth = useAuthSession();
-  const { handleDeploy, isDeploying, deployRequestPending } =
+  const {
+    handleDeploy,
+    handleForceStopDeploy,
+    requestDeployStatus,
+    isDeploying,
+    deployRequestPending,
+    deployAvailability,
+    robotId: contextRobotId,
+    controllerId: contextControllerId,
+  } =
     useEpisodeControlContext();
   const [robotSelection, setRobotSelection] = useState<string>(
-    selectedRobot ?? "",
+    selectedRobot ?? contextRobotId ?? "",
   );
   const [robotSelectOpen, setRobotSelectOpen] = useState(false);
   const [controlSelection, setControlSelection] = useState<string>(
@@ -126,7 +137,8 @@ const TrainHeader = ({
   const [renameRobotFriendlyName, setRenameRobotFriendlyName] = useState("");
   const [renameRobotLoading, setRenameRobotLoading] = useState(false);
   const [renameRobotError, setRenameRobotError] = useState<string | null>(null);
-  const selectedRobotId = robotSelection || selectedRobot || "";
+  const selectedRobotId =
+    robotSelection || selectedRobot || contextRobotId || "";
   const normalizedSelectedRobotId = selectedRobotId.trim();
 
   const {
@@ -165,12 +177,12 @@ const TrainHeader = ({
     auth.user?.fullName?.trim() || auth.user?.email || "Operator";
 
   useEffect(() => {
-    setRobotSelection(selectedRobot ?? "");
-  }, [selectedRobot]);
+    setRobotSelection(selectedRobot ?? contextRobotId ?? "");
+  }, [contextRobotId, selectedRobot]);
 
   useEffect(() => {
-    setControlSelection(selectedControl ?? "");
-  }, [selectedControl]);
+    setControlSelection(selectedControl ?? contextControllerId ?? "");
+  }, [contextControllerId, selectedControl]);
 
   useEffect(() => {
     if (!auth.accessToken) {
@@ -347,12 +359,43 @@ const TrainHeader = ({
   };
 
   const handleDeployDefaultModel = () => {
-    if (!isConnected || isDeploying || deployRequestPending) {
+    if (!isConnected || deployRequestPending || anyDeployDownloading) {
+      return;
+    }
+
+    if (hasActiveDeployment) {
+      void handleForceStopDeploy();
       return;
     }
 
     void handleDeploy();
   };
+
+  useEffect(() => {
+    if (!isConnected) {
+      return;
+    }
+    requestDeployStatus();
+  }, [isConnected, requestDeployStatus]);
+
+  const defaultDeployAvailability = deployAvailability.__default__ ?? "unknown";
+  const anyDeployDownloading = Object.values(deployAvailability).includes(
+    "downloading",
+  );
+  const hasActiveDeployment =
+    isDeploying ||
+    defaultDeployAvailability === "deployed" ||
+    Object.values(deployAvailability).includes("deployed");
+  const deployButtonLabel = deployRequestPending
+    ? hasActiveDeployment
+      ? "Stopping"
+      : "Checking"
+    : anyDeployDownloading
+    ? "Updating the model..."
+    : "Deploy";
+  const deployButtonTitle = hasActiveDeployment
+    ? "Stop robot deployment"
+    : "Deploy default model";
 
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
@@ -693,21 +736,49 @@ const TrainHeader = ({
                   <Unplug className="h-4 w-4" />
                 </Button>
               </div>
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleDeployDefaultModel}
-                disabled={isDeploying || deployRequestPending}
-                className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
-                title="Deploy default model"
-              >
-                {deployRequestPending ? (
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                ) : (
-                  <Rocket className="mr-1 h-4 w-4" />
-                )}
-                Deploy
-              </Button>
+              {hasActiveDeployment && !anyDeployDownloading ? (
+                <div
+                  data-tour="connect-button"
+                  className="flex h-10 overflow-hidden rounded-md bg-primary text-secondary-foreground"
+                  title={deployButtonTitle}
+                >
+                  <div className="flex items-center px-4 text-sm font-medium text-secondary-foreground">
+                    {deployRequestPending ? (
+                      <Loader2 className="mr-1 h-4 w-4 animate-spin " />
+                    ) : (
+                      <Rocket className="mr-1 h-4 w-4" />
+                    )}
+                    {deployRequestPending ? "Stopping" : "Running"}
+                  </div>
+                  <Button
+                    type="button"
+                    size="icon"
+                    onClick={handleForceStopDeploy}
+                    disabled={deployRequestPending}
+                    className="h-10 w-10 rounded-none border-l border-white/30 bg-destructive px-3 text-destructive-foreground hover:bg-destructive/90"
+                    aria-label="Stop deployment"
+                    title="Stop deployment"
+                  >
+                    <Square className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleDeployDefaultModel}
+                  disabled={deployRequestPending || anyDeployDownloading}
+                  className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+                  title={deployButtonTitle}
+                >
+                  {deployRequestPending || anyDeployDownloading ? (
+                    <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Rocket className="mr-1 h-4 w-4" />
+                  )}
+                  {deployButtonLabel}
+                </Button>
+              )}
             </div>
           ) : (
             <Button

@@ -148,10 +148,10 @@ export default function TrainPage() {
         mode: "train",
       });
 
-      toast({
-        title: "Session started",
-        description: `Training with robot and controller selected.`,
-      });
+      // toast({
+      //   title: "Session started",
+      //   description: `Training with robot and controller selected.`,
+      // });
     },
     [navigate, location.search],
   );

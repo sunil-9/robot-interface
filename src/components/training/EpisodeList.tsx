@@ -75,7 +75,7 @@ export const EpisodeList = ({
   // in-flight state as a single episode.
   const hasInFlightEpisode = isSavingEpisode || isDatasetLocked;
   const amberBanner = hasInFlightEpisode
-    ? { number: baseNextNumber, label: "Saving episode..." }
+    ? { number: baseNextNumber, label: "Processing episode..." }
     : null;
 
   const recordingEpisodeNumber =

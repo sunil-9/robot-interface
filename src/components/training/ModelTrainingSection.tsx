@@ -1,6 +1,7 @@
 import {
   Brain,
   CircleStop,
+  Download,
   Eye,
   Loader2,
   Plus,
@@ -83,9 +84,11 @@ export const ModelTrainingSection = ({
   const {
     selectedDataset,
     handleDeploy,
+    requestDeployStatus,
     isDeploying,
     deployRequestPending,
     deployModelId,
+    deployAvailability,
   } = useEpisodeControlContext();
   const [models, setModels] = useState<modelsApi.ModelSummary[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -162,6 +165,15 @@ export const ModelTrainingSection = ({
     };
   }, [isActive, selectedDataset, datasetId, fetchModels]);
 
+  useEffect(() => {
+    if (!isActive || !selectedDataset || models.length === 0) {
+      return;
+    }
+    models.forEach((model) => {
+      requestDeployStatus(model.model_id);
+    });
+  }, [isActive, models, requestDeployStatus, selectedDataset]);
+
   const handleTrainExisting = async (modelId: number) => {
     if (datasetId === null) return;
     if (!hasMinimumTrainingEpisodes) {
@@ -204,8 +216,11 @@ export const ModelTrainingSection = ({
   };
 
   const handleDeployModel = useCallback(
-    (modelId: number) => {
-      void handleDeploy(modelId);
+    (modelId: number, isDownloadingTarget: boolean) => {
+      console.log("status is ",isDownloadingTarget)
+      if (!isDownloadingTarget) {
+        void handleDeploy(modelId);
+      }
     },
     [handleDeploy],
   );
@@ -354,8 +369,14 @@ export const ModelTrainingSection = ({
               trainSteps[model.model_id] ?? STEP_OPTIONS[0].value;
             const modelId = String(model.model_id);
             const isDeployTarget = deployModelId === modelId;
-            const isDeployPending = deployRequestPending && isDeployTarget;
-            const isStopTarget = isDeploying && isDeployTarget;
+            const availability = deployAvailability[modelId] ?? "unknown";
+            const isStopTarget =
+              isDeployTarget && (isDeploying || availability === "deployed");
+            const isCheckingAvailability = availability === "checking";
+            const isDownloadingTarget =
+              isDeployTarget && availability === "downloading";
+            const isDownloadRequired =
+              availability === "missing" || isDownloadingTarget;
             const isUpdatingDefault =
               updatingDefaultModelId === model.model_id;
             const isStoppingTraining =
@@ -436,22 +457,30 @@ export const ModelTrainingSection = ({
                       aria-label={
                         isStopTarget
                           ? `Stop deployment for model ${model.model_id}`
+                          : isDownloadRequired
+                          ? `Download and deploy model ${model.model_id}`
                           : `Deploy model ${model.model_id}`
                       }
                       title={
                         isStopTarget
                           ? `Stop deployment for model ${model.model_id}`
+                          : isCheckingAvailability
+                          ? "Checking model availability"
+                          : isDownloadRequired
+                          ? `Download and deploy model ${model.model_id}`
                           : isDeploying
                           ? "Deployment already active"
                           : `Deploy model ${model.model_id}`
                       }
                       disabled={deployRequestPending || (isDeploying && !isDeployTarget)}
-                      onClick={() => handleDeployModel(model.model_id)}
+                      onClick={() => handleDeployModel(model.model_id, isDownloadingTarget)}
                     >
-                      {isDeployPending ? (
+                      {isDownloadingTarget ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : isStopTarget ? (
                         <Square className="h-3.5 w-3.5" />
+                      ) : isDownloadRequired ? (
+                        <Download className="h-3.5 w-3.5" />
                       ) : (
                         <Rocket className="h-3.5 w-3.5" />
                       )}

@@ -26,7 +26,20 @@ const normalizeDeployModelId = (modelId?: string | number | null) => {
   return normalized || null;
 };
 
+export type DeployAvailabilityState =
+  | "unknown"
+  | "checking"
+  | "available"
+  | "missing"
+  | "downloading"
+  | "deployed";
+
+const DEFAULT_DEPLOY_MODEL_KEY = "__default__";
+
 export interface EpisodeControlState {
+  robotId: string | null;
+  controllerId: string | null;
+  hasSession: boolean;
   isRecording: boolean;
   currentEpisodeId: string | null;
   isLoading: boolean;
@@ -39,6 +52,10 @@ export interface EpisodeControlState {
   deployModelId: string | null;
   deployStatusPopupOpen: boolean;
   deployStatusMessage: string | null;
+  deployProgressPercent: number | null;
+  deployDownloadedBytes: number | null;
+  deployTotalBytes: number | null;
+  deployAvailability: Record<string, DeployAvailabilityState>;
   // Pose state
   memorisedPoses: MemorisedPose[];
   poseLoading: boolean;
@@ -60,6 +77,7 @@ export interface EpisodeControlActions {
   setCurrentEpisodeId: (episodeId: string | null) => void;
   // Deploy actions
   handleDeploy: (modelId?: string | number | null) => Promise<boolean>;
+  requestDeployStatus: (modelId?: string | number | null) => boolean;
   handleForceStopDeploy: () => Promise<boolean>;
   setIsDeploying: (deploying: boolean) => void;
   setDeployRequestPending: (pending: boolean) => void;
@@ -67,6 +85,15 @@ export interface EpisodeControlActions {
   setDeployModelId: (modelId: string | null) => void;
   setDeployStatusPopupOpen: (open: boolean) => void;
   setDeployStatusMessage: (message: string | null) => void;
+  setDeployProgress: (progress: {
+    progressPercent?: number | null;
+    downloadedBytes?: number | null;
+    totalBytes?: number | null;
+  }) => void;
+  setDeployAvailabilityForModel: (
+    modelId: string | null,
+    state: DeployAvailabilityState,
+  ) => void;
   // Pose actions
   handleMemorisePose: (name?: string) => Promise<boolean>;
   handleRestorePose: (poseId: string) => Promise<boolean>;
@@ -103,6 +130,9 @@ export function EpisodeControlProvider({
   const [currentEpisodeId, setCurrentEpisodeId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSavingEpisode, setIsSavingEpisode] = useState(false);
+  const [robotId, setRobotIdState] = useState<string | null>(null);
+  const [controllerId, setControllerIdState] = useState<string | null>(null);
+  const [hasSession, setHasSession] = useState(false);
 
   // Initialize selectedDataset from localStorage
   const [selectedDataset, setSelectedDatasetState] = useState(() => {
@@ -144,6 +174,16 @@ export function EpisodeControlProvider({
   const [deployStatusMessage, setDeployStatusMessage] = useState<string | null>(
     null,
   );
+  const [deployProgressPercent, setDeployProgressPercent] = useState<
+    number | null
+  >(null);
+  const [deployDownloadedBytes, setDeployDownloadedBytes] = useState<
+    number | null
+  >(null);
+  const [deployTotalBytes, setDeployTotalBytes] = useState<number | null>(null);
+  const [deployAvailability, setDeployAvailability] = useState<
+    Record<string, DeployAvailabilityState>
+  >({});
 
   // Pose state
   const [memorisedPoses, setMemorisedPoses] = useState<MemorisedPose[]>([]);
@@ -166,16 +206,60 @@ export function EpisodeControlProvider({
   const deployModelRef = useRef(deployModelId);
   deployModelRef.current = deployModelId;
 
+  const setDeployAvailabilityForModel = useCallback(
+    (modelId: string | null, state: DeployAvailabilityState) => {
+      const key = modelId ?? DEFAULT_DEPLOY_MODEL_KEY;
+      setDeployAvailability((current) => {
+        if (current[key] === state) {
+          return current;
+        }
+        return { ...current, [key]: state };
+      });
+    },
+    [],
+  );
+
+  const setDeployProgress = useCallback(
+    ({
+      progressPercent,
+      downloadedBytes,
+      totalBytes,
+    }: {
+      progressPercent?: number | null;
+      downloadedBytes?: number | null;
+      totalBytes?: number | null;
+    }) => {
+      if (progressPercent !== undefined) {
+        setDeployProgressPercent(progressPercent);
+      }
+      if (downloadedBytes !== undefined) {
+        setDeployDownloadedBytes(downloadedBytes);
+      }
+      if (totalBytes !== undefined) {
+        setDeployTotalBytes(totalBytes);
+      }
+    },
+    [],
+  );
+
   const setSession = useCallback((session: WebRTCSession | null) => {
     sessionRef.current = session;
+    setHasSession(Boolean(session));
   }, []);
 
   const setRobotId = useCallback((robotId: string | null) => {
-    robotIdRef.current = robotId;
+    const normalized = typeof robotId === "string" ? robotId.trim() : "";
+    const nextRobotId = normalized || null;
+    robotIdRef.current = nextRobotId;
+    setRobotIdState(nextRobotId);
   }, []);
 
   const setControllerId = useCallback((controllerId: string | null) => {
-    controllerIdRef.current = controllerId;
+    const normalized =
+      typeof controllerId === "string" ? controllerId.trim() : "";
+    const nextControllerId = normalized || null;
+    controllerIdRef.current = nextControllerId;
+    setControllerIdState(nextControllerId);
   }, []);
 
   const startEpisode = useCallback(async (): Promise<boolean> => {
@@ -365,13 +449,16 @@ export function EpisodeControlProvider({
       const targetModelId =
         action === "start"
           ? requestedModelId
-          : requestedModelId ?? deployModelRef.current;
+          : (requestedModelId ?? deployModelRef.current);
       const targetLabel = targetModelId
         ? `model #${targetModelId} from dataset "${datasetLabel}"`
         : `dataset "${datasetLabel}"`;
       setDeployRequestPending(true);
       setDeployDatasetId(datasetId);
       setDeployModelId(targetModelId);
+      if (action === "start") {
+        setDeployAvailabilityForModel(targetModelId, "checking");
+      }
 
       const deployPayload: {
         action: string;
@@ -402,7 +489,7 @@ export function EpisodeControlProvider({
       }
 
       toast({
-        title: "Deployment request sent",
+        title: "Deploying the model...",
         description:
           action === "start"
             ? `Deploying ${targetLabel}.`
@@ -411,7 +498,42 @@ export function EpisodeControlProvider({
 
       return true;
     },
-    [isDeploying],
+    [isDeploying, setDeployAvailabilityForModel],
+  );
+
+  const requestDeployStatus = useCallback(
+    (modelId?: string | number | null): boolean => {
+      const datasetId = selectedDatasetIdRef.current;
+      const session = sessionRef.current;
+      const targetModelId = normalizeDeployModelId(modelId);
+
+      if (!datasetId || !session) {
+        return false;
+      }
+
+      setDeployAvailabilityForModel(targetModelId, "checking");
+      const deployPayload: {
+        action: string;
+        datasetId: string;
+        modelId?: string;
+      } = {
+        action: "status",
+        datasetId,
+      };
+      if (targetModelId) {
+        deployPayload.modelId = targetModelId;
+      }
+
+      const sent = session.sendControl({
+        type: "deploy",
+        payload: deployPayload,
+      });
+      if (!sent) {
+        setDeployAvailabilityForModel(targetModelId, "unknown");
+      }
+      return sent;
+    },
+    [setDeployAvailabilityForModel],
   );
 
   const handleForceStopDeploy = useCallback(async (): Promise<boolean> => {
@@ -459,6 +581,11 @@ export function EpisodeControlProvider({
     // Close popup and reset state
     setDeployStatusPopupOpen(false);
     setDeployStatusMessage(null);
+    setDeployProgress({
+      progressPercent: null,
+      downloadedBytes: null,
+      totalBytes: null,
+    });
     setIsDeploying(false);
     setDeployDatasetId(null);
     setDeployModelId(null);
@@ -662,6 +789,9 @@ export function EpisodeControlProvider({
     sessionRef.current = null;
     robotIdRef.current = null;
     controllerIdRef.current = null;
+    setRobotIdState(null);
+    setControllerIdState(null);
+    setHasSession(false);
     selectedDatasetIdRef.current = null;
     setIsRecording(false);
     setCurrentEpisodeId(null);
@@ -674,14 +804,23 @@ export function EpisodeControlProvider({
     setDeployModelId(null);
     setDeployStatusPopupOpen(false);
     setDeployStatusMessage(null);
+    setDeployProgress({
+      progressPercent: null,
+      downloadedBytes: null,
+      totalBytes: null,
+    });
+    setDeployAvailability({});
     setMemorisedPoses([]);
     setPoseLoading(false);
     setRestoringPoseId(null);
     setMode?.(AppMode.EXPLORATION);
-  }, [setMode, setSelectedDataset]);
+  }, [setDeployProgress, setMode, setSelectedDataset]);
 
   const value: EpisodeControlContextValue = {
     // State
+    robotId,
+    controllerId,
+    hasSession,
     isRecording,
     currentEpisodeId,
     isLoading,
@@ -693,6 +832,10 @@ export function EpisodeControlProvider({
     deployModelId,
     deployStatusPopupOpen,
     deployStatusMessage,
+    deployProgressPercent,
+    deployDownloadedBytes,
+    deployTotalBytes,
+    deployAvailability,
     // Actions
     startEpisode,
     endEpisode,
@@ -706,6 +849,7 @@ export function EpisodeControlProvider({
     setIsRecording,
     setCurrentEpisodeId,
     handleDeploy,
+    requestDeployStatus,
     handleForceStopDeploy,
     setIsDeploying,
     setDeployRequestPending,
@@ -713,6 +857,8 @@ export function EpisodeControlProvider({
     setDeployModelId,
     setDeployStatusPopupOpen,
     setDeployStatusMessage,
+    setDeployProgress,
+    setDeployAvailabilityForModel,
     // Pose
     memorisedPoses,
     poseLoading,

@@ -591,13 +591,6 @@ export function EpisodeControlProvider({
     setDeployModelId(null);
     setDeployRequestPending(false);
 
-    toast({
-      title: "Force stop sent",
-      description: modelToStop
-        ? `Stopping deployment for model #${modelToStop} from dataset "${datasetLabel}".`
-        : `Stopping deployment for dataset "${datasetLabel}".`,
-    });
-
     return true;
   }, []);
 

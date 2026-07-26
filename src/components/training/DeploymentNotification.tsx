@@ -1,4 +1,4 @@
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, X } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
 import { useEpisodeControlContext } from "@/hooks/useEpisodeControl";
@@ -27,6 +27,7 @@ export function DeploymentNotification() {
     deployDownloadedBytes,
     deployTotalBytes,
     deployAvailability,
+    setDeployStatusPopupOpen,
   } = useEpisodeControlContext();
 
   if (!deployStatusPopupOpen) {
@@ -65,6 +66,16 @@ export function DeploymentNotification() {
 
   return (
     <div className="fixed bottom-4 right-4 z-[120] w-[min(calc(100vw-2rem),420px)] rounded-md border border-border bg-background p-4 shadow-xl">
+      {!isDownloading ? (
+        <button
+          type="button"
+          aria-label="Close deployment notification"
+          className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setDeployStatusPopupOpen(false)}
+        >
+          <X className="h-4 w-4" />
+        </button>
+      ) : null}
       <div className="flex items-start gap-3">
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           {isDownloading ? (
@@ -73,7 +84,7 @@ export function DeploymentNotification() {
             <CheckCircle2 className="h-4 w-4" />
           )}
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pr-7">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
               <div className="text-sm font-semibold text-foreground">

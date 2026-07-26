@@ -1,6 +1,7 @@
 import type { DeployAvailabilityState } from "@/context/EpisodeControlContext";
 import { AppMode } from "@/context/ModeContextDef";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import { requestTrainingSidebarTab } from "@/lib/trainingSidebarTab";
 import { type MemorisedPose } from "@/types/pose";
 import { useEffect, useRef } from "react";
 import { toast } from "../components/ui/use-toast";
@@ -547,6 +548,7 @@ export function useTrainingTelemetry({
             "Deployment request was rejected. Check deployment services and try again.",
           variant: "destructive",
         });
+        requestTrainingSidebarTab("models");
 
         return;
       }
@@ -626,7 +628,6 @@ export function useTrainingTelemetry({
             });
           }
         } else if (status === "deployed") {
-          setDeployStatusPopupOpen(false);
           setDeployStatusMessage(null);
           setIsDeploying(true);
           setDeployDatasetId(datasetId ?? deployDatasetRef.current ?? null);

@@ -8,6 +8,11 @@ import {
 import { useTrainingDatasetEpisodes } from "@/hooks/useTrainingDatasetEpisodes";
 import { useTrainingTelemetry } from "@/hooks/useTrainingTelemetry";
 import { type WebRTCSession } from "@/hooks/useWebRTCSession";
+import {
+  isTrainingSidebarTab,
+  TRAINING_SIDEBAR_TAB_EVENT,
+  type TrainingSidebarTabEventDetail,
+} from "@/lib/trainingSidebarTab";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -164,6 +169,28 @@ export const TrainingInterface = ({
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>(
     tabFromUrl || "secondary",
   );
+
+  useEffect(() => {
+    const handleSidebarTabRequest = (event: Event) => {
+      const detail = (event as CustomEvent<TrainingSidebarTabEventDetail>)
+        .detail;
+      if (!isTrainingSidebarTab(detail?.tab)) {
+        return;
+      }
+      setSidebarTab(detail.tab);
+    };
+
+    window.addEventListener(
+      TRAINING_SIDEBAR_TAB_EVENT,
+      handleSidebarTabRequest,
+    );
+    return () => {
+      window.removeEventListener(
+        TRAINING_SIDEBAR_TAB_EVENT,
+        handleSidebarTabRequest,
+      );
+    };
+  }, []);
 
   const { setMode } = useModeContext();
   const {

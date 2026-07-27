@@ -20,6 +20,10 @@ type VideoPlayerProps = {
   onVideosReady?: () => void;
 };
 
+const PLAYBACK_TIME_UPDATE_INTERVAL_MS = 125;
+const PLAYING_SYNC_DRIFT_THRESHOLD_SECONDS = 0.5;
+const PAUSED_SYNC_DRIFT_THRESHOLD_SECONDS = 0.05;
+
 export const SimpleVideosPlayer = ({
   videosInfo,
   onVideosReady,
@@ -37,6 +41,7 @@ export const SimpleVideosPlayer = ({
     {},
   );
   const readyCalledRef = useRef(false);
+  const lastPlaybackTimeUpdateRef = useRef(0);
 
   const firstVisibleIdx = videosInfo.findIndex(
     (video) => !hiddenVideos.includes(video.filename),
@@ -303,12 +308,16 @@ export const SimpleVideosPlayer = ({
           targetTime = (info.segmentStart || 0) + currentTime;
         }
 
-        if (Math.abs(video.currentTime - targetTime) > 0.2) {
+        const driftThreshold = isPlaying
+          ? PLAYING_SYNC_DRIFT_THRESHOLD_SECONDS
+          : PAUSED_SYNC_DRIFT_THRESHOLD_SECONDS;
+
+        if (Math.abs(video.currentTime - targetTime) > driftThreshold) {
           video.currentTime = targetTime;
         }
       }
     });
-  }, [currentTime, videosInfo, videosReady, hiddenVideos]);
+  }, [currentTime, videosInfo, videosReady, hiddenVideos, isPlaying]);
 
   // Handle time update from first visible video
   const handleTimeUpdate = (e: React.SyntheticEvent<HTMLVideoElement>) => {
@@ -321,6 +330,15 @@ export const SimpleVideosPlayer = ({
       if (info.isSegmented) {
         globalTime = video.currentTime - (info.segmentStart || 0);
       }
+
+      const now = performance.now();
+      const shouldCommit =
+        globalTime <= 0 ||
+        now - lastPlaybackTimeUpdateRef.current >=
+          PLAYBACK_TIME_UPDATE_INTERVAL_MS;
+      if (!shouldCommit) return;
+
+      lastPlaybackTimeUpdateRef.current = now;
       setCurrentTime(globalTime);
     }
   };

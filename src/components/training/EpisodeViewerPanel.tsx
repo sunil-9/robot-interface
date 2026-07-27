@@ -83,7 +83,7 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
   return (
     <div
       className={cn(
-        "relative z-50 flex h-full w-full flex-col overflow-hidden rounded-[32px] border border-border bg-background",
+        "relative z-30 flex h-full w-full flex-col overflow-hidden rounded-[32px] border border-border bg-background",
         className,
       )}
     >

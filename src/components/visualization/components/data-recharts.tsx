@@ -395,10 +395,10 @@ const SingleDataGraph = React.memo(
       () => buildSeriesMetadata(dataKeys),
       [dataKeys],
     );
-    const [visibleKeys, setVisibleKeys] = useState<string[]>(dataKeys);
+    const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
 
     useEffect(() => {
-      setVisibleKeys(dataKeys);
+      setVisibleKeys([]);
     }, [dataKeys]);
 
     const handleMouseLeave = useCallback(() => {

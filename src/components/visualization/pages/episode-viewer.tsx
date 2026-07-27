@@ -70,7 +70,7 @@ function EpisodeViewerInner({
   const { currentTime, setCurrentTime, setIsPlaying, isPlaying } = useTime();
 
   // Pagination state
-  const pageSize = 100;
+  const pageSize = 20;
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.ceil(episodes.length / pageSize);
   const paginatedEpisodes = episodes.slice(

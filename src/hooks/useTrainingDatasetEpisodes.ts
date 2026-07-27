@@ -1,5 +1,6 @@
 import { useEpisodesWebSocket } from "@/hooks/useEpisodesWebSocket";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { invalidateEpisodeMetadataCache } from "@/components/visualization/pages/fetch-data";
 import { invalidateDatasetDescriptorCache } from "@/components/visualization/utils/versionUtils";
 import {
   createDataset,
@@ -196,6 +197,7 @@ export function useTrainingDatasetEpisodes({
         previousTotal !== message.total_count
       ) {
         invalidateDatasetDescriptorCache(message.dataset_id);
+        invalidateEpisodeMetadataCache(message.dataset_id);
       }
       episodesTotalRef.current = message.total_count;
       if (

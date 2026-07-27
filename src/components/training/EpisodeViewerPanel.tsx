@@ -34,6 +34,7 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
     }
 
     let cancelled = false;
+    const abortController = new AbortController();
 
     const loadData = async () => {
       setLoading(true);
@@ -44,6 +45,7 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
           robotId,
           datasetId,
           episodeIndex,
+          abortController.signal,
         );
         if (cancelled) return;
 
@@ -56,6 +58,7 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
         }
       } catch (err) {
         if (cancelled) return;
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Failed to load episode");
         setData(null);
       } finally {
@@ -69,6 +72,7 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
 
     return () => {
       cancelled = true;
+      abortController.abort();
     };
   }, [isOpen, robotId, datasetId, episodeIndex]);
 
@@ -147,8 +151,6 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
             <EpisodeViewer
               data={data}
               error={error}
-              org={robotId ?? undefined}
-              dataset={datasetId ?? undefined}
               isEmbedded={true}
               onEpisodeChange={changeEpisode}
             />

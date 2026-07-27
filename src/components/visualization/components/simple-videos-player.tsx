@@ -67,7 +67,6 @@ export const SimpleVideosPlayer = ({
         videosInfo.map(async (info, index) => {
           try {
             const response = await apiFetch(info.url, {
-              cache: "no-store",
               signal: abortControllers[index].signal,
             });
 

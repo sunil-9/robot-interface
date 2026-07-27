@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import DataRecharts from "../components/data-recharts";
 import Loading from "../components/loading-component";
@@ -7,20 +7,15 @@ import PlaybackBar from "../components/playback-bar";
 import Sidebar from "../components/side-nav";
 import { SimpleVideosPlayer } from "../components/simple-videos-player";
 import { TimeProvider, useTime } from "../context/time-context";
-import { getAdjacentEpisodesVideoInfo } from "./fetch-data";
 
 export default function EpisodeViewer({
   data,
   error,
-  org,
-  dataset,
   isEmbedded = false,
   onEpisodeChange,
 }: {
   data?: any;
   error?: string;
-  org?: string;
-  dataset?: string;
   isEmbedded?: boolean;
   onEpisodeChange?: (episodeIndex: number) => void;
 }) {
@@ -38,8 +33,6 @@ export default function EpisodeViewer({
     <TimeProvider duration={data.duration}>
       <EpisodeViewerInner
         data={data}
-        org={org}
-        dataset={dataset}
         isEmbedded={isEmbedded}
         onEpisodeChange={onEpisodeChange}
       />
@@ -49,14 +42,10 @@ export default function EpisodeViewer({
 
 function EpisodeViewerInner({
   data,
-  org,
-  dataset,
   isEmbedded = false,
   onEpisodeChange,
 }: {
   data: any;
-  org?: string;
-  dataset?: string;
   isEmbedded?: boolean;
   onEpisodeChange?: (episodeIndex: number) => void;
 }) {
@@ -74,7 +63,7 @@ function EpisodeViewerInner({
   const isLoading = !videosReady || !chartsReady;
 
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   // State
   // Use context for time sync
@@ -95,21 +84,55 @@ function EpisodeViewerInner({
     searchParams.get("popup") === "1" ||
     searchParams.get("popup") === "true";
 
-  // Preload adjacent episodes' videos
-  useEffect(() => {
-    if (!org || !dataset) return;
+  // Handle keyboard shortcuts
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const { key } = e;
 
-    const preloadAdjacent = async () => {
-      try {
-        await getAdjacentEpisodesVideoInfo(org, dataset, episodeId, 2);
-        // Preload adjacent episodes for smoother navigation
-      } catch {
-        // Skip preloading on error
+      if (key === " ") {
+        e.preventDefault();
+        setIsPlaying((prev: boolean) => !prev);
+      } else if (key === "ArrowDown" || key === "ArrowUp") {
+        e.preventDefault();
+        e.stopPropagation();
+        // Remove focus from any active element to prevent button focus ring
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+        const nextEpisodeId =
+          key === "ArrowUp" ? episodeId + 1 : episodeId - 1;
+        const lowestEpisodeId = episodes[0];
+        const highestEpisodeId = episodes[episodes.length - 1];
+
+        if (
+          nextEpisodeId >= lowestEpisodeId &&
+          nextEpisodeId <= highestEpisodeId
+        ) {
+          // When embedded, use the callback to change episode via context
+          if (isEmbedded && onEpisodeChange) {
+            onEpisodeChange(nextEpisodeId);
+          } else {
+            // Otherwise navigate via URL
+            const newParams = new URLSearchParams(searchParams.toString());
+            newParams.set("episode", nextEpisodeId.toString());
+            navigate({
+              pathname: window.location.pathname,
+              search: `?${newParams.toString()}`,
+            });
+          }
+        }
       }
-    };
-
-    preloadAdjacent();
-  }, [org, dataset, episodeId]);
+    },
+    [
+      episodeId,
+      episodes,
+      isEmbedded,
+      navigate,
+      onEpisodeChange,
+      searchParams,
+      setIsPlaying,
+    ],
+  );
 
   // Initialize based on URL time parameter
   useEffect(() => {
@@ -120,7 +143,7 @@ function EpisodeViewerInner({
         setCurrentTime(timeValue);
       }
     }
-  }, []);
+  }, [searchParams, setCurrentTime]);
 
   // Initialize based on URL time parameter
   useEffect(() => {
@@ -135,7 +158,7 @@ function EpisodeViewerInner({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [episodes, episodeId, pageSize, searchParams]);
+  }, [episodes, episodeId, handleKeyDown, pageSize]);
 
   // Only update URL ?t= param when the integer second changes
   const lastUrlSecondRef = useRef<number>(-1);
@@ -154,44 +177,6 @@ function EpisodeViewerInner({
       );
     }
   }, [isPlaying, currentTime, searchParams]);
-
-  // Handle keyboard shortcuts
-  const handleKeyDown = (e: KeyboardEvent) => {
-    const { key } = e;
-
-    if (key === " ") {
-      e.preventDefault();
-      setIsPlaying((prev: boolean) => !prev);
-    } else if (key === "ArrowDown" || key === "ArrowUp") {
-      e.preventDefault();
-      e.stopPropagation();
-      // Remove focus from any active element to prevent button focus ring
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-      const nextEpisodeId = key === "ArrowUp" ? episodeId + 1 : episodeId - 1;
-      const lowestEpisodeId = episodes[0];
-      const highestEpisodeId = episodes[episodes.length - 1];
-
-      if (
-        nextEpisodeId >= lowestEpisodeId &&
-        nextEpisodeId <= highestEpisodeId
-      ) {
-        // When embedded, use the callback to change episode via context
-        if (isEmbedded && onEpisodeChange) {
-          onEpisodeChange(nextEpisodeId);
-        } else {
-          // Otherwise navigate via URL
-          const newParams = new URLSearchParams(searchParams.toString());
-          newParams.set("episode", nextEpisodeId.toString());
-          navigate({
-            pathname: window.location.pathname,
-            search: `?${newParams.toString()}`,
-          });
-        }
-      }
-    }
-  };
 
   // Pagination functions
   const nextPage = () => {

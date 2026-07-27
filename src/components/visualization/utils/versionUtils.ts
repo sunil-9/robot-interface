@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/apiClient";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
+import { invalidateParquetFileCache } from "./parquetUtils";
 
 /**
  * Dataset information structure from info.json
@@ -16,7 +17,7 @@ interface DatasetInfo {
   fps: number;
   splits: Record<string, string>;
   data_path: string;
-  video_path: string;
+  video_path: string | null;
   features: Record<string, unknown>;
 }
 
@@ -37,6 +38,49 @@ const descriptorRequestCache = new Map<
   Promise<DatasetVisualizationDescriptor>
 >();
 
+const createAbortError = (): Error => {
+  if (typeof DOMException !== "undefined") {
+    return new DOMException("The operation was aborted.", "AbortError");
+  }
+
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  return error;
+};
+
+const throwIfAborted = (signal?: AbortSignal) => {
+  if (signal?.aborted) {
+    throw createAbortError();
+  }
+};
+
+const withAbortSignal = async <T,>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> => {
+  throwIfAborted(signal);
+
+  if (!signal) {
+    return promise;
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(createAbortError());
+
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+};
+
 const splitRepoId = (repoId: string): { datasetId: string } => {
   const segments = repoId.split("/").filter(Boolean);
   if (segments.length === 0) {
@@ -53,12 +97,14 @@ const joinFileUrl = (baseUrl: string, path: string): string =>
 
 const fetchDatasetDescriptor = async (
   repoId: string,
+  signal?: AbortSignal,
 ): Promise<DatasetVisualizationDescriptor> => {
   const { datasetId } = splitRepoId(repoId);
   const response = await apiFetch(
     `/datasets/${encodeURIComponent(datasetId)}/visualization`,
     {
       cache: "no-store",
+      signal,
     },
   );
   const payload = await parseCloudApiResponse<
@@ -88,7 +134,10 @@ const fetchDatasetDescriptor = async (
 
 const getDatasetDescriptor = async (
   repoId: string,
+  signal?: AbortSignal,
 ): Promise<DatasetVisualizationDescriptor> => {
+  throwIfAborted(signal);
+
   const cached = descriptorCache.get(repoId);
   if (cached) {
     return cached;
@@ -96,10 +145,10 @@ const getDatasetDescriptor = async (
 
   const pending = descriptorRequestCache.get(repoId);
   if (pending) {
-    return pending;
+    return withAbortSignal(pending, signal);
   }
 
-  const request = fetchDatasetDescriptor(repoId)
+  const request = fetchDatasetDescriptor(repoId, signal)
     .then((descriptor) => {
       descriptorCache.set(repoId, descriptor);
       descriptorRequestCache.delete(repoId);
@@ -111,7 +160,7 @@ const getDatasetDescriptor = async (
     });
 
   descriptorRequestCache.set(repoId, request);
-  return request;
+  return withAbortSignal(request, signal);
 };
 
 export function invalidateDatasetDescriptorCache(
@@ -120,6 +169,7 @@ export function invalidateDatasetDescriptorCache(
   if (repoIdOrDatasetId === undefined || repoIdOrDatasetId === null) {
     descriptorCache.clear();
     descriptorRequestCache.clear();
+    invalidateParquetFileCache();
     return;
   }
 
@@ -135,18 +185,26 @@ export function invalidateDatasetDescriptorCache(
       descriptorRequestCache.delete(cacheKey);
     }
   }
+
+  invalidateParquetFileCache();
 }
 
 /**
  * Fetches dataset information from the configured visualization source.
  */
-export async function getDatasetInfo(repoId: string): Promise<DatasetInfo> {
-  const descriptor = await getDatasetDescriptor(repoId);
+export async function getDatasetInfo(
+  repoId: string,
+  signal?: AbortSignal,
+): Promise<DatasetInfo> {
+  const descriptor = await getDatasetDescriptor(repoId, signal);
   return descriptor.metadata;
 }
 
-export async function getEpisodeMetadataPaths(repoId: string): Promise<string[]> {
-  const descriptor = await getDatasetDescriptor(repoId);
+export async function getEpisodeMetadataPaths(
+  repoId: string,
+  signal?: AbortSignal,
+): Promise<string[]> {
+  const descriptor = await getDatasetDescriptor(repoId, signal);
   return Array.isArray(descriptor.episode_metadata_paths)
     ? descriptor.episode_metadata_paths
     : [];
@@ -155,21 +213,22 @@ export async function getEpisodeMetadataPaths(repoId: string): Promise<string[]>
 /**
  * Gets the dataset version by reading codebase_version from info.json.
  */
-export async function getDatasetVersion(repoId: string): Promise<string> {
+export async function getDatasetVersion(
+  repoId: string,
+  signal?: AbortSignal,
+): Promise<string> {
   try {
-    const datasetInfo = await getDatasetInfo(repoId);
+    const datasetInfo = await getDatasetInfo(repoId, signal);
     const codebaseVersion = datasetInfo.codebase_version;
 
     if (!codebaseVersion) {
       throw new Error("Dataset info.json does not contain codebase_version");
     }
 
-    const supportedVersions = ["v3.0", "v2.1", "v2.0"];
-    if (!supportedVersions.includes(codebaseVersion)) {
+    if (codebaseVersion !== "v3.0") {
       throw new Error(
         `Dataset ${repoId} has codebase version ${codebaseVersion}, which is not supported. ` +
-          "This tool only works with dataset versions 3.0, 2.1, or 2.0. " +
-          "Please use a compatible dataset version.",
+          "This visualizer only supports v3.0 datasets.",
       );
     }
 

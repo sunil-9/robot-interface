@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { apiFetch } from "@/lib/apiClient";
-import { parquetRead, parquetReadObjects } from "hyparquet";
+import { parquetReadObjects } from "hyparquet";
 
 export interface DatasetMetadata {
   codebase_version: string;
@@ -14,7 +14,7 @@ export interface DatasetMetadata {
   fps: number;
   splits: Record<string, string>;
   data_path: string;
-  video_path: string;
+  video_path: string | null;
   features: Record<
     string,
     {
@@ -26,52 +26,92 @@ export interface DatasetMetadata {
   >;
 }
 
-export async function fetchJson<T>(url: string): Promise<T> {
-  const res = await apiFetch(url);
-  if (!res.ok) {
-    throw new Error(
-      `Failed to fetch JSON ${url}: ${res.status} ${res.statusText}`,
-    );
+type ParquetFetchOptions = {
+  signal?: AbortSignal;
+};
+
+const parquetFileCache = new Map<string, Promise<ArrayBuffer>>();
+
+export function invalidateParquetFileCache(url?: string): void {
+  if (url) {
+    parquetFileCache.delete(url);
+    return;
   }
-  return res.json() as Promise<T>;
+
+  parquetFileCache.clear();
 }
 
-export function formatStringWithVars(
-  format: string,
-  vars: Record<string, any>,
-): string {
-  return format.replace(/{(\w+)(?::\d+d)?}/g, (_, key) => vars[key]);
-}
+const createAbortError = (): Error => {
+  if (typeof DOMException !== "undefined") {
+    return new DOMException("The operation was aborted.", "AbortError");
+  }
+
+  const error = new Error("The operation was aborted.");
+  error.name = "AbortError";
+  return error;
+};
+
+const throwIfAborted = (signal?: AbortSignal) => {
+  if (signal?.aborted) {
+    throw createAbortError();
+  }
+};
+
+const withAbortSignal = async <T,>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> => {
+  throwIfAborted(signal);
+
+  if (!signal) {
+    return promise;
+  }
+
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(createAbortError());
+
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(error);
+      },
+    );
+  });
+};
 
 // Fetch and parse the Parquet file
-export async function fetchParquetFile(url: string): Promise<ArrayBuffer> {
-  const res = await apiFetch(url);
+export async function fetchParquetFile(
+  url: string,
+  options: ParquetFetchOptions = {},
+): Promise<ArrayBuffer> {
+  const { signal } = options;
+  throwIfAborted(signal);
 
-  if (!res.ok) {
-    throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+  const cachedRequest = parquetFileCache.get(url);
+  if (cachedRequest) {
+    return withAbortSignal(cachedRequest, signal);
   }
 
-  return res.arrayBuffer();
-}
+  const request = apiFetch(url)
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+      }
 
-// Read specific columns from the Parquet file
-export async function readParquetColumn(
-  fileBuffer: ArrayBuffer,
-  columns: string[],
-): Promise<any[]> {
-  return new Promise((resolve, reject) => {
-    try {
-      parquetRead({
-        file: fileBuffer,
-        columns: columns.length > 0 ? columns : undefined, // Let hyparquet read all columns if empty array
-        onComplete: (data: any[]) => {
-          resolve(data);
-        },
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+      return res.arrayBuffer();
+    })
+    .catch((error) => {
+      parquetFileCache.delete(url);
+      throw error;
+    });
+
+  parquetFileCache.set(url, request);
+  return withAbortSignal(request, signal);
 }
 
 // Read parquet file and return objects with column names as keys

@@ -6,7 +6,7 @@ const AUTH_STORAGE_KEY = "im.auth.session";
 
 type AuthMode = "auto" | "always" | "never";
 
-export const loadStoredAccessToken = (): string | null => {
+const loadStoredAccessToken = (): string | null => {
   if (typeof window === "undefined") {
     return null;
   }

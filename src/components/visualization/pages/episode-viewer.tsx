@@ -61,6 +61,7 @@ function EpisodeViewerInner({
   const [videosReady, setVideosReady] = useState(!videosInfo.length);
   const [chartsReady, setChartsReady] = useState(false);
   const isLoading = !videosReady || !chartsReady;
+  const viewerStartedAtRef = useRef(performance.now());
 
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -68,6 +69,28 @@ function EpisodeViewerInner({
   // State
   // Use context for time sync
   const { currentTime, setCurrentTime, setIsPlaying, isPlaying } = useTime();
+
+  useEffect(() => {
+    viewerStartedAtRef.current = performance.now();
+    console.log("[visualization timing] viewer mounted", {
+      episodeId,
+      videos: videosInfo.length,
+      chartGroups: chartDataGroups.length,
+    });
+  }, [chartDataGroups.length, episodeId, videosInfo.length]);
+
+  useEffect(() => {
+    if (videosReady && chartsReady) {
+      console.log(
+        `[visualization timing] viewer ready: ${(performance.now() - viewerStartedAtRef.current).toFixed(1)}ms`,
+        {
+          episodeId,
+          videos: videosInfo.length,
+          chartGroups: chartDataGroups.length,
+        },
+      );
+    }
+  }, [chartDataGroups.length, chartsReady, episodeId, videosInfo.length, videosReady]);
 
   // Pagination state
   const pageSize = 20;
@@ -235,7 +258,13 @@ function EpisodeViewerInner({
           <SimpleVideosPlayer
             key={`videos-${episodeId}`}
             videosInfo={videosInfo}
-            onVideosReady={() => setVideosReady(true)}
+            onVideosReady={() => {
+              console.log(
+                `[visualization timing] videos ready callback: ${(performance.now() - viewerStartedAtRef.current).toFixed(1)}ms`,
+                { episodeId, videos: videosInfo.length },
+              );
+              setVideosReady(true);
+            }}
           />
         )}
 
@@ -261,7 +290,13 @@ function EpisodeViewerInner({
         <div className="mb-4">
           <DataRecharts
             data={chartDataGroups}
-            onChartsReady={() => setChartsReady(true)}
+            onChartsReady={() => {
+              console.log(
+                `[visualization timing] charts ready callback: ${(performance.now() - viewerStartedAtRef.current).toFixed(1)}ms`,
+                { episodeId, chartGroups: chartDataGroups.length },
+              );
+              setChartsReady(true);
+            }}
           />
         </div>
 

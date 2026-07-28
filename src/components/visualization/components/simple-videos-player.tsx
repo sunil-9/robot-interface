@@ -1,8 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { apiFetch, loadStoredAccessToken } from "@/lib/apiClient";
-import { buildApiUrl } from "@/lib/config";
+import { apiFetch } from "@/lib/apiClient";
 import React, { useEffect, useRef } from "react";
 import { FaCompress, FaExpand, FaEye } from "react-icons/fa";
 import { useTime } from "../context/time-context";
@@ -25,6 +24,17 @@ const PLAYBACK_TIME_UPDATE_INTERVAL_MS = 125;
 const PLAYING_SYNC_DRIFT_THRESHOLD_SECONDS = 0.5;
 const PAUSED_SYNC_DRIFT_THRESHOLD_SECONDS = 0.05;
 
+const logVideoTiming = (
+  label: string,
+  startedAt: number,
+  details?: Record<string, unknown>,
+) => {
+  console.log(
+    `[visualization timing] ${label}: ${(performance.now() - startedAt).toFixed(1)}ms`,
+    details ?? "",
+  );
+};
+
 export const SimpleVideosPlayer = ({
   videosInfo,
   onVideosReady,
@@ -35,7 +45,7 @@ export const SimpleVideosPlayer = ({
   const [enlargedVideo, setEnlargedVideo] = React.useState<string | null>(null);
   const [showHiddenMenu, setShowHiddenMenu] = React.useState(false);
   const [videosReady, setVideosReady] = React.useState(false);
-  const [fallbackVideoUrls, setFallbackVideoUrls] = React.useState<
+  const [resolvedVideoUrls, setResolvedVideoUrls] = React.useState<
     Record<string, string>
   >({});
   const [videoErrors, setVideoErrors] = React.useState<Record<string, string>>(
@@ -43,8 +53,10 @@ export const SimpleVideosPlayer = ({
   );
   const readyCalledRef = useRef(false);
   const onVideosReadyRef = useRef(onVideosReady);
-  const fallbackObjectUrlsRef = useRef<string[]>([]);
-  const fallbackRequestsRef = useRef<Set<string>>(new Set());
+  const videoObjectUrlsRef = useRef<string[]>([]);
+  const readyVideoNamesRef = useRef<Set<string>>(new Set());
+  const videoLoadStartedAtRef = useRef<Record<string, number>>({});
+  const allVideosStartedAtRef = useRef<number>(0);
   const lastPlaybackTimeUpdateRef = useRef(0);
 
   const firstVisibleIdx = videosInfo.findIndex(
@@ -56,80 +68,111 @@ export const SimpleVideosPlayer = ({
     videoRefs.current = videoRefs.current.slice(0, videosInfo.length);
   }, [videosInfo.length]);
 
-  const resolvedVideoUrls = React.useMemo(
-    () =>
-      Object.fromEntries(
-        videosInfo.map((info) => [
-          info.filename,
-          fallbackVideoUrls[info.filename] ?? buildStreamableVideoUrl(info.url),
-        ]),
-      ),
-    [fallbackVideoUrls, videosInfo],
-  );
-
   useEffect(() => {
     onVideosReadyRef.current = onVideosReady;
   }, [onVideosReady]);
 
   useEffect(() => {
     readyCalledRef.current = false;
-    setFallbackVideoUrls({});
+    readyVideoNamesRef.current.clear();
+    videoLoadStartedAtRef.current = {};
+    allVideosStartedAtRef.current = performance.now();
+    videoObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    videoObjectUrlsRef.current = [];
+    setResolvedVideoUrls({});
     setVideoErrors({});
-    setVideosReady(true);
-    if (!readyCalledRef.current) {
-      readyCalledRef.current = true;
-      onVideosReadyRef.current?.();
-    }
-  }, [videosInfo]);
+    setVideosReady(videosInfo.length === 0);
 
-  useEffect(() => {
-    return () => {
-      fallbackObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      fallbackObjectUrlsRef.current = [];
-      fallbackRequestsRef.current.clear();
-    };
-  }, [videosInfo]);
-
-  const loadFallbackVideo = React.useCallback(async (info: VideoInfo) => {
-    if (
-      fallbackVideoUrls[info.filename] ||
-      fallbackRequestsRef.current.has(info.filename)
-    ) {
+    if (videosInfo.length === 0) {
       return;
     }
 
-    fallbackRequestsRef.current.add(info.filename);
-    setVideoErrors((prev) => {
-      const next = { ...prev };
-      delete next[info.filename];
-      return next;
-    });
+    let active = true;
+    const abortControllers = videosInfo.map(() => new AbortController());
 
-    try {
-      const response = await apiFetch(info.url);
-      if (!response.ok) {
-        throw new Error(
-          `Fallback fetch failed (${response.status} ${response.statusText})`,
-        );
+    const loadVideos = async () => {
+      const results = await Promise.all(
+        videosInfo.map(async (info, index) => {
+          const videoStartedAt = performance.now();
+          videoLoadStartedAtRef.current[info.filename] = videoStartedAt;
+          try {
+            const response = await apiFetch(info.url, {
+              signal: abortControllers[index].signal,
+            });
+            logVideoTiming("video fetch response", videoStartedAt, {
+              filename: info.filename,
+              status: response.status,
+            });
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch video (${response.status} ${response.statusText})`,
+              );
+            }
+
+            const blobStartedAt = performance.now();
+            const blob = await response.blob();
+            logVideoTiming("video blob read", blobStartedAt, {
+              filename: info.filename,
+              bytes: blob.size,
+              type: blob.type,
+            });
+
+            const objectUrlStartedAt = performance.now();
+            const objectUrl = URL.createObjectURL(blob);
+            logVideoTiming("video object url", objectUrlStartedAt, {
+              filename: info.filename,
+            });
+            logVideoTiming("video fetch+blob total", videoStartedAt, {
+              filename: info.filename,
+              bytes: blob.size,
+            });
+            videoObjectUrlsRef.current.push(objectUrl);
+            return [info.filename, objectUrl] as const;
+          } catch (error) {
+            if (abortControllers[index].signal.aborted) {
+              return null;
+            }
+
+            const message =
+              error instanceof Error ? error.message : "Failed to fetch video.";
+            setVideoErrors((prev) => ({
+              ...prev,
+              [info.filename]: message,
+            }));
+            logVideoTiming("video fetch failed", videoStartedAt, {
+              filename: info.filename,
+              error: message,
+            });
+            readyVideoNamesRef.current.add(info.filename);
+            return null;
+          }
+        }),
+      );
+
+      if (!active) {
+        return;
       }
 
-      const objectUrl = URL.createObjectURL(await response.blob());
-      fallbackObjectUrlsRef.current.push(objectUrl);
-      setFallbackVideoUrls((prev) => ({
-        ...prev,
-        [info.filename]: objectUrl,
-      }));
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to fetch video.";
-      setVideoErrors((prev) => ({
-        ...prev,
-        [info.filename]: message,
-      }));
-    } finally {
-      fallbackRequestsRef.current.delete(info.filename);
-    }
-  }, [fallbackVideoUrls]);
+      setResolvedVideoUrls(
+        Object.fromEntries(
+          results.filter(
+            (entry): entry is readonly [string, string] =>
+              entry !== null && typeof entry[1] === "string",
+          ),
+        ),
+      );
+    };
+
+    void loadVideos();
+
+    return () => {
+      active = false;
+      abortControllers.forEach((controller) => controller.abort());
+      videoObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+      videoObjectUrlsRef.current = [];
+    };
+  }, [videosInfo]);
 
   // Handle videos ready
   useEffect(() => {
@@ -143,24 +186,31 @@ export const SimpleVideosPlayer = ({
       return;
     }
 
-    const markReady = (video?: HTMLVideoElement) => {
+    const markAllReady = () => {
+      if (readyCalledRef.current) return;
+      readyCalledRef.current = true;
+      setVideosReady(true);
+      onVideosReadyRef.current?.();
       setIsPlaying(true);
-      video?.play().catch((error) => {
-        if (error.name !== "AbortError") {
-          console.error("Error playing video");
+      logVideoTiming("all videos media ready", allVideosStartedAtRef.current, {
+        count: videosInfo.length,
+      });
+
+      videoRefs.current.forEach((video, idx) => {
+        if (video && !hiddenVideos.includes(videosInfo[idx].filename)) {
+          video.play().catch((error) => {
+            if (error.name !== "AbortError") {
+              console.error("Error playing video");
+            }
+          });
         }
       });
     };
 
-    const checkReady = (index: number, video?: HTMLVideoElement) => {
-      if (index === firstVisibleIdx) {
-        markReady(video);
-      } else if (isPlaying) {
-        video?.play().catch((error) => {
-          if (error.name !== "AbortError") {
-            console.error("Error playing video");
-          }
-        });
+    const checkReady = (filename: string) => {
+      readyVideoNamesRef.current.add(filename);
+      if (readyVideoNamesRef.current.size >= videosInfo.length) {
+        markAllReady();
       }
     };
 
@@ -170,12 +220,16 @@ export const SimpleVideosPlayer = ({
         const sourceUrl = resolvedVideoUrls[info.filename];
 
         if (!sourceUrl) {
-          checkReady(index, video);
+          if (videoErrors[info.filename]) {
+            checkReady(info.filename);
+          }
           return;
         }
 
         // Handle video load error
         const handleError = (e: Event) => {
+          const videoStartedAt =
+            videoLoadStartedAtRef.current[info.filename] ?? allVideosStartedAtRef.current;
           const videoEl = e.target as HTMLVideoElement;
           const errorCode = videoEl.error?.code;
           const errorMessage = videoEl.error?.message || "Unknown error";
@@ -186,15 +240,16 @@ export const SimpleVideosPlayer = ({
           );
           console.error(`Video URL: ${info.url}`);
 
-          if (!sourceUrl.startsWith("blob:")) {
-            void loadFallbackVideo(info);
-          } else {
-            setVideoErrors((prev) => ({
-              ...prev,
-              [info.filename]: errorMessage,
-            }));
-          }
-          checkReady(index, video);
+          setVideoErrors((prev) => ({
+            ...prev,
+            [info.filename]: errorMessage,
+          }));
+          logVideoTiming("video media error", videoStartedAt, {
+            filename: info.filename,
+            errorCode,
+            errorMessage,
+          });
+          checkReady(info.filename);
         };
 
         // Setup segment boundaries
@@ -214,7 +269,15 @@ export const SimpleVideosPlayer = ({
 
           const handleLoadedData = () => {
             video.currentTime = info.segmentStart || 0;
-            checkReady(index, video);
+            logVideoTiming(
+              "video loadeddata",
+              videoLoadStartedAtRef.current[info.filename] ?? allVideosStartedAtRef.current,
+              {
+                filename: info.filename,
+                duration: video.duration,
+              },
+            );
+            checkReady(info.filename);
           };
 
           video.addEventListener("timeupdate", handleTimeUpdate);
@@ -237,7 +300,17 @@ export const SimpleVideosPlayer = ({
           };
 
           // Use loadeddata instead of canplaythrough - more reliable
-          const handleLoaded = () => checkReady(index, video);
+          const handleLoaded = () => {
+            logVideoTiming(
+              "video loadeddata",
+              videoLoadStartedAtRef.current[info.filename] ?? allVideosStartedAtRef.current,
+              {
+                filename: info.filename,
+                duration: video.duration,
+              },
+            );
+            checkReady(info.filename);
+          };
 
           video.addEventListener("ended", handleEnded);
           video.addEventListener("loadeddata", handleLoaded, { once: true });
@@ -263,10 +336,8 @@ export const SimpleVideosPlayer = ({
   }, [
     videosInfo,
     resolvedVideoUrls,
-    loadFallbackVideo,
-    isPlaying,
+    videoErrors,
     setIsPlaying,
-    firstVisibleIdx,
     setCurrentTime,
   ]);
 
@@ -450,16 +521,5 @@ export const SimpleVideosPlayer = ({
     </>
   );
 };
-
-function buildStreamableVideoUrl(url: string): string {
-  const streamUrl = new URL(buildApiUrl(url), window.location.origin);
-  const accessToken = loadStoredAccessToken();
-
-  if (accessToken) {
-    streamUrl.searchParams.set("access_token", accessToken);
-  }
-
-  return streamUrl.toString();
-}
 
 export default SimpleVideosPlayer;

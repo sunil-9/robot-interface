@@ -14,6 +14,17 @@ import {
 
 const SERIES_NAME_DELIMITER = " | ";
 
+const logVisualizationTiming = (
+  label: string,
+  startedAt: number,
+  details?: Record<string, unknown>,
+) => {
+  console.log(
+    `[visualization timing] ${label}: ${(performance.now() - startedAt).toFixed(1)}ms`,
+    details ?? "",
+  );
+};
+
 type EpisodeMetadataCacheEntry = {
   rowsByEpisodeId: Map<number, any>;
   scannedPaths: Set<string>;
@@ -60,15 +71,35 @@ export async function getEpisodeData(
   signal?: AbortSignal,
 ) {
   const repoId = `${org}/${dataset}`;
+  const startedAt = performance.now();
   try {
+    const versionStartedAt = performance.now();
     const version = await getDatasetVersion(repoId, signal);
+    logVisualizationTiming("dataset version", versionStartedAt, {
+      repoId,
+      episodeId,
+      version,
+    });
+
+    const infoStartedAt = performance.now();
     const info = (await getDatasetInfo(repoId, signal)) as DatasetMetadata;
+    logVisualizationTiming("dataset info", infoStartedAt, {
+      repoId,
+      episodeId,
+      totalFrames: info.total_frames,
+      totalEpisodes: info.total_episodes,
+    });
 
     if (info.video_path === null) {
       throw new Error("Only videos datasets are supported in this visualizer.\nPlease use Rerun visualizer for images datasets.");
     }
 
-    return await getEpisodeDataV3(repoId, version, info, episodeId, signal);
+    const data = await getEpisodeDataV3(repoId, version, info, episodeId, signal);
+    logVisualizationTiming("episode data total", startedAt, {
+      repoId,
+      episodeId,
+    });
+    return data;
   } catch (err) {
     if (isAbortError(err)) {
       throw err;
@@ -86,6 +117,7 @@ async function getEpisodeDataV3(
   episodeId: number,
   signal?: AbortSignal,
 ) {
+  const startedAt = performance.now();
   const datasetInfo = {
     repoId,
     total_frames: info.total_frames,
@@ -97,6 +129,7 @@ async function getEpisodeDataV3(
   const episodes = Array.from({ length: info.total_episodes }, (_, i) => i);
 
   // Load episode metadata to get timestamps for episode 0
+  const episodeMetadataStartedAt = performance.now();
   const episodeMetadata = await loadEpisodeMetadataV3Simple(
     repoId,
     version,
@@ -105,16 +138,37 @@ async function getEpisodeDataV3(
     info.total_episodes,
     signal,
   );
+  logVisualizationTiming("episode metadata", episodeMetadataStartedAt, {
+    repoId,
+    episodeId,
+    length: episodeMetadata.length,
+  });
   
   // Create video info with segmentation using the metadata
+  const videoInfoStartedAt = performance.now();
   const videosInfo = extractVideoInfoV3WithSegmentation(repoId, version, info, episodeMetadata);
+  logVisualizationTiming("video info", videoInfoStartedAt, {
+    repoId,
+    episodeId,
+    videos: videosInfo.map((video) => video.filename),
+  });
 
   // Load episode data for charts
+  const chartDataStartedAt = performance.now();
   const { chartDataGroups, ignoredColumns, task } = await loadEpisodeDataV3(repoId, version, info, episodeMetadata, signal);
+  logVisualizationTiming("chart data", chartDataStartedAt, {
+    repoId,
+    episodeId,
+    chartGroups: chartDataGroups.length,
+  });
 
   // Calculate duration from episode length and FPS if available
   const duration = episodeMetadata.length ? episodeMetadata.length / info.fps : 
                    (episodeMetadata.video_to_timestamp - episodeMetadata.video_from_timestamp);
+  logVisualizationTiming("episode data assembly", startedAt, {
+    repoId,
+    episodeId,
+  });
   
   return {
     datasetInfo,
@@ -143,8 +197,21 @@ async function loadEpisodeDataV3(
   
   try {
     const dataUrl = buildVersionedUrl(repoId, version, dataPath);
+    const fetchStartedAt = performance.now();
     const arrayBuffer = await fetchParquetFile(dataUrl, { signal });
+    logVisualizationTiming("data parquet fetch", fetchStartedAt, {
+      repoId,
+      dataPath,
+      bytes: arrayBuffer.byteLength,
+    });
+
+    const readStartedAt = performance.now();
     const fullData = await readParquetAsObjects(arrayBuffer, []);
+    logVisualizationTiming("data parquet decode", readStartedAt, {
+      repoId,
+      dataPath,
+      rows: fullData.length,
+    });
     
     // Extract the episode-specific data slice
     // Convert BigInt to number if needed
@@ -168,7 +235,14 @@ async function loadEpisodeDataV3(
       return { chartDataGroups: [], ignoredColumns: [], task: undefined };
     }
     
+    const processStartedAt = performance.now();
     const { chartDataGroups, ignoredColumns } = processEpisodeDataForCharts(episodeData, info, episodeMetadata);
+    logVisualizationTiming("chart processing", processStartedAt, {
+      repoId,
+      dataPath,
+      episodeRows: episodeData.length,
+      chartGroups: chartDataGroups.length,
+    });
     
     // First check for language_instruction fields in the data (preferred)
     let task: string | undefined;
@@ -221,8 +295,18 @@ async function loadEpisodeDataV3(
       try {
         // Load tasks metadata
         const tasksUrl = buildVersionedUrl(repoId, version, "meta/tasks.parquet");
+        const tasksFetchStartedAt = performance.now();
         const tasksArrayBuffer = await fetchParquetFile(tasksUrl, { signal });
+        logVisualizationTiming("tasks parquet fetch", tasksFetchStartedAt, {
+          repoId,
+          bytes: tasksArrayBuffer.byteLength,
+        });
+        const tasksDecodeStartedAt = performance.now();
         const tasksData = await readParquetAsObjects(tasksArrayBuffer, []);
+        logVisualizationTiming("tasks parquet decode", tasksDecodeStartedAt, {
+          repoId,
+          rows: tasksData.length,
+        });
         
         if (episodeData.length > 0 && tasksData && tasksData.length > 0) {
           const taskIndex = episodeData[0].task_index;
@@ -640,9 +724,27 @@ async function loadEpisodeMetadataV3Simple(
 
     try {
       if (!cacheEntry.scannedPaths.has(episodesMetadataPath)) {
+        const fetchStartedAt = performance.now();
         const arrayBuffer = await fetchParquetFile(episodesMetadataUrl, { signal });
+        logVisualizationTiming("metadata parquet fetch", fetchStartedAt, {
+          repoId,
+          path: episodesMetadataPath,
+          bytes: arrayBuffer.byteLength,
+        });
+        const decodeStartedAt = performance.now();
         const episodesData = await readParquetAsObjects(arrayBuffer, []);
+        logVisualizationTiming("metadata parquet decode", decodeStartedAt, {
+          repoId,
+          path: episodesMetadataPath,
+          rows: episodesData.length,
+        });
+        const cacheStartedAt = performance.now();
         cacheEpisodeMetadataRows(cacheEntry, episodesMetadataPath, episodesData);
+        logVisualizationTiming("metadata cache rows", cacheStartedAt, {
+          repoId,
+          path: episodesMetadataPath,
+          rows: episodesData.length,
+        });
       }
 
       const row = cacheEntry.rowsByEpisodeId.get(episodeId);

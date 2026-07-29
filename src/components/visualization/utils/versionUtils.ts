@@ -1,25 +1,6 @@
 import { apiFetch } from "@/lib/apiClient";
 import { formatApiError, parseCloudApiResponse } from "@/utils/apiResponse";
-import { invalidateParquetFileCache } from "./parquetUtils";
-
-/**
- * Dataset information structure from info.json
- */
-interface DatasetInfo {
-  codebase_version: string;
-  robot_type: string | null;
-  total_episodes: number;
-  total_frames: number;
-  total_tasks: number;
-  chunks_size: number;
-  data_files_size_in_mb: number;
-  video_files_size_in_mb: number;
-  fps: number;
-  splits: Record<string, string>;
-  data_path: string;
-  video_path: string | null;
-  features: Record<string, unknown>;
-}
+import { DatasetMetadata, invalidateParquetFileCache } from "./parquetUtils";
 
 interface DatasetVisualizationDescriptor {
   dataset_id: string;
@@ -27,9 +8,11 @@ interface DatasetVisualizationDescriptor {
   file_base_url: string;
   metadata_url: string;
   episode_metadata_paths?: string[];
+  presigned_video_urls?: Record<string, string>;
+  presigned_url_expires_in_seconds?: number | null;
   dataset_path?: string | null;
   version?: string | null;
-  metadata: DatasetInfo;
+  metadata: DatasetMetadata;
 }
 
 const descriptorCache = new Map<string, DatasetVisualizationDescriptor>();
@@ -195,7 +178,7 @@ export function invalidateDatasetDescriptorCache(
 export async function getDatasetInfo(
   repoId: string,
   signal?: AbortSignal,
-): Promise<DatasetInfo> {
+): Promise<DatasetMetadata> {
   const descriptor = await getDatasetDescriptor(repoId, signal);
   return descriptor.metadata;
 }
@@ -253,7 +236,13 @@ export function buildVersionedUrl(
 
   const descriptor = descriptorCache.get(repoId);
   if (descriptor) {
-    return joinFileUrl(descriptor.file_base_url, path);
+    const normalizedPath = path.replace(/^\/+/, "");
+    const presignedVideoUrl = descriptor.presigned_video_urls?.[normalizedPath];
+    if (presignedVideoUrl) {
+      return presignedVideoUrl;
+    }
+
+    return joinFileUrl(descriptor.file_base_url, normalizedPath);
   }
 
   throw new Error(

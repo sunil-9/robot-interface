@@ -4,12 +4,12 @@ import { parquetReadObjects } from "hyparquet";
 
 export interface DatasetMetadata {
   codebase_version: string;
-  robot_type: string;
+  robot_type: string | null;
   total_episodes: number;
   total_frames: number;
   total_tasks: number;
-  total_videos: number;
-  total_chunks: number;
+  total_videos?: number;
+  total_chunks?: number;
   chunks_size: number;
   fps: number;
   splits: Record<string, string>;

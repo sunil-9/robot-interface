@@ -72,25 +72,11 @@ function EpisodeViewerInner({
 
   useEffect(() => {
     viewerStartedAtRef.current = performance.now();
-    console.log("[visualization timing] viewer mounted", {
-      episodeId,
-      videos: videosInfo.length,
-      chartGroups: chartDataGroups.length,
-    });
   }, [chartDataGroups.length, episodeId, videosInfo.length]);
 
-  useEffect(() => {
-    if (videosReady && chartsReady) {
-      console.log(
-        `[visualization timing] viewer ready: ${(performance.now() - viewerStartedAtRef.current).toFixed(1)}ms`,
-        {
-          episodeId,
-          videos: videosInfo.length,
-          chartGroups: chartDataGroups.length,
-        },
-      );
-    }
-  }, [chartDataGroups.length, chartsReady, episodeId, videosInfo.length, videosReady]);
+  // useEffect(() => {
+   
+  // }, [chartDataGroups.length, chartsReady, episodeId, videosInfo.length, videosReady]);
 
   // Pagination state
   const pageSize = 20;
@@ -259,10 +245,6 @@ function EpisodeViewerInner({
             key={`videos-${episodeId}`}
             videosInfo={videosInfo}
             onVideosReady={() => {
-              console.log(
-                `[visualization timing] videos ready callback: ${(performance.now() - viewerStartedAtRef.current).toFixed(1)}ms`,
-                { episodeId, videos: videosInfo.length },
-              );
               setVideosReady(true);
             }}
           />
@@ -291,10 +273,6 @@ function EpisodeViewerInner({
           <DataRecharts
             data={chartDataGroups}
             onChartsReady={() => {
-              console.log(
-                `[visualization timing] charts ready callback: ${(performance.now() - viewerStartedAtRef.current).toFixed(1)}ms`,
-                { episodeId, chartGroups: chartDataGroups.length },
-              );
               setChartsReady(true);
             }}
           />

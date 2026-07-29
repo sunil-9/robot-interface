@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { apiFetch } from "@/lib/apiClient";
 import React, { useEffect, useRef } from "react";
 import { FaCompress, FaExpand, FaEye } from "react-icons/fa";
 import { useTime } from "../context/time-context";
@@ -24,17 +23,6 @@ const PLAYBACK_TIME_UPDATE_INTERVAL_MS = 125;
 const PLAYING_SYNC_DRIFT_THRESHOLD_SECONDS = 0.5;
 const PAUSED_SYNC_DRIFT_THRESHOLD_SECONDS = 0.05;
 
-const logVideoTiming = (
-  label: string,
-  startedAt: number,
-  details?: Record<string, unknown>,
-) => {
-  console.log(
-    `[visualization timing] ${label}: ${(performance.now() - startedAt).toFixed(1)}ms`,
-    details ?? "",
-  );
-};
-
 export const SimpleVideosPlayer = ({
   videosInfo,
   onVideosReady,
@@ -53,7 +41,6 @@ export const SimpleVideosPlayer = ({
   );
   const readyCalledRef = useRef(false);
   const onVideosReadyRef = useRef(onVideosReady);
-  const videoObjectUrlsRef = useRef<string[]>([]);
   const readyVideoNamesRef = useRef<Set<string>>(new Set());
   const videoLoadStartedAtRef = useRef<Record<string, number>>({});
   const allVideosStartedAtRef = useRef<number>(0);
@@ -77,101 +64,23 @@ export const SimpleVideosPlayer = ({
     readyVideoNamesRef.current.clear();
     videoLoadStartedAtRef.current = {};
     allVideosStartedAtRef.current = performance.now();
-    videoObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-    videoObjectUrlsRef.current = [];
-    setResolvedVideoUrls({});
     setVideoErrors({});
     setVideosReady(videosInfo.length === 0);
 
     if (videosInfo.length === 0) {
+      setResolvedVideoUrls({});
       return;
     }
 
-    let active = true;
-    const abortControllers = videosInfo.map(() => new AbortController());
-
-    const loadVideos = async () => {
-      const results = await Promise.all(
-        videosInfo.map(async (info, index) => {
-          const videoStartedAt = performance.now();
-          videoLoadStartedAtRef.current[info.filename] = videoStartedAt;
-          try {
-            const response = await apiFetch(info.url, {
-              signal: abortControllers[index].signal,
-            });
-            logVideoTiming("video fetch response", videoStartedAt, {
-              filename: info.filename,
-              status: response.status,
-            });
-
-            if (!response.ok) {
-              throw new Error(
-                `Failed to fetch video (${response.status} ${response.statusText})`,
-              );
-            }
-
-            const blobStartedAt = performance.now();
-            const blob = await response.blob();
-            logVideoTiming("video blob read", blobStartedAt, {
-              filename: info.filename,
-              bytes: blob.size,
-              type: blob.type,
-            });
-
-            const objectUrlStartedAt = performance.now();
-            const objectUrl = URL.createObjectURL(blob);
-            logVideoTiming("video object url", objectUrlStartedAt, {
-              filename: info.filename,
-            });
-            logVideoTiming("video fetch+blob total", videoStartedAt, {
-              filename: info.filename,
-              bytes: blob.size,
-            });
-            videoObjectUrlsRef.current.push(objectUrl);
-            return [info.filename, objectUrl] as const;
-          } catch (error) {
-            if (abortControllers[index].signal.aborted) {
-              return null;
-            }
-
-            const message =
-              error instanceof Error ? error.message : "Failed to fetch video.";
-            setVideoErrors((prev) => ({
-              ...prev,
-              [info.filename]: message,
-            }));
-            logVideoTiming("video fetch failed", videoStartedAt, {
-              filename: info.filename,
-              error: message,
-            });
-            readyVideoNamesRef.current.add(info.filename);
-            return null;
-          }
+    setResolvedVideoUrls(
+      Object.fromEntries(
+        videosInfo.map((info) => {
+          const startedAt = performance.now();
+          videoLoadStartedAtRef.current[info.filename] = startedAt;
+          return [info.filename, info.url] as const;
         }),
-      );
-
-      if (!active) {
-        return;
-      }
-
-      setResolvedVideoUrls(
-        Object.fromEntries(
-          results.filter(
-            (entry): entry is readonly [string, string] =>
-              entry !== null && typeof entry[1] === "string",
-          ),
-        ),
-      );
-    };
-
-    void loadVideos();
-
-    return () => {
-      active = false;
-      abortControllers.forEach((controller) => controller.abort());
-      videoObjectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
-      videoObjectUrlsRef.current = [];
-    };
+      ),
+    );
   }, [videosInfo]);
 
   // Handle videos ready
@@ -192,9 +101,6 @@ export const SimpleVideosPlayer = ({
       setVideosReady(true);
       onVideosReadyRef.current?.();
       setIsPlaying(true);
-      logVideoTiming("all videos media ready", allVideosStartedAtRef.current, {
-        count: videosInfo.length,
-      });
 
       videoRefs.current.forEach((video, idx) => {
         if (video && !hiddenVideos.includes(videosInfo[idx].filename)) {
@@ -244,11 +150,7 @@ export const SimpleVideosPlayer = ({
             ...prev,
             [info.filename]: errorMessage,
           }));
-          logVideoTiming("video media error", videoStartedAt, {
-            filename: info.filename,
-            errorCode,
-            errorMessage,
-          });
+          
           checkReady(info.filename);
         };
 
@@ -269,14 +171,6 @@ export const SimpleVideosPlayer = ({
 
           const handleLoadedData = () => {
             video.currentTime = info.segmentStart || 0;
-            logVideoTiming(
-              "video loadeddata",
-              videoLoadStartedAtRef.current[info.filename] ?? allVideosStartedAtRef.current,
-              {
-                filename: info.filename,
-                duration: video.duration,
-              },
-            );
             checkReady(info.filename);
           };
 
@@ -301,14 +195,6 @@ export const SimpleVideosPlayer = ({
 
           // Use loadeddata instead of canplaythrough - more reliable
           const handleLoaded = () => {
-            logVideoTiming(
-              "video loadeddata",
-              videoLoadStartedAtRef.current[info.filename] ?? allVideosStartedAtRef.current,
-              {
-                filename: info.filename,
-                duration: video.duration,
-              },
-            );
             checkReady(info.filename);
           };
 
@@ -339,6 +225,8 @@ export const SimpleVideosPlayer = ({
     videoErrors,
     setIsPlaying,
     setCurrentTime,
+    hiddenVideos,
+    firstVisibleIdx,
   ]);
 
   // Handle play/pause

@@ -16,6 +16,7 @@ interface TrainingControlsBarProps {
   restoringPoseId: string | null;
   onStart: () => void;
   onStop: () => void;
+  onCancel: () => void;
   onMemorise: (name?: string) => Promise<boolean>;
   onRestore: (poseId: string) => Promise<boolean>;
   onDeletePose: (poseId: string) => Promise<boolean>;
@@ -32,6 +33,7 @@ export function TrainingControlsBar({
   restoringPoseId,
   onStart,
   onStop,
+  onCancel,
   onMemorise,
   onRestore,
   onDeletePose,
@@ -46,6 +48,7 @@ export function TrainingControlsBar({
         isDeployingRequest={deployRequestPending}
         onStart={onStart}
         onStop={onStop}
+        onCancel={onCancel}
         style={RecordingControlStyle.DEFAULT}
         embedded={true}
       />

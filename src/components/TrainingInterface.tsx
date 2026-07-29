@@ -74,6 +74,7 @@ export const TrainingInterface = ({
     deployModelId,
     startEpisode: contextStartEpisode,
     endEpisode: contextEndEpisode,
+    cancelEpisode: contextCancelEpisode,
     handleDeploy: contextHandleDeploy,
     requestDeployStatus,
     setSelectedDataset,
@@ -477,6 +478,10 @@ export const TrainingInterface = ({
     await contextEndEpisode();
   };
 
+  const cancelEpisode = async () => {
+    await contextCancelEpisode();
+  };
+
   useTrainingTelemetry({
     session,
     userId: user?.userId,
@@ -731,6 +736,7 @@ export const TrainingInterface = ({
         restoringPoseId={restoringPoseId}
         onStart={startEpisode}
         onStop={endEpisode}
+        onCancel={cancelEpisode}
         onMemorise={handleMemorisePose}
         onRestore={handleRestorePose}
         onDeletePose={handleDeletePose}

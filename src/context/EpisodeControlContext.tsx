@@ -65,6 +65,7 @@ export interface EpisodeControlState {
 export interface EpisodeControlActions {
   startEpisode: () => Promise<boolean>;
   endEpisode: () => Promise<boolean>;
+  cancelEpisode: () => Promise<boolean>;
   resetAuthSessionState: () => void;
   setSelectedDataset: (datasetName: string) => void;
   setSelectedDatasetId: (datasetId: string | null) => void;
@@ -399,6 +400,57 @@ export function EpisodeControlProvider({
       setIsLoading(false);
     }
   }, [setMode, onRecordingEnd]);
+
+  const cancelEpisode = useCallback(async (): Promise<boolean> => {
+    const datasetId = selectedDatasetIdRef.current;
+    const session = sessionRef.current;
+
+    if (!datasetId) {
+      toast({
+        title: "Error",
+        description: "Select a dataset before cancelling an episode",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!session) {
+      toast({
+        title: "Error",
+        description: "No active session",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const sent = session.sendControl({
+        type: "dataset",
+        payload: {
+          action: "cancel",
+          datasetId,
+        },
+      });
+
+      if (!sent) {
+        toast({
+          title: "Error",
+          description: "Failed to send cancel request to robot",
+          variant: "destructive",
+        });
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Failed to cancel episode:", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   const handleDeploy = useCallback(
     async (modelId?: string | number | null): Promise<boolean> => {
@@ -832,6 +884,7 @@ export function EpisodeControlProvider({
     // Actions
     startEpisode,
     endEpisode,
+    cancelEpisode,
     resetAuthSessionState,
     setSelectedDataset,
     setSelectedDatasetId,

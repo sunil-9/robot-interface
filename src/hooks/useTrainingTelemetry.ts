@@ -337,6 +337,32 @@ export function useTrainingTelemetry({
             variant: "destructive",
           });
         }
+
+        if (action === "collection_cancel_ack") {
+          setIsRecording(false);
+          setIsSavingEpisode(false);
+          setMode(AppMode.EXPLORATION);
+          toast({
+            title: "Recording cancelled",
+            description: datasetLabel
+              ? `Episode discarded for dataset "${datasetLabel}"`
+              : "Episode recording was discarded",
+          });
+          return;
+        }
+
+        if (action === "collection_cancel_nack") {
+          toast({
+            title: "Failed to cancel recording",
+            description: message
+              ? `${message}${datasetLabel ? ` (Dataset: ${datasetLabel})` : ""}`
+              : datasetLabel
+                ? `Could not cancel recording for dataset "${datasetLabel}"`
+                : "Could not cancel recording. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
         return;
       }
 

@@ -428,7 +428,7 @@ export const TrainingInterface = ({
   ) => {
     if (slots.length === 0) {
       return (
-        <div className="flex min-h-[180px] items-center justify-center rounded-2xl border border-dashed border-border bg-card/70 text-xs font-semibold uppercase tracking-wide text-muted-foreground shadow-sm">
+        <div className="flex min-h-[180px] items-center justify-center rounded-lg border border-dashed border-border bg-card/70 font-mono text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground shadow-sm">
           No {fallbackPosition} cameras
         </div>
       );
@@ -452,7 +452,7 @@ export const TrainingInterface = ({
                   slot.position === "extra" ? fallbackPosition : slot.position
                 }
                 isConnected={Boolean(displaySlot.stream)}
-                className="h-[170px] rounded-2xl border border-border bg-card/80 shadow-sm"
+                className="h-[170px] rounded-lg border border-border bg-card/80 shadow-sm"
                 onSwapWithMain={() => handleSwapCameraWithMain(slot.key)}
               />
             );
@@ -521,14 +521,18 @@ export const TrainingInterface = ({
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       <DeploymentNotification />
-      <section className="relative flex min-h-0 flex-1 flex-col p-1">
-        <div className="flex flex-1 min-h-0 gap-2 ">
-          <div className="relative flex-1 overflow-hidden rounded-[32px] border border-border bg-card shadow-[0_25px_70px_rgba(15,23,42,0.08)] dark:shadow-[0_25px_70px_rgba(0,0,0,0.45)]">
-            {/* <div className="absolute left-5 top-5 z-20 rounded-lg border border-border bg-card/85 px-3 py-1 text-[11px]  uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
-             { mainSlot?.title}
-            </div> */}
+      <section className="relative flex min-h-0 flex-1 flex-col p-2">
+        <div className="flex min-h-0 flex-1 gap-2">
+          <div
+            className={
+              episodeViewerState.isOpen
+                ? "relative flex-1 overflow-hidden border border-border bg-card w-full"
+                : "operator-panel-strong relative flex-1 overflow-hidden w-full"
+            }
+          >
+         
 
-            <div className="absolute left-5 top-26 z-20">
+            <div className="absolute left-5  z-20">
               <ActionVarianceChart
                 title="2 sec future"
                 overlay
@@ -588,12 +592,12 @@ export const TrainingInterface = ({
                 </div>
               </div> */}
               {cameraLoading && (
-                <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] text-primary shadow">
+                <span className="operator-chip border-primary/30 bg-primary/10 text-primary">
                   Loading camera config…
                 </span>
               )}
               {cameraError && (
-                <span className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-[11px] text-amber-700 shadow dark:border-amber-500/50 dark:bg-amber-900/40 dark:text-amber-100">
+                <span className="operator-chip border-amber-500/35 bg-amber-500/10 text-amber-700 dark:text-amber-200">
                   {cameraError}
                 </span>
               )}
@@ -613,13 +617,13 @@ export const TrainingInterface = ({
                 position="main"
                 isConnected={Boolean(displayMainSlot?.stream)}
                 showTitle={true}
-                className="h-full rounded-[32px] border-none bg-transparent"
+                className="h-full rounded-lg border-none bg-transparent"
               />
             )}
 
             {fixedLeftSlot && (
               <div
-                className="absolute bottom-4 left-4 z-30 overflow-visible rounded-2xl border border-border bg-black shadow-2xl"
+                className="absolute bottom-4 left-4 z-30 overflow-visible rounded-lg border border-border bg-black shadow-xl"
                 style={{
                   width:
                     SECONDARY_CAMERA_BASE_WIDTH * secondaryCameraScales.left,
@@ -657,7 +661,7 @@ export const TrainingInterface = ({
 
             {fixedRightSlot && (
               <div
-                className="absolute bottom-4 right-4 z-30 overflow-visible rounded-2xl border border-border bg-black shadow-2xl"
+                className="absolute bottom-4 right-4 z-30 overflow-visible rounded-lg border border-border bg-black shadow-xl"
                 style={{
                   width:
                     SECONDARY_CAMERA_BASE_WIDTH * secondaryCameraScales.right,
@@ -694,7 +698,7 @@ export const TrainingInterface = ({
             )}
           </div>
 
-          <div className="flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-[28px] border border-border bg-card/90 p-1 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur dark:shadow-[0_20px_60px_rgba(0,0,0,0.4)]">
+          <aside className="operator-surface flex h-full w-[360px] min-w-[320px] max-w-[380px] flex-col gap-3 rounded-lg p-1">
             <SidebarTabs
               tab={sidebarTab}
               onTabChange={handleTabChange}
@@ -722,7 +726,7 @@ export const TrainingInterface = ({
                 isDatasetLocked: datasetStatus === "processing",
               }}
             />
-          </div>
+          </aside>
         </div>
       </section>
 

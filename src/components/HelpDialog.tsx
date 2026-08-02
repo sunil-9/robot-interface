@@ -43,8 +43,8 @@ export function HelpDialog({
         onClick={() => setIsOpen((current) => !current)}
         className={cn(
           inline
-            ? "rounded-full border-0 bg-slate-600 text-slate-200 backdrop-blur-sm transition-all duration-200 hover:bg-slate-500 hover:text-white hover:shadow-lg hover:shadow-slate-600/25 hover:scale-105"
-            : "rounded-t-2xl rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
+            ? "rounded border border-border bg-background text-foreground transition-colors hover:bg-muted"
+            : "rounded-t-lg rounded-b-none border-b-0 bg-card/95 backdrop-blur-sm",
           children ? "" : "h-9 w-9",
           className,
         )}
@@ -63,9 +63,9 @@ export function HelpDialog({
             : "translate-y-full opacity-0 pointer-events-none",
         )}
       >
-        <div className="rounded-t-xl  bg-card/95 backdrop-blur-sm shadow-xl w-[450px]">
+        <div className="operator-surface w-[450px] rounded-lg">
           {/* Header */}
-          <div className="flex items-center justify-between px-2 py-1.5 r">
+          <div className="flex items-center justify-between px-3 py-2">
             <div className="flex items-center gap-1.5">
               <Gamepad2 className="h-4 w-4 text-primary" />
               <span className="font-medium text-sm">Help</span>
@@ -76,7 +76,7 @@ export function HelpDialog({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 rounded-full"
+              className="h-6 w-6 rounded"
               onClick={() => setIsOpen(false)}
             >
               <ChevronDown className="h-3 w-3" />
@@ -94,7 +94,7 @@ export function HelpDialog({
               <img
                 src={helpImageSrc}
                 alt="Controller instructions"
-                className="h-[350px] w-[450px] rounded object-contain"
+                className="h-[350px] w-[450px] object-contain"
                 onError={() => setImageError(true)}
               />
             )}

@@ -8,124 +8,121 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Light (default) robotics theme */
-    /* Brand Colors: #3BA0A8 (Teal), #A8DADC (Light Teal) */
-    --background: 210 20% 98%;
-    --foreground: 222 22% 15%;
+    /* Synthetic Command Light: companion mode, dark remains the default */
+    --background: 190 30% 96%;
+    --foreground: 184 100% 11%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 22% 15%;
+    --card-foreground: 184 100% 11%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 15%;
+    --popover-foreground: 184 100% 11%;
 
-    --primary: 182 55% 42%;
+    --primary: 184 100% 38%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 182 42% 92%;
-    --secondary-foreground: 222 22% 20%;
+    --secondary: 275 70% 42%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 182 25% 90%;
-    --muted-foreground: 222 8% 38%;
+    --muted: 188 24% 90%;
+    --muted-foreground: 188 12% 32%;
 
-    --accent: 182 42% 76%;
-    --accent-foreground: 222 22% 15%;
+    --accent: 188 24% 84%;
+    --accent-foreground: 184 100% 11%;
 
-    --destructive: 355 78% 56%;
-    --destructive-foreground: 355 78% 35%;
+    --destructive: 356 78% 46%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 182 30% 82%;
-    --input: 182 30% 82%;
-    --ring: 182 55% 42%;
+    --border: 188 18% 75%;
+    --input: 0 0% 100%;
+    --ring: 184 100% 38%;
 
     /* Custom design tokens */
-    --camera-bg: 182 20% 96%;
-    --chart-bg: 182 20% 96%;
+    --camera-bg: 190 30% 94%;
+    --chart-bg: 0 0% 100%;
     --sidebar-collapsed: 56px;
     --header-height: 64px;
 
     /* Gradients */
     --gradient-primary: linear-gradient(
       135deg,
-      hsl(182 55% 42%),
-      hsl(182 55% 35%)
+      hsl(184 100% 38%),
+      hsl(184 100% 48%)
     );
     --gradient-subtle: linear-gradient(
       180deg,
       hsl(0 0% 100%),
-      hsl(182 20% 96%)
+      hsl(190 30% 96%)
     );
 
     /* Shadows */
-    --shadow-glow: 0 0 25px hsl(182 55% 42% / 0.35);
-    --shadow-card: 0 10px 30px hsl(182 30% 50% / 0.2);
+    --shadow-glow: 0 0 18px hsl(184 100% 38% / 0.22);
+    --shadow-card: 0 2px 10px hsl(188 32% 25% / 0.12);
 
     /* Transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-    --radius: 0.5rem;
+    --radius: 0.25rem;
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 22% 18%;
-    --sidebar-primary: 182 55% 42%;
+    --sidebar-foreground: 184 100% 11%;
+    --sidebar-primary: 184 100% 38%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 182 42% 92%;
-    --sidebar-accent-foreground: 222 22% 18%;
-    --sidebar-border: 182 30% 82%;
-    --sidebar-ring: 182 55% 42%;
+    --sidebar-accent: 188 24% 84%;
+    --sidebar-accent-foreground: 184 100% 11%;
+    --sidebar-border: 188 18% 75%;
+    --sidebar-ring: 184 100% 38%;
   }
 
   .dark {
-    /* Dark robotics theme */
-    /* Brand Colors: #3BA0A8 (Teal), #A8DADC (Light Teal) */
-    --background: 222 15% 10%;
-    --foreground: 210 25% 95%;
+    --background: 0 0% 5%;
+    --foreground: 15 7% 89%;
 
-    --card: 222 15% 13%;
-    --card-foreground: 210 25% 95%;
+    --card: 0 2% 12%;
+    --card-foreground: 15 7% 89%;
 
-    --popover: 222 15% 13%;
-    --popover-foreground: 210 25% 95%;
+    --popover: 0 0% 16%;
+    --popover-foreground: 15 7% 89%;
 
-    --primary: 182 55% 50%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 184 100% 50%;
+    --primary-foreground: 184 100% 11%;
 
-    --secondary: 182 30% 20%;
-    --secondary-foreground: 182 42% 85%;
+    --secondary: 275 100% 37%;
+    --secondary-foreground: 272 100% 86%;
 
-    --muted: 222 12% 24%;
-    --muted-foreground: 182 30% 70%;
+    --muted: 0 2% 11%;
+    --muted-foreground: 183 15% 76%;
 
-    --accent: 182 42% 50%;
-    --accent-foreground: 222 15% 10%;
+    --accent: 188 12% 26%;
+    --accent-foreground: 15 7% 89%;
 
-    --destructive: 355 78% 60%;
-    --destructive-foreground: 210 25% 95%;
+    --destructive: 356 100% 29%;
+    --destructive-foreground: 6 100% 84%;
 
-    --border: 182 20% 24%;
-    --input: 182 20% 24%;
-    --ring: 182 55% 50%;
-    --sidebar-background: 222 15% 8%;
-    --sidebar-foreground: 182 30% 90%;
-    --sidebar-primary: 182 55% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 182 30% 18%;
-    --sidebar-accent-foreground: 210 25% 95%;
-    --sidebar-border: 182 20% 24%;
-    --sidebar-ring: 182 55% 50%;
+    --border: 188 12% 26%;
+    --input: 0 0% 7%;
+    --ring: 184 100% 50%;
+    --sidebar-background: 0 2% 12%;
+    --sidebar-foreground: 15 7% 89%;
+    --sidebar-primary: 184 100% 50%;
+    --sidebar-primary-foreground: 184 100% 11%;
+    --sidebar-accent: 188 12% 26%;
+    --sidebar-accent-foreground: 15 7% 89%;
+    --sidebar-border: 188 12% 26%;
+    --sidebar-ring: 184 100% 50%;
 
     --gradient-primary: linear-gradient(
       135deg,
-      hsl(182 55% 50%),
-      hsl(182 55% 40%)
+      hsl(184 100% 50%),
+      hsl(185 100% 93%)
     );
     --gradient-subtle: linear-gradient(
       180deg,
-      hsl(222 15% 12%),
-      hsl(222 15% 9%)
+      hsl(0 2% 12%),
+      hsl(0 0% 5%)
     );
-    --shadow-glow: 0 0 25px hsl(182 55% 50% / 0.35);
-    --shadow-card: 0 10px 30px hsl(222 50% 5% / 0.35);
+    --shadow-glow: 0 0 18px hsl(184 100% 50% / 0.35);
+    --shadow-card: 0 2px 10px hsl(0 0% 0% / 0.35);
   }
 }
 
@@ -135,7 +132,17 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Hanken Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
   }
 
   /* Custom Scrollbar Styling */
@@ -171,6 +178,33 @@ All colors MUST be HSL.
 
   ::-webkit-scrollbar-corner {
     background: hsl(var(--muted) / 0.3);
+  }
+}
+
+@layer components {
+  .operator-surface {
+    @apply border border-border bg-card/95 shadow-[inset_0_1px_0_hsl(0_0%_100%_/_0.05),0_2px_10px_hsl(0_0%_0%_/_0.35)] backdrop-blur-xl;
+  }
+
+  .operator-panel {
+    @apply rounded-lg border border-border bg-card/95 shadow-[inset_0_1px_0_hsl(0_0%_100%_/_0.04),0_2px_8px_hsl(0_0%_0%_/_0.28)];
+  }
+
+  .operator-panel-strong {
+    @apply rounded-lg border border-border bg-card shadow-[inset_0_1px_0_hsl(0_0%_100%_/_0.05),0_2px_12px_hsl(0_0%_0%_/_0.42)];
+  }
+
+  .operator-chip {
+    @apply inline-flex items-center gap-1.5 rounded border border-border bg-background/85 px-2.5 py-1 text-xs font-medium text-muted-foreground;
+  }
+
+  .operator-label {
+    @apply px-1 font-mono text-[11px] font-bold uppercase leading-3 tracking-[0.08em] text-muted-foreground;
+  }
+
+  .dark .operator-surface,
+  .dark .operator-panel-strong {
+    @apply shadow-[0_18px_48px_rgb(0_0_0_/_0.35)];
   }
 }
 /* Operator onboarding */

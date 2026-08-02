@@ -40,14 +40,11 @@ export const RecordingControls = ({
   const controls = (
     <div className={`flex items-center ${gap}`}>
       {isRecording && onCancel ? (
-        <div
-          data-tour="record-episode"
-          className="flex overflow-hidden rounded-full shadow-sm transition-all duration-200 hover:shadow-lg"
-        >
+        <div data-tour="record-episode" className="flex overflow-hidden rounded shadow-sm">
           <Button
             onClick={onStop}
             disabled={isLoading}
-            className={`rounded-none rounded-l-full bg-emerald-500 font-semibold uppercase tracking-wide text-white hover:bg-emerald-400 ${saveButtonClasses}`}
+            className={`rounded-none bg-emerald-500 font-mono font-bold uppercase tracking-[0.08em] text-black shadow-[0_0_14px_rgb(16_185_129_/_0.28)] hover:bg-emerald-400 ${saveButtonClasses}`}
           >
             <Square className="h-4 w-4" />
             {isCompact ? "" : "Save Episode"}
@@ -57,7 +54,7 @@ export const RecordingControls = ({
             disabled={isLoading}
             aria-label="Cancel episode"
             title="Cancel episode"
-            className={`rounded-none rounded-r-full border-l border-white/25 bg-destructive p-0 text-white hover:bg-destructive/80 ${cancelButtonClasses}`}
+            className={`rounded-none border-l border-white/25 bg-destructive p-0 text-white hover:bg-destructive/80 ${cancelButtonClasses}`}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -67,7 +64,7 @@ export const RecordingControls = ({
           data-tour="record-episode"
           onClick={onStart}
           disabled={isLoading}
-          className={`rounded-full bg-emerald-500 font-semibold uppercase tracking-wide text-white transition-all duration-200 hover:scale-105 hover:bg-emerald-400 hover:shadow-lg hover:shadow-emerald-500/30 ${saveButtonClasses}`}
+          className={`rounded bg-emerald-500 font-mono font-bold uppercase tracking-[0.08em] text-black shadow-[0_0_14px_rgb(16_185_129_/_0.28)] transition-colors hover:bg-emerald-400 ${saveButtonClasses}`}
         >
           <Play className="h-4 w-4" />
           {isCompact ? "" : "Record episode"}
@@ -89,7 +86,7 @@ export const RecordingControls = ({
       }`}
     >
       <div
-        className={`pointer-events-auto flex flex-col gap-1 rounded-xl border border-border bg-card ${containerPadding} shadow-[0_18px_45px_rgba(15,23,42,0.2)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.4)]`}
+        className={`operator-surface pointer-events-auto flex flex-col gap-1 rounded-lg ${containerPadding}`}
       >
         {controls}
         {children && <div className="flex items-center">{children}</div>}

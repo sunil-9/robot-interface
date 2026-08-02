@@ -40,7 +40,7 @@ export function TrainingControlsBar({
   onRenamePose,
 }: TrainingControlsBarProps) {
   return (
-    <div className="fixed bottom-4 left-1/2  flex -translate-x-1/2 items-center gap-3 rounded-full border border-border bg-card/95 px-3 py-2 shadow-[0_18px_45px_rgba(15,23,42,0.22)] backdrop-blur dark:shadow-[0_18px_45px_rgba(0,0,0,0.45)]">
+    <div className="operator-surface fixed bottom-4 left-1/2 z-40 flex -translate-x-1/2 items-center gap-2 rounded-lg px-2.5 py-2">
       <RecordingControls
         isRecording={isRecording}
         isLoading={isLoading}
@@ -67,7 +67,7 @@ export function TrainingControlsBar({
       {/* <div className="h-7 w-px bg-border" /> */}
       <HelpDialog
         inline
-        className="h-9 px-5 text-sm font-semibold uppercase tracking-wide"
+        className="h-9 px-4 font-mono text-xs font-bold uppercase tracking-[0.08em]"
       >
         Help
       </HelpDialog>

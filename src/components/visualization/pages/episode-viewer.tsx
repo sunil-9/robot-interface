@@ -22,7 +22,7 @@ export default function EpisodeViewer({
   if (error) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950 text-red-400">
-        <div className="max-w-xl p-8 rounded bg-slate-900 border border-red-500 shadow-lg">
+        <div className="max-w-xl p-8  bg-slate-900 border border-red-500 shadow-lg">
           <h2 className="text-2xl font-bold mb-4">Something went wrong</h2>
           <p className="text-lg font-mono whitespace-pre-wrap mb-4">{error}</p>
         </div>
@@ -252,7 +252,7 @@ function EpisodeViewerInner({
 
         {/* Language Instruction */}
         {!isPopupView && task && (
-          <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-600">
+          <div className="mb-6 p-4 bg-slate-800  border border-slate-600">
             <p className="text-slate-300">
               <span className="font-semibold text-slate-100">
                 Language Instruction:

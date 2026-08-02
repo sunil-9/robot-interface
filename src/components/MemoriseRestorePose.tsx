@@ -156,7 +156,7 @@ export const MemoriseRestorePose = ({
           variant="ghost"
           aria-label={`Open memorised poses (${memorisedPoses.length})`}
           aria-expanded={open}
-          className="h-9 rounded-full border-0 bg-violet-600 px-5 text-sm font-semibold uppercase tracking-wide text-white transition-all duration-200 hover:bg-violet-500 hover:text-white"
+          className="h-9 rounded border border-secondary bg-secondary/20 px-4 font-mono text-xs font-bold uppercase tracking-[0.08em] text-secondary-foreground transition-colors hover:bg-secondary/30"
         >
           <MapPin className="h-4 w-4" />
           Poses
@@ -212,7 +212,7 @@ export const MemoriseRestorePose = ({
                       title={`Restore ${pose.name}`}
                       disabled={otherActionsDisabled}
                       onClick={() => void onRestore(pose.id)}
-                      className="h-9 w-9 rounded-full text-violet-600 hover:bg-violet-500/10 hover:text-violet-500"
+                      className="h-9 w-9 rounded text-secondary-foreground hover:bg-secondary/20 hover:text-secondary-foreground"
                     >
                       {isRestoring ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

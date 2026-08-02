@@ -48,7 +48,7 @@ export function ControlCenterDialog({
           if (mandatory) event.preventDefault();
         }}
         className={cn(
-          "overflow-hidden border-border bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.10),_transparent_32%),linear-gradient(135deg,hsl(var(--background)),hsl(var(--card)))] p-0 text-foreground shadow-2xl",
+          "operator-surface overflow-hidden rounded-lg p-0 text-foreground",
           size === "compact" ? "max-w-2xl" : "max-w-5xl",
         )}
       >

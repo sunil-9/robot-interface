@@ -83,12 +83,12 @@ export function EpisodeViewerPanel({ className }: EpisodeViewerPanelProps) {
   return (
     <div
       className={cn(
-        "relative z-30 flex h-full w-full flex-col overflow-hidden rounded-[32px] border border-border bg-background",
+        "relative z-30 flex h-full w-full flex-col overflow-hidden border-0 bg-background",
         className,
       )}
     >
       {/* Header with close button */}
-      <div className="flex items-center justify-between border-b border-border bg-card/80 px-4 py-2 backdrop-blur">
+      <div className=" flex items-center justify-between  border-border bg-card/80 px-4 py-2 backdrop-blur">
         <div className="flex items-center gap-3">
           <h2 className="text-base font-semibold text-foreground">
             Episode Viewer

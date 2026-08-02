@@ -138,8 +138,10 @@ export const ActionVarianceChart = ({
                       data.length > 0
                         ? [...data]
                             .sort((a, b) => a - b)
-                            // eslint-disable-next-line no-unexpected-multiline
-                            [Math.floor(data.length / 2)].toFixed(3)
+                            [
+                              // eslint-disable-next-line no-unexpected-multiline
+                              Math.floor(data.length / 2)
+                            ].toFixed(3)
                         : "0.000"
                     }`,
                     position: "end",
@@ -233,7 +235,7 @@ export const ActionVarianceChart = ({
       }
     });
   };
-
+  // todo get these data from api before going live "action variance" chart
   const chartData = useMemo(
     () => ({
       // Reverse the labels to maintain logical time flow after rotation

@@ -81,7 +81,7 @@ export const CameraView = ({
     "relative flex items-center justify-center overflow-hidden bg-background",
     position === "main"
       ? "h-full w-full"
-      : " w-full rounded-2xl shadow-sm",
+      : "w-full rounded-lg shadow-sm",
     position === "right" || position === "left"
       ? fillSecondaryFrame
         ? "h-full"
@@ -116,23 +116,23 @@ export const CameraView = ({
               className="mx-auto h-full max-h-full w-auto max-w-full object-contain"
             />
           ) : (
-            <div className="flex  w-full flex-col items-center justify-center gap-2  bg-background text-muted-foreground">
+            <div className="flex w-full flex-col items-center justify-center gap-2 bg-background text-muted-foreground">
               <Camera className="h-8 w-8 text-muted-foreground/50" />
-              <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <span className="font-mono text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
                 {title}
               </span>
-              <span className="text-xs font-semibold uppercase tracking-wide">
+              <span className="font-mono text-xs font-bold uppercase tracking-[0.08em]">
                 Waiting for stream
               </span>
             </div>
           )}
 
           {showTitle && (
-            <div className="pointer-events-none absolute left-3 top-3 flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm backdrop-blur">
-              <span className="font-semibold tracking-wide text-foreground">
+            <div className="operator-chip pointer-events-none absolute left-3 top-3 shadow-sm backdrop-blur">
+              <span className="font-medium text-foreground">
                 {title}
               </span>
-              <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+              <span className="flex items-center gap-1 font-mono text-[10px] font-bold uppercase tracking-[0.08em]">
                 {isConnected ? (
                   <Wifi className="h-3 w-3 text-emerald-500" />
                 ) : (

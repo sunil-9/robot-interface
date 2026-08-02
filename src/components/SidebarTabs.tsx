@@ -46,25 +46,25 @@ export function SidebarTabs({
         onValueChange={(value) => onTabChange(value as SidebarTab)}
         className="flex-1 min-h-0 flex flex-col px-1 pt-2"
       >
-        <TabsList className="grid w-full grid-cols-3 rounded-full bg-muted/40 p-1 h-10">
+        <TabsList className="grid h-10 w-full grid-cols-3 rounded-md bg-muted/60 p-1">
           <TabsTrigger
             data-tour="more-streams-tab"
             value="secondary"
-            className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
+            className="h-full gap-1 rounded px-1 font-mono text-[11px] font-bold uppercase tracking-[0.08em] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_14px_hsl(var(--primary)/0.24)] data-[state=inactive]:text-muted-foreground"
           >
             <Camera className="h-4 w-4" /> Cameras
           </TabsTrigger>
           <TabsTrigger
             data-tour="episodes-tab"
             value="episodes"
-            className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
+            className="h-full gap-1 rounded px-1 font-mono text-[11px] font-bold uppercase tracking-[0.08em] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_14px_hsl(var(--primary)/0.24)] data-[state=inactive]:text-muted-foreground"
           >
             <FileVideo className="h-4 w-4" /> Episodes
           </TabsTrigger>
           <TabsTrigger
             data-tour="models-tab"
             value="models"
-            className="rounded-full px-1 text-[10px] font-semibold uppercase tracking-wide gap-1 h-full data-[state=active]:scale-105 data-[state=active]:bg-primary/20 data-[state=active]:text-primary data-[state=inactive]:scale-95 data-[state=inactive]:text-muted-foreground transition-all duration-200"
+            className="h-full gap-1 rounded px-1 font-mono text-[11px] font-bold uppercase tracking-[0.08em] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-[0_0_14px_hsl(var(--primary)/0.24)] data-[state=inactive]:text-muted-foreground"
           >
             <Brain className="h-4 w-4" /> Models
           </TabsTrigger>
@@ -75,7 +75,7 @@ export function SidebarTabs({
           className="flex-1 min-h-0 data-[state=active]:flex flex-col data-[state=active]:animate-in data-[state=active]:fade-in-0 data-[state=active]:zoom-in-95 focus-visible:outline-none"
         >
           <div className="mt-2 flex-1 flex flex-col gap-3 min-h-0">
-            <div className="px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="operator-label px-2">
               Auxiliary Cameras
             </div>
             <div className="flex-1 space-y-3 overflow-y-auto pr-1">

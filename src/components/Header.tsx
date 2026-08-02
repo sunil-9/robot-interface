@@ -52,7 +52,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 const formatRobotLabel = (
-  robotId: number,
+  robotId: string | number,
   robotType?: string | null,
   name?: string | null,
 ) => {
@@ -294,7 +294,7 @@ const TrainHeader = ({
   };
 
   const handleStartRenameRobot = (
-    robotId: number,
+    robotId: string | number,
     currentName?: string | null,
   ) => {
     setRobotSelectOpen(false);
@@ -398,14 +398,14 @@ const TrainHeader = ({
     : "Deploy default model";
 
   return (
-    <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur">
-      <div className="container mx-auto flex flex-wrap items-center gap-3 px-4 py-1">
+    <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-wrap items-center gap-3 px-4 py-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-foreground"
+              className="rounded text-muted-foreground hover:text-foreground"
               aria-label="Open user menu"
             >
               <CircleUserRound />
@@ -481,14 +481,14 @@ const TrainHeader = ({
         </DropdownMenu>
 
         <div className="min-w-[220px] px-1">
-          <div className="flex flex-col">
+          <div className="flex flex-col leading-tight">
             <p
-              className={`flex items-center gap-2 text-base font-semibold text-primary              }`}
+              className="flex items-center gap-2 text-sm font-semibold text-foreground"
             >
               Imitation Machines
             </p>
             <p
-              className={`flex items-center gap-2 text-base font-semibold ${
+              className={`flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-[0.08em] ${
                 modeColors[mode] || "text-primary"
               }`}
             >
@@ -502,7 +502,7 @@ const TrainHeader = ({
 
         <div className="flex flex-1 flex-wrap items-end gap-2">
           <div className="min-w-[220px] flex-1 space-y-1">
-            <p className="px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <p className="operator-label">
               Robot
             </p>
             <div className="flex items-center gap-1">
@@ -518,7 +518,7 @@ const TrainHeader = ({
                       onValueChange={handleRobotChange}
                       disabled={loading || isConnected}
                     >
-                      <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                      <SelectTrigger className="h-10 border-border bg-background/90 text-xs shadow-none">
                         {selectedRobotDetail ? (
                           <span className="flex min-w-0 flex-1 flex-col items-start text-left leading-tight">
                             <span className="grid w-full min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] items-center gap-x-1 text-sm font-semibold text-foreground">
@@ -574,11 +574,11 @@ const TrainHeader = ({
                         {sortedRobots.map((robot) => (
                           <div
                             key={robot.id}
-                            className="mb-1 flex overflow-hidden rounded-md border border-border/70 bg-background/60"
+                            className="flex overflow-hidden rounded-md border border-border/70 bg-background/60"
                           >
                             <SelectItem
                               value={robot.id.toString()}
-                              className="min-h-16 min-w-0 flex-1 items-start rounded-none border-0 bg-transparent py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
+                              className="min-w-0 flex-1 items-start rounded-none border-0 bg-transparent py-2 pl-3 pr-3 focus:bg-accent/40 data-[state=checked]:bg-primary/10 [&>span:first-child]:hidden"
                             >
                               <div className="min-w-0 w-full text-left">
                                 <p className="grid min-w-0 grid-cols-[0.75rem_minmax(0,1fr)] items-center gap-x-1 text-sm font-medium text-foreground">
@@ -651,7 +651,7 @@ const TrainHeader = ({
           </div>
 
           <div className="min-w-[220px] flex-1 space-y-1">
-            <p className="px-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <p className="operator-label">
               Control Device
             </p>
             <div className="flex items-center gap-1">
@@ -668,7 +668,7 @@ const TrainHeader = ({
                         isConnected
                       }
                     >
-                      <SelectTrigger className="h-10 border-border bg-background/90 text-xs">
+                      <SelectTrigger className="h-10 border-border bg-background/90 text-xs shadow-none">
                         <SelectValue
                           placeholder={
                             !auth.accessToken
@@ -714,7 +714,7 @@ const TrainHeader = ({
             <div className="flex items-center gap-2">
               <div
                 data-tour="connect-button"
-                className="flex h-10 overflow-hidden rounded-md bg-emerald-600 text-white"
+                className="flex h-10 overflow-hidden rounded bg-emerald-500 text-black shadow-[0_0_14px_rgb(16_185_129_/_0.22)]"
               >
                 <div className="flex items-center px-4 text-sm font-medium">
                   <img
@@ -730,7 +730,7 @@ const TrainHeader = ({
                   size="icon"
                   onClick={onDisconnect}
                   disabled={hasActiveDeployment}
-                  className="h-10 w-10 rounded-none border-l border-white/30 bg-emerald-700 text-white hover:bg-emerald-800"
+                  className="h-10 w-10 rounded-none border-l border-black/20 bg-emerald-600 text-black hover:bg-emerald-400"
                   aria-label="Disconnect"
                   title={
                     hasActiveDeployment
@@ -744,10 +744,10 @@ const TrainHeader = ({
               {hasActiveDeployment && !anyDeployDownloading ? (
                 <div
                   data-tour="connect-button"
-                  className="flex h-10 overflow-hidden rounded-md bg-primary text-secondary-foreground"
+                  className="flex h-10 overflow-hidden rounded bg-primary text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)]"
                   title={deployButtonTitle}
                 >
-                  <div className="flex items-center px-4 text-sm font-medium text-secondary-foreground">
+                  <div className="flex items-center px-4 text-sm font-medium text-primary-foreground">
                     {deployRequestPending ? (
                       <Loader2 className="mr-1 h-4 w-4 animate-spin " />
                     ) : (
@@ -773,7 +773,7 @@ const TrainHeader = ({
                   size="sm"
                   onClick={handleDeployDefaultModel}
                   disabled={deployRequestPending || anyDeployDownloading}
-                  className="h-10 bg-primary px-4 text-primary-foreground hover:bg-primary/90"
+                  className="h-10 rounded bg-primary px-4 text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)] hover:bg-secondary/90"
                   title={deployButtonTitle}
                 >
                   {deployRequestPending || anyDeployDownloading ? (
@@ -796,7 +796,7 @@ const TrainHeader = ({
                 !controlSelection ||
                 selectedRobotDetail?.is_live === false
               }
-              className="h-10 px-4"
+              className="h-10 rounded bg-primary px-4 text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)] hover:bg-primary/90"
             >
               <img
                 src="/robot-disconnected.svg"
@@ -947,15 +947,13 @@ export const Header = ({
   const { getModeLabel, mode } = useModeContext();
   const getStoredTheme = () => {
     if (typeof window === "undefined") {
-      return "light";
+      return "dark";
     }
     const stored = window.localStorage.getItem("theme");
     if (stored === "dark" || stored === "light") {
       return stored;
     }
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    return "dark";
   };
   const [theme, setTheme] = useState<"light" | "dark">(getStoredTheme);
 

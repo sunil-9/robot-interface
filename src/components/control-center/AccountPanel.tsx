@@ -9,6 +9,7 @@ import {
   requestPasswordOtp,
   resetPasswordWithOtp,
 } from "@/services/authApi";
+import { KeyRound, LogIn, UserPlus } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface AccountPanelProps {
@@ -48,6 +49,11 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
 
   const welcomeName =
     auth.user?.fullName?.trim() || auth.user?.email || "operator";
+  const authModeTabs = [
+    { id: "login", label: "Login", icon: LogIn },
+    { id: "signup", label: "Sign Up", icon: UserPlus },
+    { id: "forgot", label: "Reset", icon: KeyRound },
+  ] as const;
 
   const handleAuthSubmit = async () => {
     setAuthSubmitting(true);
@@ -209,7 +215,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
 
   if (auth.isLoadingUser) {
     return (
-      <div className="rounded-lg border border-border bg-muted/40 p-6 text-sm text-muted-foreground">
+      <div className="operator-panel rounded-lg p-5 font-mono text-xs font-bold uppercase tracking-[0.08em] text-muted-foreground">
         Loading current session...
       </div>
     );
@@ -218,8 +224,8 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
   if (auth.user) {
     return (
       <div className="space-y-4">
-        <div className="rounded-md border border-emerald-500/25 bg-emerald-500/10 px-4 py-3">
-          <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-200/70">
+        <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 shadow-[inset_2px_0_0_rgb(16_185_129)]">
+          <p className="operator-label px-0 text-emerald-600 dark:text-emerald-300">
             Welcome
           </p>
           <h3 className="mt-1.5 text-xl font-semibold text-foreground">
@@ -230,35 +236,53 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
           </p>
         </div>
 
-        <div className="space-y-3 rounded-md border border-border/80 bg-background/45 p-4">
-          <p className="text-sm font-medium text-foreground">Change Password</p>
+        <div className="operator-panel space-y-4 p-4">
+          <div className="border-b border-border pb-3">
+            <p className="operator-label px-0">Security</p>
+            <h4 className="mt-1 text-base font-semibold text-foreground">
+              Change Password
+            </h4>
+          </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="account-current-password">Current password</Label>
+            <Label
+              className="operator-label px-0"
+              htmlFor="account-current-password"
+            >
+              Current password
+            </Label>
             <Input
               id="account-current-password"
               type="password"
               placeholder="Current password"
               value={currentPassword}
               onChange={(event) => setCurrentPassword(event.target.value)}
-              className="border-border bg-background"
+              className="rounded border-border bg-background font-mono text-sm"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="account-new-password">New password</Label>
+            <Label
+              className="operator-label px-0"
+              htmlFor="account-new-password"
+            >
+              New password
+            </Label>
             <Input
               id="account-new-password"
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
               placeholder="At least 8 characters"
-              className="border-border bg-background"
+              className="rounded border-border bg-background font-mono text-sm"
             />
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="account-confirm-new-password">
+            <Label
+              className="operator-label px-0"
+              htmlFor="account-confirm-new-password"
+            >
               Confirm new password
             </Label>
             <Input
@@ -267,7 +291,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               placeholder="At least 8 characters"
               value={confirmNewPassword}
               onChange={(event) => setConfirmNewPassword(event.target.value)}
-              className="border-border bg-background"
+              className="rounded border-border bg-background font-mono text-sm"
             />
           </div>
 
@@ -280,6 +304,7 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
               !newPassword ||
               !confirmNewPassword
             }
+            className="rounded bg-primary font-mono text-xs font-bold uppercase tracking-[0.08em] text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)] hover:bg-primary/90"
           >
             {passwordSubmitting ? "Changing..." : "Change Password"}
           </Button>
@@ -290,196 +315,240 @@ export function AccountPanel({ onClose }: AccountPanelProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant={authMode === "login" ? "default" : "outline"}
-          className={cn(
-            authMode !== "login" &&
-              "border-border bg-transparent text-foreground hover:bg-accent",
-          )}
-          onClick={() => setAuthMode("login")}
-        >
-          Login
-        </Button>
-        <Button
-          type="button"
-          variant={authMode === "signup" ? "default" : "outline"}
-          className={cn(
-            authMode !== "signup" &&
-              "border-border bg-transparent text-foreground hover:bg-accent",
-          )}
-          onClick={() => setAuthMode("signup")}
-        >
-          Sign Up
-        </Button>
+      <div className="grid h-11 grid-cols-3 rounded-md border border-border bg-muted/55 p-1">
+        {authModeTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = authMode === tab.id;
+
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setAuthMode(tab.id)}
+              className={cn(
+                "inline-flex min-w-0 items-center justify-center gap-2 rounded px-2 font-mono text-[11px] font-bold uppercase tracking-[0.08em] transition",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                isActive
+                  ? "bg-secondary text-secondary-foreground shadow-[0_0_14px_hsl(var(--secondary)/0.24)]"
+                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+              )}
+              aria-current={isActive ? "page" : undefined}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {authMode === "forgot" ? (
-        <>
-          <div className="space-y-1.5">
-            <Label htmlFor="reset-email">Email</Label>
-            <Input
-              id="reset-email"
-              type="email"
-              value={authEmail}
-              onChange={(event) => setAuthEmail(event.target.value)}
-              placeholder="operator@example.com"
-              className="border-border bg-background"
-            />
-          </div>
+      <div className="operator-panel space-y-4 p-4">
+        {authMode === "forgot" ? (
+          <>
+            <div className="border-b border-border pb-3">
+              <p className="operator-label px-0 text-secondary dark:text-secondary-foreground">
+                Account Recovery
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-foreground">
+                Reset Password
+              </h3>
+            </div>
 
-          <Button
-            type="button"
-            onClick={() => void handleRequestPasswordOtp()}
-            disabled={resetSubmitting || !authEmail.trim()}
-          >
-            {resetSubmitting && !resetOtpSent ? "Sending..." : "Send OTP"}
-          </Button>
-
-          {resetOtpSent && (
-            <>
-              <div className="space-y-1.5">
-                <Label htmlFor="reset-otp">6-digit OTP</Label>
-                <Input
-                  id="reset-otp"
-                  value={resetOtp}
-                  onChange={(event) =>
-                    setResetOtp(
-                      event.target.value.replace(/\D/g, "").slice(0, 6),
-                    )
-                  }
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="000000"
-                  className="border-border bg-background"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="reset-new-password">New password</Label>
-                <Input
-                  id="reset-new-password"
-                  type="password"
-                  value={resetNewPassword}
-                  onChange={(event) => setResetNewPassword(event.target.value)}
-                  placeholder="At least 8 characters"
-                  className="border-border bg-background"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label htmlFor="reset-confirm-password">
-                  Confirm new password
-                </Label>
-                <Input
-                  id="reset-confirm-password"
-                  type="password"
-                  value={resetConfirmPassword}
-                  onChange={(event) =>
-                    setResetConfirmPassword(event.target.value)
-                  }
-                  className="border-border bg-background"
-                />
-              </div>
-
-              <Button
-                type="button"
-                onClick={() => void handleResetPassword()}
-                disabled={
-                  resetSubmitting ||
-                  !authEmail.trim() ||
-                  resetOtp.length !== 6 ||
-                  !resetNewPassword ||
-                  !resetConfirmPassword
-                }
-              >
-                {resetSubmitting ? "Resetting..." : "Reset Password"}
-              </Button>
-            </>
-          )}
-
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-fit px-0 text-primary hover:bg-transparent hover:text-primary/80"
-            onClick={() => setAuthMode("login")}
-          >
-            Back to login
-          </Button>
-        </>
-      ) : (
-        <>
-          {authMode === "signup" && (
             <div className="space-y-1.5">
-              <Label htmlFor="auth-full-name">Full name</Label>
+              <Label className="operator-label px-0" htmlFor="reset-email">
+                Email
+              </Label>
               <Input
-                id="auth-full-name"
-                value={authFullName}
-                onChange={(event) => setAuthFullName(event.target.value)}
-                placeholder="Full Name"
-                className="border-border bg-background"
+                id="reset-email"
+                type="email"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="operator@example.com"
+                className="rounded border-border bg-background font-mono text-sm"
               />
             </div>
-          )}
-          <div className="space-y-1.5">
-            <Label htmlFor="auth-email">Email</Label>
-            <Input
-              id="auth-email"
-              type="email"
-              value={authEmail}
-              onChange={(event) => setAuthEmail(event.target.value)}
-              placeholder="operator@example.com"
-              className="border-border bg-background"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="auth-password">Password</Label>
-            <Input
-              id="auth-password"
-              type="password"
-              value={authPassword}
-              onChange={(event) => setAuthPassword(event.target.value)}
-              placeholder="At least 8 characters"
-              className="border-border bg-background"
-            />
-          </div>
-          <Button
-            type="button"
-            onClick={() => void handleAuthSubmit()}
-            disabled={
-              authSubmitting ||
-              !authEmail.trim() ||
-              !authPassword ||
-              (authMode === "signup" && !authFullName.trim())
-            }
-          >
-            {authSubmitting
-              ? authMode === "login"
-                ? "Signing In..."
-                : "Creating Account..."
-              : authMode === "login"
-                ? "Login"
-                : "Create Account"}
-          </Button>{" "}
-          {authMode === "login" && (
+
+            <Button
+              type="button"
+              onClick={() => void handleRequestPasswordOtp()}
+              disabled={resetSubmitting || !authEmail.trim()}
+              className="rounded bg-primary font-mono text-xs font-bold uppercase tracking-[0.08em] text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)] hover:bg-primary/90"
+            >
+              {resetSubmitting && !resetOtpSent ? "Sending..." : "Send OTP"}
+            </Button>
+
+            {resetOtpSent && (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="operator-label px-0" htmlFor="reset-otp">
+                    6-digit OTP
+                  </Label>
+                  <Input
+                    id="reset-otp"
+                    value={resetOtp}
+                    onChange={(event) =>
+                      setResetOtp(
+                        event.target.value.replace(/\D/g, "").slice(0, 6),
+                      )
+                    }
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="000000"
+                    className="rounded border-border bg-background font-mono text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    className="operator-label px-0"
+                    htmlFor="reset-new-password"
+                  >
+                    New password
+                  </Label>
+                  <Input
+                    id="reset-new-password"
+                    type="password"
+                    value={resetNewPassword}
+                    onChange={(event) =>
+                      setResetNewPassword(event.target.value)
+                    }
+                    placeholder="At least 8 characters"
+                    className="rounded border-border bg-background font-mono text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    className="operator-label px-0"
+                    htmlFor="reset-confirm-password"
+                  >
+                    Confirm new password
+                  </Label>
+                  <Input
+                    id="reset-confirm-password"
+                    type="password"
+                    value={resetConfirmPassword}
+                    onChange={(event) =>
+                      setResetConfirmPassword(event.target.value)
+                    }
+                    className="rounded border-border bg-background font-mono text-sm"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => void handleResetPassword()}
+                  disabled={
+                    resetSubmitting ||
+                    !authEmail.trim() ||
+                    resetOtp.length !== 6 ||
+                    !resetNewPassword ||
+                    !resetConfirmPassword
+                  }
+                  className="rounded bg-primary font-mono text-xs font-bold uppercase tracking-[0.08em] text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)] hover:bg-primary/90"
+                >
+                  {resetSubmitting ? "Resetting..." : "Reset Password"}
+                </Button>
+              </>
+            )}
+
             <Button
               type="button"
               variant="ghost"
-              className="w-fit px-0 text-primary hover:bg-transparent hover:text-primary/80"
-              onClick={() => {
-                setAuthMode("forgot");
-                setResetOtp("");
-                setResetNewPassword("");
-                setResetConfirmPassword("");
-                setResetOtpSent(false);
-              }}
+              className="w-fit rounded px-0 font-mono text-xs font-bold uppercase tracking-[0.08em] text-primary hover:bg-transparent hover:text-primary/80"
+              onClick={() => setAuthMode("login")}
             >
-              Forgot password?
+              Back to login
             </Button>
-          )}
-        </>
-      )}
+          </>
+        ) : (
+          <>
+            <div className="border-b border-border pb-3">
+              <p className="operator-label px-0 text-secondary dark:text-secondary-foreground">
+                {authMode === "login" ? "Operator Access" : "New Operator"}
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-foreground">
+                {authMode === "login" ? "Login" : "Create Account"}
+              </h3>
+            </div>
+
+            {authMode === "signup" && (
+              <div className="space-y-1.5">
+                <Label className="operator-label px-0" htmlFor="auth-full-name">
+                  Full name
+                </Label>
+                <Input
+                  id="auth-full-name"
+                  value={authFullName}
+                  onChange={(event) => setAuthFullName(event.target.value)}
+                  placeholder="Full Name"
+                  className="rounded border-border bg-background font-mono text-sm"
+                />
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <Label className="operator-label px-0" htmlFor="auth-email">
+                Email
+              </Label>
+              <Input
+                id="auth-email"
+                type="email"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="operator@example.com"
+                className="rounded border-border bg-background font-mono text-sm"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="operator-label px-0" htmlFor="auth-password">
+                Password
+              </Label>
+              <Input
+                id="auth-password"
+                type="password"
+                value={authPassword}
+                onChange={(event) => setAuthPassword(event.target.value)}
+                placeholder="At least 8 characters"
+                className="rounded border-border bg-background font-mono text-sm"
+              />
+            </div>
+            <Button
+              type="button"
+              onClick={() => void handleAuthSubmit()}
+              disabled={
+                authSubmitting ||
+                !authEmail.trim() ||
+                !authPassword ||
+                (authMode === "signup" && !authFullName.trim())
+              }
+              className="rounded bg-primary font-mono text-xs font-bold uppercase tracking-[0.08em] text-primary-foreground shadow-[0_0_14px_hsl(var(--primary)/0.24)] hover:bg-primary/90"
+            >
+              {authSubmitting
+                ? authMode === "login"
+                  ? "Signing In..."
+                  : "Creating Account..."
+                : authMode === "login"
+                  ? "Login"
+                  : "Create Account"}
+            </Button>
+            {authMode === "login" && (
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-fit rounded px-0 font-mono text-xs font-bold uppercase tracking-[0.08em] text-primary hover:bg-transparent hover:text-primary/80"
+                onClick={() => {
+                  setAuthMode("forgot");
+                  setResetOtp("");
+                  setResetNewPassword("");
+                  setResetConfirmPassword("");
+                  setResetOtpSent(false);
+                }}
+              >
+                Forgot password?
+              </Button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
